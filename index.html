@@ -1,11 +1,33 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MTG Builder</title>
+  <link rel="stylesheet" href="assets/css/builder.css" />
 </head>
 <body>
-  <h1>MTG Builder</h1>
-  <p>Builder shell is live.</p>
+  <header class="topbar">
+    <div>
+      <h1>MTG Builder</h1>
+      <p>Browser-based Magic catalog builder</p>
+    </div>
+    <span id="appStatus" class="badge">Shell Loaded</span>
+  </header>
+
+  <main class="layout">
+    <aside class="sidebar">
+      <button class="nav active" data-plugin="dashboard">Dashboard</button>
+      <button class="nav" data-plugin="sets">Set Downloader</button>
+      <button class="nav" data-plugin="catalog">Catalog Builder</button>
+      <button class="nav" data-plugin="settings">Settings</button>
+    </aside>
+
+    <section class="content">
+      <div id="pluginMount"></div>
+    </section>
+  </main>
+
+  <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
