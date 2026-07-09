@@ -1,7 +1,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const sets = window.RECOMMENDED_SETS || [];
-  const state = { installed: new Map(), discovered: [] };
+  const state = { installed: new Map(), discovered: [], setMeta: new Map() };
 
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -62,24 +62,49 @@
   async function scanCatalogSets() {
     const summary = $('catalogSummary');
     const select = $('catalogSetSelect');
-    summary.textContent = 'Scanning recommended set files in data/json...';
+    summary.textContent = 'Scanning recommended set files in data/json and reading set names...';
     select.innerHTML = '<option value="">Scanning...</option>';
     const found = [];
+    state.setMeta.clear();
     for (const code of sets) {
-      if (await fileExists(`data/json/${code}.json`)) found.push(code);
+      if (await fileExists(`data/json/${code}.json`)) {
+        const meta = await readSetMetadata(code);
+        found.push(meta);
+        state.setMeta.set(code, meta);
+        summary.textContent = `Found ${found.length} sets. Latest: ${meta.name}`;
+      }
     }
+    found.sort((a, b) => a.name.localeCompare(b.name));
     state.discovered = found;
     select.innerHTML = found.length
-      ? '<option value="">Choose a set...</option>' + found.map(code => `<option value="${code}">${code}</option>`).join('')
+      ? '<option value="">Choose a set...</option>' + found.map(meta => `<option value="${escapeHtml(meta.code)}">${escapeHtml(meta.name)}${meta.code ? ` (${escapeHtml(meta.code)})` : ''}</option>`).join('')
       : '<option value="">No set JSON files found</option>';
     summary.textContent = `Found ${found.length} available set files.`;
     $('jsonCount').textContent = `${found.length} / ${sets.length}`;
+  }
+
+  async function readSetMetadata(code) {
+    try {
+      const json = await fetchJson(`data/json/${code}.json`);
+      const data = json.data || json;
+      return {
+        code: (data.code || code).toUpperCase(),
+        name: data.name || code,
+        releaseDate: data.releaseDate || '',
+        cardCount: Array.isArray(data.cards) ? data.cards.length : 0
+      };
+    } catch {
+      return { code, name: code, releaseDate: '', cardCount: 0 };
+    }
   }
 
   async function buildSelectedCatalog() {
     const code = $('catalogSetSelect').value;
     const symbolMode = $('manaSymbolMode')?.value || 'embedded';
     const duplicateMode = $('duplicateMode')?.value || 'collapse';
+    const textSizeMode = $('textSizeMode')?.value || 'comfortable';
+    const fieldMode = $('fieldMode')?.value || 'essential';
+    const navigatorMode = $('navigatorMode')?.value || 'alphabetical';
     const summary = $('catalogSummary');
     const preview = $('catalogPreview');
     if (!code) { summary.textContent = 'Choose a set first.'; return; }
@@ -90,7 +115,7 @@
       const normalized = normalizeSet(json, code);
       const originalCount = normalized.cards.length;
       if (duplicateMode === 'collapse') normalized.cards = collapseDuplicatePrintings(normalized.cards);
-      const html = generateCompactSetHtml(normalized, { symbolMode, duplicateMode, originalCount });
+      const html = generateCompactSetHtml(normalized, { symbolMode, duplicateMode, originalCount, textSizeMode, fieldMode, navigatorMode });
       const index = {
         setName: normalized.name,
         setCode: normalized.code,
@@ -98,9 +123,12 @@
         originalPrintingCount: originalCount,
         duplicateMode,
         manaSymbolMode: symbolMode,
+        textSizeMode,
+        fieldMode,
+        navigatorMode,
         releaseDate: normalized.releaseDate || '',
         htmlFile: `${normalized.code}.html`,
-        profile: 'compact-no-js-v2',
+        profile: 'compact-no-js-v3',
         generatedAt: new Date().toISOString()
       };
       downloadText(`${normalized.code}.html`, html, 'text/html;charset=utf-8');
@@ -108,7 +136,10 @@
       downloadText(`${normalized.code}.index.json`, JSON.stringify(index, null, 2), 'application/json;charset=utf-8');
       const collapsedText = duplicateMode === 'collapse' ? `Collapsed ${originalCount} printings into ${normalized.cards.length} card entries.` : `Showing all ${originalCount} printings.`;
       summary.textContent = `Built ${normalized.code}.html. ${collapsedText}`;
-      preview.textContent = `${normalized.name}\n${normalized.code}\n${collapsedText}\nMana symbols: ${symbolMode}\n\nFirst cards:\n` + normalized.cards.slice(0, 10).map(c => `- ${c.name}${c.alternatePrintings?.length ? ` (${c.alternatePrintings.length + 1} printings)` : ''}`).join('\n');
+      preview.textContent = `${normalized.name}\n${normalized.code}\n${collapsedText}\nMana symbols: ${symbolMode}
+Text size: ${textSizeMode}
+Fields: ${fieldMode}
+Navigator: ${navigatorMode}\n\nFirst cards:\n` + normalized.cards.slice(0, 10).map(c => `- ${c.name}${c.alternatePrintings?.length ? ` (${c.alternatePrintings.length + 1} printings)` : ''}`).join('\n');
     } catch (err) {
       console.error(err);
       summary.textContent = `Build failed: ${err.message}`;
@@ -252,11 +283,12 @@
 
   function generateCompactSetHtml(set, options) {
     const title = escapeHtml(set.name);
-    const nav = generateNav(set.cards);
-    const cards = set.cards.map(card => cardSectionHtml(card, options)).join('\n');
+    const nav = generateNav(set.cards, options);
+    const cards = set.cards.map((card, index) => cardSectionHtml(card, options, index)).join('\n');
     const duplicateMeta = options.duplicateMode === 'collapse'
       ? ` &bull; ${set.cards.length} Entries from ${options.originalCount} Printings`
       : ` &bull; ${set.cards.length} Cards`;
+    const bodyClass = `size-${options.textSizeMode || 'comfortable'}`;
     return `<!doctype html>
 <html lang="en">
 <head>
@@ -264,12 +296,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}</title>
 <style>
-body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f3ea;color:#191919;line-height:1.35}#top{padding:18px 12px;text-align:center;border-bottom:2px solid #111;background:#fff}h1{font-size:30px;margin:0 0 6px}.meta{font-size:13px;color:#555}.wrap{display:block;max-width:920px;margin:0 auto;padding:12px}.nav{border:1px solid #999;background:#fff;padding:10px;margin-bottom:14px}.nav h2{margin:0 0 8px;font-size:20px}.letter{font-weight:bold;margin:12px 0 5px;border-bottom:1px solid #ddd}.nav a{display:block;padding:3px 0;color:#003b73;text-decoration:none}.card{border:1px solid #777;background:#fff;margin:0 0 12px;padding:12px}.card h2{font-size:22px;margin:0 0 8px}.line{margin:5px 0}.label{font-weight:bold}.text{white-space:pre-wrap}.toplink{display:block;margin-top:10px;font-size:13px}.pt{font-weight:bold}.small{font-size:12px;color:#555}.mana{display:inline-block;vertical-align:-3px;width:18px;height:18px;margin:0 1px}.prints{margin-top:8px;border-top:1px solid #ddd;padding-top:6px}.prints ul{margin:4px 0 0 18px;padding:0}@media print{.nav,.toplink{display:none}.card{break-inside:avoid}}
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f3efe4;color:#191919;line-height:1.5;font-size:17px}body.size-compact{font-size:15px;line-height:1.38}body.size-large{font-size:20px;line-height:1.6}#top{padding:24px 12px;text-align:center;border-bottom:3px solid #111;background:#fff}h1{font-size:36px;margin:0 0 8px;letter-spacing:.2px}body.size-compact h1{font-size:30px}body.size-large h1{font-size:42px}.meta{font-size:.82em;color:#555}.wrap{display:block;max-width:960px;margin:0 auto;padding:14px}.letters{border:1px solid #aaa;background:#fff;padding:10px;margin:0 0 14px;text-align:center}.letters a{display:inline-block;margin:3px 5px;padding:3px 6px;color:#003b73;text-decoration:none;border:1px solid #ddd;border-radius:4px}.nav{border:1px solid #999;background:#fff;padding:14px;margin-bottom:18px}.nav h2{margin:0 0 10px;font-size:1.25em}.letter{font-weight:bold;margin:16px 0 6px;border-bottom:2px solid #ddd;font-size:1.08em}.nav a{display:block;padding:5px 0;color:#003b73;text-decoration:none}.card{border:1px solid #777;background:#fff;margin:0 0 16px;padding:16px;border-radius:4px}.card:nth-child(even){background:#fcfbf7}.card h2{font-size:1.45em;margin:0 0 10px;padding-bottom:5px;border-bottom:1px solid #ddd}.line{margin:7px 0}.label{font-weight:bold;color:#333}.text{white-space:pre-wrap;background:#f8f8f8;border-left:4px solid #ddd;padding:8px}.toplink{display:block;margin-top:12px;font-size:.85em}.pt{font-weight:bold;font-size:1.08em}.small{font-size:.78em;color:#555}.mana{display:inline-block;vertical-align:-3px;width:1.1em;height:1.1em;margin:0 1px}.prints{margin-top:10px;border-top:1px solid #ddd;padding-top:8px}.prints ul{margin:4px 0 0 18px;padding:0}@media print{.nav,.letters,.toplink{display:none}.card{break-inside:avoid}}
 </style>
 </head>
-<body>
-<header id="top"><h1>${title}</h1><div class="meta">Set Code: ${escapeHtml(set.code)}${set.releaseDate ? ` &bull; Release: ${escapeHtml(set.releaseDate)}` : ''}${duplicateMeta}</div></header>
+<body class="${escapeHtml(bodyClass)}">
+<header id="top"><h1>${title}</h1><div class="meta">${set.code ? `Set Code: ${escapeHtml(set.code)}` : ''}${set.releaseDate ? ` &bull; Release: ${escapeHtml(set.releaseDate)}` : ''}${duplicateMeta}</div></header>
 <div class="wrap">
+${generateLetterJumpBar(set.cards, options)}
 <nav class="nav"><h2>Card Navigator</h2>${nav}</nav>
 <main>
 ${cards}
@@ -279,22 +312,41 @@ ${cards}
 </html>`;
   }
 
-  function generateNav(cards) {
+  function generateLetterJumpBar(cards, options) {
+    if (options.navigatorMode !== 'alphabetical') return '';
+    const letters = [];
+    for (const card of cards) {
+      const letter = navLetter(card.name);
+      if (!letters.includes(letter)) letters.push(letter);
+    }
+    return `<div class="letters"><strong>Jump:</strong> ${letters.map(l => `<a href="#letter-${safeId(l)}">${escapeHtml(l)}</a>`).join(' ')}</div>`;
+  }
+
+  function generateNav(cards, options) {
     let current = '';
     return cards.map(card => {
-      const letter = (card.name[0] || '#').toUpperCase();
-      const heading = letter !== current ? (current = letter, `<div class="letter">${escapeHtml(letter)}</div>`) : '';
+      const letter = navLetter(card.name);
+      const heading = options.navigatorMode === 'alphabetical' && letter !== current ? (current = letter, `<div class="letter" id="letter-${safeId(letter)}">${escapeHtml(letter)}</div>`) : '';
       const printCount = card.alternatePrintings?.length ? ` <span class="small">(${card.alternatePrintings.length + 1})</span>` : '';
       return `${heading}<a href="#${card.id}">${escapeHtml(card.name)}${printCount}</a>`;
     }).join('\n');
   }
 
-  function cardSectionHtml(card, options) {
-    const pt = card.power || card.toughness ? `<p class="line pt">${escapeHtml(card.power)}/${escapeHtml(card.toughness)}</p>` : '';
+  function navLetter(name) {
+    const first = (name || '#').trim()[0] || '#';
+    return /[A-Za-z]/.test(first) ? first.toUpperCase() : '#';
+  }
+
+  function safeId(value) {
+    return String(value || 'x').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  }
+
+  function cardSectionHtml(card, options, index) {
+    const pt = card.power || card.toughness ? `<p class="line pt"><span class="label">Power/Toughness:</span> ${escapeHtml(card.power)}/${escapeHtml(card.toughness)}</p>` : '';
     const loyalty = card.loyalty ? field('Loyalty', card.loyalty, options) : '';
     const defense = card.defense ? field('Defense', card.defense, options) : '';
-    const flavor = card.flavorText ? `<p class="line"><span class="label">Flavor:</span><br><em>${renderManaSymbols(escapeHtml(card.flavorText), options)}</em></p>` : '';
-    const alternates = alternatePrintingsHtml(card);
+    const flavor = card.flavorText && options.fieldMode === 'full' ? `<p class="line"><span class="label">Flavor:</span><br><em>${renderManaSymbols(escapeHtml(card.flavorText), options)}</em></p>` : '';
+    const alternates = alternatePrintingsHtml(card, options);
     return `<section class="card" id="${card.id}">
 <h2>${escapeHtml(card.name)}</h2>
 ${field('Number', card.number, options)}
@@ -313,8 +365,9 @@ ${alternates}
 </section>`;
   }
 
-  function alternatePrintingsHtml(card) {
+  function alternatePrintingsHtml(card, options) {
     if (!card.alternatePrintings?.length) return '';
+    if (options.fieldMode !== 'full') return `<div class="prints"><span class="label">Other printings collapsed:</span> ${card.alternatePrintings.length}</div>`;
     const items = card.alternatePrintings.map((p, i) => {
       const bits = [];
       if (p.number) bits.push(`#${escapeHtml(p.number)}`);
@@ -328,6 +381,8 @@ ${alternates}
 
   function field(label, value, options) {
     if (!value) return '';
+    const essential = new Set(['Mana Cost', 'Type', 'Loyalty', 'Defense']);
+    if (options.fieldMode === 'essential' && !essential.has(label)) return '';
     const rendered = label === 'Mana Cost' ? renderManaSymbols(escapeHtml(value), options) : escapeHtml(value);
     return `<p class="line"><span class="label">${escapeHtml(label)}:</span> ${rendered}</p>`;
   }
