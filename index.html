@@ -7,27 +7,80 @@
   <link rel="stylesheet" href="assets/css/builder.css" />
 </head>
 <body>
-  <header class="topbar">
+  <header class="app-header">
     <div>
       <h1>MTG Builder</h1>
-      <p>Browser-based Magic catalog builder</p>
+      <p>GitHub Pages browser workbench</p>
     </div>
-    <span id="appStatus" class="badge">Shell Loaded</span>
+    <span class="badge">Builder v1</span>
   </header>
 
-  <main class="layout">
-    <aside class="sidebar">
-      <button class="nav active" data-plugin="dashboard">Dashboard</button>
-      <button class="nav" data-plugin="sets">Set Downloader</button>
-      <button class="nav" data-plugin="catalog">Catalog Builder</button>
-      <button class="nav" data-plugin="settings">Settings</button>
-    </aside>
+  <main class="app-shell">
+    <nav class="tabs" aria-label="Builder sections">
+      <button class="tab active" data-tab="dashboard">Dashboard</button>
+      <button class="tab" data-tab="downloader">Set Downloader</button>
+      <button class="tab" data-tab="catalog">Catalog Builder</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
 
-    <section class="content">
-      <div id="pluginMount"></div>
+    <section id="dashboard" class="panel active">
+      <h2>Dashboard</h2>
+      <div class="cards-grid">
+        <article class="status-card">
+          <h3>Project</h3>
+          <p class="big">GitHub Pages</p>
+          <p>Hosted browser app is live.</p>
+        </article>
+        <article class="status-card">
+          <h3>JSON Folder</h3>
+          <p class="big" id="jsonCount">Unknown</p>
+          <p>Use the catalog checker to scan <code>data/json</code>.</p>
+        </article>
+        <article class="status-card">
+          <h3>Output Profile</h3>
+          <p class="big">Compact</p>
+          <p>No-JavaScript, basic HTML viewer friendly.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="downloader" class="panel">
+      <h2>Set Downloader</h2>
+      <p>Checks your repo for recommended MTGJSON set files and downloads missing files from MTGJSON.</p>
+      <div class="actions">
+        <button id="checkSetsBtn">Check Installed Sets</button>
+        <button id="downloadMissingBtn">Download Missing Sets</button>
+      </div>
+      <p class="hint">Downloaded files must still be uploaded to <code>data/json</code> in your GitHub repo.</p>
+      <div id="downloaderSummary" class="summary">Ready.</div>
+      <div id="setList" class="set-list"></div>
+    </section>
+
+    <section id="catalog" class="panel">
+      <h2>Catalog Builder</h2>
+      <p>Create a compact static HTML catalog for one set. The output uses only HTML/CSS and anchor links.</p>
+      <div class="actions">
+        <button id="scanCatalogSetsBtn">Scan Available Sets</button>
+      </div>
+      <label class="field-label" for="catalogSetSelect">Choose a set</label>
+      <select id="catalogSetSelect">
+        <option value="">Scan sets first...</option>
+      </select>
+      <div class="actions">
+        <button id="buildCatalogBtn">Build Selected Set HTML</button>
+      </div>
+      <p class="hint">This downloads <code>SET.html</code> and <code>SET.index.json</code>. Upload them to <code>data/output</code> when you like the result.</p>
+      <div id="catalogSummary" class="summary">Ready.</div>
+      <pre id="catalogPreview" class="preview"></pre>
+    </section>
+
+    <section id="settings" class="panel">
+      <h2>Settings</h2>
+      <p>Future settings will control output profiles, card fields, sorting, and image behavior.</p>
     </section>
   </main>
 
-  <script type="module" src="assets/js/app.js"></script>
+  <script src="assets/js/recommended-sets.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>
