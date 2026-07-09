@@ -16,6 +16,8 @@
   $('downloadMissingBtn')?.addEventListener('click', downloadMissingSets);
   $('scanCatalogSetsBtn')?.addEventListener('click', scanCatalogSets);
   $('buildCatalogBtn')?.addEventListener('click', buildSelectedCatalog);
+  $('buildAllCatalogsBtn')?.addEventListener('click', buildAllCatalogs);
+  $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
 
   async function checkInstalledSets() {
     const summary = $('downloaderSummary');
@@ -98,52 +100,128 @@
     }
   }
 
+  function getCatalogOptions() {
+    return {
+      symbolMode: $('manaSymbolMode')?.value || 'embedded',
+      duplicateMode: $('duplicateMode')?.value || 'collapse',
+      textSizeMode: $('textSizeMode')?.value || 'comfortable',
+      fieldMode: $('fieldMode')?.value || 'essential',
+      navigatorMode: $('navigatorMode')?.value || 'alphabetical'
+    };
+  }
+
   async function buildSelectedCatalog() {
     const code = $('catalogSetSelect').value;
-    const symbolMode = $('manaSymbolMode')?.value || 'embedded';
-    const duplicateMode = $('duplicateMode')?.value || 'collapse';
-    const textSizeMode = $('textSizeMode')?.value || 'comfortable';
-    const fieldMode = $('fieldMode')?.value || 'essential';
-    const navigatorMode = $('navigatorMode')?.value || 'alphabetical';
     const summary = $('catalogSummary');
     const preview = $('catalogPreview');
     if (!code) { summary.textContent = 'Choose a set first.'; return; }
     summary.textContent = `Loading ${code}.json...`;
     preview.textContent = '';
     try {
-      const json = await fetchJson(`data/json/${code}.json`);
-      const normalized = normalizeSet(json, code);
-      const originalCount = normalized.cards.length;
-      if (duplicateMode === 'collapse') normalized.cards = collapseDuplicatePrintings(normalized.cards);
-      const html = generateCompactSetHtml(normalized, { symbolMode, duplicateMode, originalCount, textSizeMode, fieldMode, navigatorMode });
-      const index = {
-        setName: normalized.name,
-        setCode: normalized.code,
-        cardCount: normalized.cards.length,
-        originalPrintingCount: originalCount,
-        duplicateMode,
-        manaSymbolMode: symbolMode,
-        textSizeMode,
-        fieldMode,
-        navigatorMode,
-        releaseDate: normalized.releaseDate || '',
-        htmlFile: `${normalized.code}.html`,
-        profile: 'compact-no-js-v3',
-        generatedAt: new Date().toISOString()
-      };
-      downloadText(`${normalized.code}.html`, html, 'text/html;charset=utf-8');
-      await delay(350);
-      downloadText(`${normalized.code}.index.json`, JSON.stringify(index, null, 2), 'application/json;charset=utf-8');
-      const collapsedText = duplicateMode === 'collapse' ? `Collapsed ${originalCount} printings into ${normalized.cards.length} card entries.` : `Showing all ${originalCount} printings.`;
-      summary.textContent = `Built ${normalized.code}.html. ${collapsedText}`;
-      preview.textContent = `${normalized.name}\n${normalized.code}\n${collapsedText}\nMana symbols: ${symbolMode}
-Text size: ${textSizeMode}
-Fields: ${fieldMode}
-Navigator: ${navigatorMode}\n\nFirst cards:\n` + normalized.cards.slice(0, 10).map(c => `- ${c.name}${c.alternatePrintings?.length ? ` (${c.alternatePrintings.length + 1} printings)` : ''}`).join('\n');
+      const result = await buildSetFiles(code, getCatalogOptions(), true);
+      const collapsedText = result.index.duplicateMode === 'collapse'
+        ? `Collapsed ${result.index.originalPrintingCount} printings into ${result.index.cardCount} card entries.`
+        : `Showing all ${result.index.originalPrintingCount} printings.`;
+      summary.textContent = `Built ${result.index.htmlFile}. ${collapsedText}`;
+      preview.textContent = previewText(result.index, result.cards);
     } catch (err) {
       console.error(err);
       summary.textContent = `Build failed: ${err.message}`;
     }
+  }
+
+  async function buildAllCatalogs() {
+    const summary = $('catalogSummary');
+    const preview = $('catalogPreview');
+    if (!state.discovered.length) await scanCatalogSets();
+    const targets = state.discovered.map(meta => meta.code);
+    if (!targets.length) { summary.textContent = 'No discovered sets to build. Upload JSON files to data/json first.'; return; }
+
+    const options = getCatalogOptions();
+    const indexes = [];
+    preview.textContent = '';
+    summary.textContent = `Starting batch build for ${targets.length} sets. Chrome may ask to allow multiple downloads.`;
+
+    for (let i = 0; i < targets.length; i++) {
+      const code = targets[i];
+      summary.textContent = `Building ${code} (${i + 1}/${targets.length})...`;
+      try {
+        const result = await buildSetFiles(code, options, true);
+        indexes.push(result.index);
+        preview.textContent += `Built ${result.index.setName} (${result.index.setCode}) — ${result.index.cardCount} entries\n`;
+        await delay(700);
+      } catch (err) {
+        console.error(err);
+        preview.textContent += `FAILED ${code}: ${err.message}\n`;
+        await delay(300);
+      }
+    }
+
+    if (indexes.length) {
+      const libraryHtml = generateLibraryIndexHtml(indexes, options);
+      downloadText('library-index.html', libraryHtml, 'text/html;charset=utf-8');
+      await delay(350);
+      downloadText('library-index.json', JSON.stringify({ generatedAt: new Date().toISOString(), setCount: indexes.length, sets: indexes }, null, 2), 'application/json;charset=utf-8');
+    }
+    summary.textContent = `Batch build complete. Built ${indexes.length}/${targets.length} sets and generated library-index.html.`;
+  }
+
+  async function buildLibraryIndexOnly() {
+    const summary = $('catalogSummary');
+    const preview = $('catalogPreview');
+    if (!state.discovered.length) await scanCatalogSets();
+    if (!state.discovered.length) { summary.textContent = 'No discovered sets to index.'; return; }
+    const indexes = state.discovered.map(meta => ({
+      setName: meta.name,
+      setCode: meta.code,
+      cardCount: meta.cardCount,
+      originalPrintingCount: meta.cardCount,
+      releaseDate: meta.releaseDate || '',
+      htmlFile: `${meta.code}.html`,
+      profile: 'compact-no-js-v4'
+    }));
+    const html = generateLibraryIndexHtml(indexes, getCatalogOptions());
+    downloadText('library-index.html', html, 'text/html;charset=utf-8');
+    await delay(350);
+    downloadText('library-index.json', JSON.stringify({ generatedAt: new Date().toISOString(), setCount: indexes.length, sets: indexes }, null, 2), 'application/json;charset=utf-8');
+    summary.textContent = `Built library-index.html for ${indexes.length} discovered sets.`;
+    preview.textContent = indexes.map(i => `${i.setName} (${i.setCode}) → ${i.htmlFile}`).join('\n');
+  }
+
+  async function buildSetFiles(code, options, shouldDownload) {
+    const json = await fetchJson(`data/json/${code}.json`);
+    const normalized = normalizeSet(json, code);
+    const originalCount = normalized.cards.length;
+    if (options.duplicateMode === 'collapse') normalized.cards = collapseDuplicatePrintings(normalized.cards);
+    const html = generateCompactSetHtml(normalized, { ...options, originalCount });
+    const index = {
+      setName: normalized.name,
+      setCode: normalized.code,
+      cardCount: normalized.cards.length,
+      originalPrintingCount: originalCount,
+      duplicateMode: options.duplicateMode,
+      manaSymbolMode: options.symbolMode,
+      textSizeMode: options.textSizeMode,
+      fieldMode: options.fieldMode,
+      navigatorMode: options.navigatorMode,
+      releaseDate: normalized.releaseDate || '',
+      htmlFile: `${normalized.code}.html`,
+      profile: 'compact-no-js-v4',
+      generatedAt: new Date().toISOString()
+    };
+    if (shouldDownload) {
+      downloadText(`${normalized.code}.html`, html, 'text/html;charset=utf-8');
+      await delay(350);
+      downloadText(`${normalized.code}.index.json`, JSON.stringify(index, null, 2), 'application/json;charset=utf-8');
+    }
+    return { html, index, cards: normalized.cards };
+  }
+
+  function previewText(index, cards) {
+    const collapsedText = index.duplicateMode === 'collapse'
+      ? `Collapsed ${index.originalPrintingCount} printings into ${index.cardCount} card entries.`
+      : `Showing all ${index.originalPrintingCount} printings.`;
+    return `${index.setName}\n${index.setCode}\n${collapsedText}\nMana symbols: ${index.manaSymbolMode}\nText size: ${index.textSizeMode}\nFields: ${index.fieldMode}\nNavigator: ${index.navigatorMode}\n\nFirst cards:\n` + cards.slice(0, 10).map(c => `- ${c.name}${c.alternatePrintings?.length ? ` (${c.alternatePrintings.length + 1} printings)` : ''}`).join('\n');
   }
 
   async function fileExists(url) {
@@ -410,6 +488,53 @@ ${alternates}
     const fontSize = label.length <= 2 ? 12 : 9;
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="${fill}" stroke="#333" stroke-width="1"/><text x="9" y="13" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="${fontSize}" font-weight="bold" fill="${color}">${safeLabel}</text></svg>`;
     return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+  }
+
+
+  function generateLibraryIndexHtml(indexes, options) {
+    const sorted = [...indexes].sort((a, b) => {
+      const ad = a.releaseDate || '';
+      const bd = b.releaseDate || '';
+      if (ad && bd && ad !== bd) return bd.localeCompare(ad);
+      return String(a.setName || a.setCode).localeCompare(String(b.setName || b.setCode));
+    });
+    const totalEntries = sorted.reduce((sum, item) => sum + Number(item.cardCount || 0), 0);
+    const totalPrintings = sorted.reduce((sum, item) => sum + Number(item.originalPrintingCount || item.cardCount || 0), 0);
+    const rows = sorted.map(item => `<tr>
+<td><a href="${escapeHtml(item.htmlFile || `${item.setCode}.html`)}">${escapeHtml(item.setName || item.setCode)}</a></td>
+<td>${escapeHtml(item.setCode || '')}</td>
+<td>${escapeHtml(item.releaseDate || '')}</td>
+<td>${escapeHtml(item.cardCount || 0)}</td>
+<td>${escapeHtml(item.originalPrintingCount || item.cardCount || 0)}</td>
+</tr>`).join('\n');
+    const generated = new Date().toISOString().slice(0, 10);
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Magic Catalog Library</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f3efe4;color:#191919;line-height:1.5;font-size:17px}header{padding:24px 12px;text-align:center;background:#fff;border-bottom:3px solid #111}h1{font-size:36px;margin:0 0 8px}.meta{font-size:.9em;color:#555}.wrap{max-width:980px;margin:0 auto;padding:16px}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:0 0 16px}.box{background:#fff;border:1px solid #aaa;padding:12px;border-radius:4px}.box strong{display:block;font-size:1.4em}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #999}th,td{border-bottom:1px solid #ddd;padding:9px;text-align:left}th{background:#eee}a{color:#003b73;text-decoration:none}tr:nth-child(even){background:#fcfbf7}@media(max-width:640px){body{font-size:15px}th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none}}
+</style>
+</head>
+<body>
+<header><h1>Magic Catalog Library</h1><div class="meta">Generated ${escapeHtml(generated)} &bull; ${sorted.length} Sets</div></header>
+<div class="wrap">
+<div class="summary">
+<div class="box"><span>Sets</span><strong>${sorted.length}</strong></div>
+<div class="box"><span>Card Entries</span><strong>${totalEntries}</strong></div>
+<div class="box"><span>Original Printings</span><strong>${totalPrintings}</strong></div>
+</div>
+<table>
+<thead><tr><th>Set</th><th>Code</th><th>Release</th><th>Entries</th><th>Printings</th></tr></thead>
+<tbody>
+${rows}
+</tbody>
+</table>
+</div>
+</body>
+</html>`;
   }
 
   function escapeHtml(value) {
