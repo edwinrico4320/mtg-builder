@@ -1,545 +1,262 @@
 (() => {
-  const $ = (id) => document.getElementById(id);
-  const sets = window.RECOMMENDED_SETS || [];
-  const state = { installed: new Map(), discovered: [], setMeta: new Map() };
+  const setCodes = Array.from(new Set((window.RECOMMENDED_SETS || []).map(s => String(s).toUpperCase())));
+  let discoveredSets = [];
 
-  document.querySelectorAll('.tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const $ = id => document.getElementById(id);
+  const log = (id, msg) => { const el = $(id); if (el) el.textContent = msg; };
+  const delay = ms => new Promise(r => setTimeout(r, ms));
+
+  function initTabs(){
+    document.querySelectorAll('.tab-button').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       $(btn.dataset.tab).classList.add('active');
-    });
-  });
+    }));
+  }
 
-  $('checkSetsBtn')?.addEventListener('click', checkInstalledSets);
-  $('downloadMissingBtn')?.addEventListener('click', downloadMissingSets);
-  $('scanCatalogSetsBtn')?.addEventListener('click', scanCatalogSets);
-  $('buildCatalogBtn')?.addEventListener('click', buildSelectedCatalog);
-  $('buildAllCatalogsBtn')?.addEventListener('click', buildAllCatalogs);
-  $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
+  async function existsInRepo(code){
+    try{
+      const res = await fetch(`data/json/${code}.json`, { cache:'no-store' });
+      return res.ok;
+    }catch{return false;}
+  }
 
-  async function checkInstalledSets() {
-    const summary = $('downloaderSummary');
+  async function checkInstalledSets(){
     const list = $('setList');
-    summary.textContent = 'Checking data/json...';
     list.innerHTML = '';
-    state.installed.clear();
-
-    let installedCount = 0;
-    for (const code of sets) {
-      const exists = await fileExists(`data/json/${code}.json`);
-      state.installed.set(code, exists);
-      if (exists) installedCount++;
+    let installed = 0;
+    log('downloadSummary', 'Checking installed sets...');
+    for(const code of setCodes){
+      const ok = await existsInRepo(code);
+      if(ok) installed++;
       const row = document.createElement('div');
       row.className = 'set-row';
-      row.innerHTML = `<strong>${escapeHtml(code)}</strong><span class="${exists ? 'ok' : 'missing'}">${exists ? 'Installed' : 'Missing'}</span>`;
+      row.innerHTML = `<strong>${code}</strong><span>data/json/${code}.json</span><span class="${ok?'ok':'missing'}">${ok?'Installed':'Missing'}</span>`;
       list.appendChild(row);
     }
-    $('jsonCount').textContent = `${installedCount} / ${sets.length}`;
-    summary.textContent = `Found ${installedCount} installed set files. Missing ${sets.length - installedCount}.`;
+    log('jsonStatus', `${installed} installed / ${setCodes.length} checked`);
+    log('downloadSummary', `${installed} installed, ${setCodes.length-installed} missing.`);
   }
 
-  async function downloadMissingSets() {
-    if (!state.installed.size) await checkInstalledSets();
-    const missing = sets.filter(code => !state.installed.get(code));
-    const summary = $('downloaderSummary');
-    if (!missing.length) { summary.textContent = 'No missing recommended sets.'; return; }
-    summary.textContent = `Downloading ${missing.length} missing sets. Chrome may ask to allow multiple downloads.`;
-    for (let i = 0; i < missing.length; i++) {
-      const code = missing[i];
-      summary.textContent = `Downloading ${code}.json (${i + 1}/${missing.length})...`;
-      try {
-        await forcedDownload(`https://mtgjson.com/api/v5/${code}.json`, `${code}.json`);
-        await delay(900);
-      } catch (err) {
-        console.error(err);
-        window.open(`https://mtgjson.com/api/v5/${code}.json`, '_blank');
-        await delay(1200);
-      }
-    }
-    summary.textContent = 'Download queue finished. Upload downloaded JSON files to data/json in GitHub.';
-  }
-
-  async function scanCatalogSets() {
-    const summary = $('catalogSummary');
-    const select = $('catalogSetSelect');
-    summary.textContent = 'Scanning recommended set files in data/json and reading set names...';
-    select.innerHTML = '<option value="">Scanning...</option>';
-    const found = [];
-    state.setMeta.clear();
-    for (const code of sets) {
-      if (await fileExists(`data/json/${code}.json`)) {
-        const meta = await readSetMetadata(code);
-        found.push(meta);
-        state.setMeta.set(code, meta);
-        summary.textContent = `Found ${found.length} sets. Latest: ${meta.name}`;
-      }
-    }
-    found.sort((a, b) => a.name.localeCompare(b.name));
-    state.discovered = found;
-    select.innerHTML = found.length
-      ? '<option value="">Choose a set...</option>' + found.map(meta => `<option value="${escapeHtml(meta.code)}">${escapeHtml(meta.name)}${meta.code ? ` (${escapeHtml(meta.code)})` : ''}</option>`).join('')
-      : '<option value="">No set JSON files found</option>';
-    summary.textContent = `Found ${found.length} available set files.`;
-    $('jsonCount').textContent = `${found.length} / ${sets.length}`;
-  }
-
-  async function readSetMetadata(code) {
-    try {
-      const json = await fetchJson(`data/json/${code}.json`);
-      const data = json.data || json;
-      return {
-        code: (data.code || code).toUpperCase(),
-        name: data.name || code,
-        releaseDate: data.releaseDate || '',
-        cardCount: Array.isArray(data.cards) ? data.cards.length : 0
-      };
-    } catch {
-      return { code, name: code, releaseDate: '', cardCount: 0 };
-    }
-  }
-
-  function getCatalogOptions() {
-    return {
-      symbolMode: $('manaSymbolMode')?.value || 'embedded',
-      duplicateMode: $('duplicateMode')?.value || 'collapse',
-      textSizeMode: $('textSizeMode')?.value || 'comfortable',
-      fieldMode: $('fieldMode')?.value || 'essential',
-      navigatorMode: $('navigatorMode')?.value || 'alphabetical'
-    };
-  }
-
-  async function buildSelectedCatalog() {
-    const code = $('catalogSetSelect').value;
-    const summary = $('catalogSummary');
-    const preview = $('catalogPreview');
-    if (!code) { summary.textContent = 'Choose a set first.'; return; }
-    summary.textContent = `Loading ${code}.json...`;
-    preview.textContent = '';
-    try {
-      const result = await buildSetFiles(code, getCatalogOptions(), true);
-      const collapsedText = result.index.duplicateMode === 'collapse'
-        ? `Collapsed ${result.index.originalPrintingCount} printings into ${result.index.cardCount} card entries.`
-        : `Showing all ${result.index.originalPrintingCount} printings.`;
-      summary.textContent = `Built ${result.index.htmlFile}. ${collapsedText}`;
-      preview.textContent = previewText(result.index, result.cards);
-    } catch (err) {
-      console.error(err);
-      summary.textContent = `Build failed: ${err.message}`;
-    }
-  }
-
-  async function buildAllCatalogs() {
-    const summary = $('catalogSummary');
-    const preview = $('catalogPreview');
-    if (!state.discovered.length) await scanCatalogSets();
-    const targets = state.discovered.map(meta => meta.code);
-    if (!targets.length) { summary.textContent = 'No discovered sets to build. Upload JSON files to data/json first.'; return; }
-
-    const options = getCatalogOptions();
-    const indexes = [];
-    preview.textContent = '';
-    summary.textContent = `Starting batch build for ${targets.length} sets. Chrome may ask to allow multiple downloads.`;
-
-    for (let i = 0; i < targets.length; i++) {
-      const code = targets[i];
-      summary.textContent = `Building ${code} (${i + 1}/${targets.length})...`;
-      try {
-        const result = await buildSetFiles(code, options, true);
-        indexes.push(result.index);
-        preview.textContent += `Built ${result.index.setName} (${result.index.setCode}) — ${result.index.cardCount} entries\n`;
-        await delay(700);
-      } catch (err) {
-        console.error(err);
-        preview.textContent += `FAILED ${code}: ${err.message}\n`;
-        await delay(300);
-      }
-    }
-
-    if (indexes.length) {
-      const libraryHtml = generateLibraryIndexHtml(indexes, options);
-      downloadText('library-index.html', libraryHtml, 'text/html;charset=utf-8');
-      await delay(350);
-      downloadText('library-index.json', JSON.stringify({ generatedAt: new Date().toISOString(), setCount: indexes.length, sets: indexes }, null, 2), 'application/json;charset=utf-8');
-    }
-    summary.textContent = `Batch build complete. Built ${indexes.length}/${targets.length} sets and generated library-index.html.`;
-  }
-
-  async function buildLibraryIndexOnly() {
-    const summary = $('catalogSummary');
-    const preview = $('catalogPreview');
-    if (!state.discovered.length) await scanCatalogSets();
-    if (!state.discovered.length) { summary.textContent = 'No discovered sets to index.'; return; }
-    const indexes = state.discovered.map(meta => ({
-      setName: meta.name,
-      setCode: meta.code,
-      cardCount: meta.cardCount,
-      originalPrintingCount: meta.cardCount,
-      releaseDate: meta.releaseDate || '',
-      htmlFile: `${meta.code}.html`,
-      profile: 'compact-no-js-v4'
-    }));
-    const html = generateLibraryIndexHtml(indexes, getCatalogOptions());
-    downloadText('library-index.html', html, 'text/html;charset=utf-8');
-    await delay(350);
-    downloadText('library-index.json', JSON.stringify({ generatedAt: new Date().toISOString(), setCount: indexes.length, sets: indexes }, null, 2), 'application/json;charset=utf-8');
-    summary.textContent = `Built library-index.html for ${indexes.length} discovered sets.`;
-    preview.textContent = indexes.map(i => `${i.setName} (${i.setCode}) → ${i.htmlFile}`).join('\n');
-  }
-
-  async function buildSetFiles(code, options, shouldDownload) {
-    const json = await fetchJson(`data/json/${code}.json`);
-    const normalized = normalizeSet(json, code);
-    const originalCount = normalized.cards.length;
-    if (options.duplicateMode === 'collapse') normalized.cards = collapseDuplicatePrintings(normalized.cards);
-    const html = generateCompactSetHtml(normalized, { ...options, originalCount });
-    const index = {
-      setName: normalized.name,
-      setCode: normalized.code,
-      cardCount: normalized.cards.length,
-      originalPrintingCount: originalCount,
-      duplicateMode: options.duplicateMode,
-      manaSymbolMode: options.symbolMode,
-      textSizeMode: options.textSizeMode,
-      fieldMode: options.fieldMode,
-      navigatorMode: options.navigatorMode,
-      releaseDate: normalized.releaseDate || '',
-      htmlFile: `${normalized.code}.html`,
-      profile: 'compact-no-js-v4',
-      generatedAt: new Date().toISOString()
-    };
-    if (shouldDownload) {
-      downloadText(`${normalized.code}.html`, html, 'text/html;charset=utf-8');
-      await delay(350);
-      downloadText(`${normalized.code}.index.json`, JSON.stringify(index, null, 2), 'application/json;charset=utf-8');
-    }
-    return { html, index, cards: normalized.cards };
-  }
-
-  function previewText(index, cards) {
-    const collapsedText = index.duplicateMode === 'collapse'
-      ? `Collapsed ${index.originalPrintingCount} printings into ${index.cardCount} card entries.`
-      : `Showing all ${index.originalPrintingCount} printings.`;
-    return `${index.setName}\n${index.setCode}\n${collapsedText}\nMana symbols: ${index.manaSymbolMode}\nText size: ${index.textSizeMode}\nFields: ${index.fieldMode}\nNavigator: ${index.navigatorMode}\n\nFirst cards:\n` + cards.slice(0, 10).map(c => `- ${c.name}${c.alternatePrintings?.length ? ` (${c.alternatePrintings.length + 1} printings)` : ''}`).join('\n');
-  }
-
-  async function fileExists(url) {
-    try {
-      const res = await fetch(`${url}?cacheBust=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
-      if (res.ok) return true;
-      if (res.status === 405) {
-        const getRes = await fetch(url, { method: 'GET', cache: 'no-store' });
-        return getRes.ok;
-      }
-      return false;
-    } catch { return false; }
-  }
-
-  async function fetchJson(url) {
-    const res = await fetch(`${url}?cacheBust=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Could not fetch ${url}: ${res.status}`);
-    return res.json();
-  }
-
-  async function forcedDownload(url, filename) {
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
-    const blob = await res.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
-  }
-
-  function downloadText(filename, text, type) {
+  function saveTextFile(filename, text, type='text/plain'){
     const blob = new Blob([text], { type });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   }
 
-  function normalizeSet(raw, fallbackCode) {
-    const data = raw.data || raw;
-    const cards = (data.cards || []).map((card, i) => normalizeCard(card, i)).filter(c => c.name);
-    cards.sort((a, b) => (a.sortName || a.name).localeCompare(b.sortName || b.name, undefined, { numeric: true }));
+  async function downloadMissingSets(){
+    log('downloadSummary','Checking for missing sets...');
+    const missing=[];
+    for(const code of setCodes){ if(!(await existsInRepo(code))) missing.push(code); }
+    if(!missing.length){ log('downloadSummary','No missing recommended sets found.'); return; }
+    log('downloadSummary', `Downloading ${missing.length} missing sets. Chrome may ask you to allow multiple downloads.`);
+    let done=0, failed=0;
+    for(const code of missing){
+      try{
+        const res = await fetch(`https://mtgjson.com/api/v5/${code}.json`);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        saveTextFile(`${code}.json`, text, 'application/json');
+        done++;
+      }catch(err){
+        failed++;
+        console.warn('Failed download', code, err);
+        window.open(`https://mtgjson.com/api/v5/${code}.json`, '_blank');
+      }
+      log('downloadSummary', `Downloaded ${done}/${missing.length}. Failed/fallback: ${failed}. Current: ${code}`);
+      await delay(900);
+    }
+    log('downloadSummary', `Done. Downloaded ${done}. Failed/fallback: ${failed}. Upload downloaded JSON files to data/json.`);
+  }
+
+  function getSetPayload(json){ return json && json.data ? json.data : json; }
+  function getCards(data){ return Array.isArray(data.cards) ? data.cards : []; }
+  function esc(v){ return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function cardText(card){ return card.text || card.oracleText || card.faceName || ''; }
+  function safeId(s, i){ return 'card-' + String(s || i).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') + '-' + i; }
+
+  async function fetchSet(code){
+    const res = await fetch(`data/json/${code}.json`, { cache:'no-store' });
+    if(!res.ok) throw new Error(`${code}.json not found in data/json`);
+    const json = await res.json();
+    return getSetPayload(json);
+  }
+
+  async function scanCatalogSets(){
+    const select = $('catalogSetSelect');
+    select.innerHTML = '<option value="">Scanning...</option>';
+    discoveredSets = [];
+    log('catalogSummary','Scanning known set codes against data/json...');
+    for(const code of setCodes){
+      try{
+        const data = await fetchSet(code);
+        const cards = getCards(data);
+        discoveredSets.push({ code, name: data.name || code, releaseDate: data.releaseDate || '', cardCount: cards.length });
+      }catch{}
+    }
+    select.innerHTML = '';
+    if(!discoveredSets.length){
+      select.innerHTML = '<option value="">No sets found</option>';
+      log('catalogSummary','No JSON files found. Make sure files are uploaded to data/json and listed in recommended-sets.js.');
+      return;
+    }
+    discoveredSets.sort((a,b)=> (a.name||a.code).localeCompare(b.name||b.code));
+    for(const s of discoveredSets){
+      const opt = document.createElement('option'); opt.value = s.code; opt.textContent = `${s.name} (${s.code})`; select.appendChild(opt);
+    }
+    log('jsonStatus', `${discoveredSets.length} sets discovered`);
+    log('catalogSummary', `Discovered ${discoveredSets.length} sets.`);
+  }
+
+  function manaToHtml(text, embedded){
+    const raw = esc(text || '');
+    if(!embedded) return raw;
+    // Tiny inline SVG circles with symbol text, self-contained and basic-viewer friendly.
+    return raw.replace(/\{([^}]+)\}/g, (_, sym) => {
+      const s = esc(sym.toUpperCase().replace('/', '⁄'));
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"><circle cx="11" cy="11" r="10" fill="#eee" stroke="#222"/><text x="11" y="15" font-size="10" text-anchor="middle" font-family="Arial" fill="#111">${s}</text></svg>`;
+      return `<img class="mana" alt="{${s}}" src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}">`;
+    });
+  }
+
+  function normalizeCards(cards, duplicateMode){
+    const out=[]; const seen = new Map();
+    cards.forEach((c, idx) => {
+      const n = {
+        number: c.number || c.identifiers?.mtgjsonV4Id || idx+1,
+        name: c.name || c.faceName || 'Unnamed Card',
+        manaCost: c.manaCost || '',
+        manaValue: c.manaValue ?? c.convertedManaCost ?? '',
+        type: c.type || '',
+        text: cardText(c),
+        flavorText: c.flavorText || '',
+        power: c.power || '', toughness: c.toughness || '', loyalty: c.loyalty || '', defense: c.defense || '',
+        rarity: c.rarity || '', artist: c.artist || '',
+        original: c
+      };
+      const key = [n.name,n.manaCost,n.type,n.text,n.power,n.toughness,n.loyalty,n.defense].join('|');
+      if(duplicateMode === 'collapse' && seen.has(key)){
+        seen.get(key).printings.push({ number:n.number, artist:n.artist, rarity:n.rarity });
+      }else{
+        n.printings = [{ number:n.number, artist:n.artist, rarity:n.rarity }];
+        seen.set(key,n); out.push(n);
+      }
+    });
+    return out.sort((a,b)=> a.name.localeCompare(b.name) || String(a.number).localeCompare(String(b.number), undefined, {numeric:true}));
+  }
+
+  function buildNav(cards, navMode){
+    if(navMode === 'plain') return '<nav class="nav"><h2>Cards</h2>' + cards.map((c,i)=>`<a href="#${c.id}">${esc(c.name)}</a>`).join('') + '</nav>';
+    const groups = {};
+    cards.forEach(c => { const l = (c.name[0] || '#').toUpperCase(); (groups[l] ||= []).push(c); });
+    const letters = Object.keys(groups).sort();
+    return `<nav class="nav" id="top"><h2>Cards</h2><div class="letters">${letters.map(l=>`<a href="#letter-${esc(l)}">${esc(l)}</a>`).join('')}</div>` + letters.map(l => `<h3 id="letter-${esc(l)}">${esc(l)}</h3>${groups[l].map(c=>`<a href="#${c.id}">${esc(c.name)}</a>`).join('')}`).join('') + '</nav>';
+  }
+
+  function generateSetHtml(data, opts){
+    const code = data.code || data.baseSetSize ? (data.code || '') : '';
+    const setCode = (data.code || opts.code || '').toUpperCase();
+    const setName = data.name || setCode || 'Magic Set';
+    let cards = normalizeCards(getCards(data), opts.duplicateMode).map((c,i)=>({...c,id:safeId(c.name,i)}));
+    const symbolImages = opts.symbolMode === 'embedded';
+    const bodyClass = `size-${opts.textSize}`;
+    const full = opts.fieldMode === 'full';
+    const nav = buildNav(cards, opts.navMode);
+    const cardBlocks = cards.map(c => {
+      const pt = c.power || c.toughness ? `<p><b>Power/Toughness:</b> ${esc(c.power)}/${esc(c.toughness)}</p>` : '';
+      const loyalty = c.loyalty ? `<p><b>Loyalty:</b> ${esc(c.loyalty)}</p>` : '';
+      const defense = c.defense ? `<p><b>Defense:</b> ${esc(c.defense)}</p>` : '';
+      const fullFields = full ? `${c.rarity?`<p><b>Rarity:</b> ${esc(c.rarity)}</p>`:''}${c.artist?`<p><b>Artist:</b> ${esc(c.artist)}</p>`:''}${c.flavorText?`<p><b>Flavor:</b> <i>${esc(c.flavorText)}</i></p>`:''}` : '';
+      const printings = c.printings.length > 1 ? `<details open><summary>Alternate printings in this set (${c.printings.length})</summary><ul>${c.printings.map(p=>`<li>#${esc(p.number)}${p.artist?` — ${esc(p.artist)}`:''}${p.rarity?` — ${esc(p.rarity)}`:''}</li>`).join('')}</ul></details>` : '';
+      return `<article class="card" id="${c.id}"><h2>${esc(c.name)}</h2>${c.manaCost?`<p><b>Mana Cost:</b> <span class="mana-line">${manaToHtml(c.manaCost, symbolImages)}</span></p>`:''}${c.type?`<p><b>Type:</b> ${esc(c.type)}</p>`:''}${c.text?`<p class="rules"><b>Text:</b><br>${manaToHtml(c.text, symbolImages).replace(/\n/g,'<br>')}</p>`:''}${pt}${loyalty}${defense}${fullFields}${printings}<p><a href="#top">Back to top</a></p></article>`;
+    }).join('\n');
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(setName)}</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f6f6;color:#111;line-height:1.45}.wrap{max-width:900px;margin:0 auto;padding:16px}.title{text-align:center;font-size:2.2em;margin:.5em 0}.meta{text-align:center;color:#444;margin-bottom:1.5em}.nav,.card{background:#fff;border:1px solid #bbb;border-radius:8px;margin:12px 0;padding:14px}.nav a{display:inline-block;margin:4px 8px 4px 0;padding:3px 6px;border:1px solid #ccc;border-radius:4px;text-decoration:none;color:#0645ad}.letters a{font-weight:bold}.card{border-left:6px solid #444}.card:nth-child(even){background:#fbfbfb}.card h2{margin-top:0;border-bottom:1px solid #ddd;padding-bottom:6px}.rules{white-space:normal}.mana{width:22px;height:22px;vertical-align:middle;margin:0 1px}.size-compact{font-size:14px}.size-comfortable{font-size:17px}.size-large{font-size:20px}summary{font-weight:bold}a{color:#0645ad}</style></head><body class="${bodyClass}"><div class="wrap" id="top"><h1 class="title">${esc(setName)}</h1><div class="meta">${setCode?`Set Code: ${esc(setCode)} · `:''}${cards.length} cards${data.releaseDate?` · Released ${esc(data.releaseDate)}`:''}</div>${nav}<main>${cardBlocks}</main></div></body></html>`;
+  }
+
+  function getOptions(){
     return {
-      name: data.name || fallbackCode,
-      code: (data.code || fallbackCode).toUpperCase(),
-      releaseDate: data.releaseDate || '',
-      type: data.type || '',
-      cards
+      textSize: $('textSizeSelect').value,
+      fieldMode: $('fieldModeSelect').value,
+      navMode: $('navModeSelect').value,
+      symbolMode: $('symbolModeSelect').value,
+      duplicateMode: $('duplicateModeSelect').value
     };
   }
 
-  function normalizeCard(card, index) {
-    const faceText = Array.isArray(card.faceName) ? card.faceName.join(' / ') : '';
-    const names = Array.isArray(card.names) ? card.names.join(' / ') : '';
-    const text = card.text || card.oracleText || extractFaceText(card) || '';
-    const manaCost = card.manaCost || card.mana_cost || extractFaceManaCost(card) || '';
-    const type = card.type || card.typeLine || extractFaceType(card) || '';
-    return {
-      id: `card-${index + 1}`,
-      number: card.number || '',
-      name: card.name || faceText || names || '',
-      sortName: (card.name || '').replace(/^The\s+/i, ''),
-      manaCost,
-      manaValue: card.manaValue ?? card.convertedManaCost ?? '',
-      type,
-      text,
-      flavorText: card.flavorText || '',
-      power: card.power || '',
-      toughness: card.toughness || '',
-      loyalty: card.loyalty || '',
-      defense: card.defense || '',
-      rarity: card.rarity || '',
-      artist: card.artist || ''
-    };
+  async function buildSelected(){
+    const code = $('catalogSetSelect').value;
+    if(!code){ log('catalogSummary','Pick a set first.'); return; }
+    log('catalogSummary', `Building ${code}...`);
+    const data = await fetchSet(code);
+    const html = generateSetHtml(data, {...getOptions(), code});
+    const cards = normalizeCards(getCards(data), getOptions().duplicateMode);
+    const idx = { setCode: code, setName: data.name || code, cardCount: cards.length, releaseDate: data.releaseDate || '', htmlFile: `${code}.html`, builtAt: new Date().toISOString() };
+    saveTextFile(`${code}.html`, html, 'text/html');
+    await delay(500);
+    saveTextFile(`${code}.index.json`, JSON.stringify(idx,null,2), 'application/json');
+    log('catalogSummary', `Built ${data.name || code}. Upload ${code}.html and ${code}.index.json to data/output.`);
   }
 
-  function extractFaceText(card) {
-    if (!Array.isArray(card.faceData)) return '';
-    return card.faceData.map(face => [face.name, face.text].filter(Boolean).join('\n')).filter(Boolean).join('\n---\n');
-  }
-  function extractFaceManaCost(card) {
-    if (!Array.isArray(card.faceData)) return '';
-    return card.faceData.map(face => face.manaCost || '').filter(Boolean).join(' // ');
-  }
-  function extractFaceType(card) {
-    if (!Array.isArray(card.faceData)) return '';
-    return card.faceData.map(face => face.type || '').filter(Boolean).join(' // ');
-  }
+  async function ensureDiscovered(){ if(!discoveredSets.length) await scanCatalogSets(); return discoveredSets.length; }
 
-  function collapseDuplicatePrintings(cards) {
-    const groups = new Map();
-    for (const card of cards) {
-      const key = gameplayKey(card);
-      if (!groups.has(key)) {
-        groups.set(key, { ...card, alternatePrintings: [] });
-      } else {
-        const main = groups.get(key);
-        main.alternatePrintings.push({
-          number: card.number,
-          rarity: card.rarity,
-          artist: card.artist,
-          flavorText: card.flavorText,
-          id: card.id
-        });
+  async function buildAll(){
+    const count = await ensureDiscovered();
+    if(!count){ log('catalogSummary','No discovered sets to build. Run Scan Available Sets first or add set codes to recommended-sets.js.'); return; }
+    log('catalogSummary', `Building ${count} discovered sets. Chrome may ask to allow multiple downloads.`);
+    const built=[]; let i=0;
+    for(const s of discoveredSets){
+      i++;
+      try{
+        const data = await fetchSet(s.code);
+        const html = generateSetHtml(data, {...getOptions(), code:s.code});
+        const cards = normalizeCards(getCards(data), getOptions().duplicateMode);
+        saveTextFile(`${s.code}.html`, html, 'text/html');
+        built.push({ setCode:s.code, setName:data.name||s.name||s.code, cardCount:cards.length, releaseDate:data.releaseDate||'', htmlFile:`${s.code}.html` });
+        log('catalogSummary', `Built ${i}/${count}: ${data.name || s.code}`);
+        await delay(800);
+      }catch(err){
+        console.error(err);
+        log('catalogSummary', `Error building ${s.code}: ${err.message}`);
+        await delay(800);
       }
     }
-    const collapsed = Array.from(groups.values());
-    collapsed.forEach((card, i) => { card.id = `card-${i + 1}`; });
-    return collapsed;
+    await delay(800);
+    saveTextFile('library-index.html', generateLibraryIndexHtml(built), 'text/html');
+    await delay(500);
+    saveTextFile('library-index.json', JSON.stringify({ builtAt:new Date().toISOString(), sets:built }, null, 2), 'application/json');
+    log('catalogSummary', `Done. Built ${built.length}/${count} set files plus library-index.html/json.`);
   }
 
-  function gameplayKey(card) {
-    return [
-      card.name,
-      card.manaCost,
-      String(card.manaValue ?? ''),
-      card.type,
-      normalizeRulesText(card.text),
-      card.power,
-      card.toughness,
-      card.loyalty,
-      card.defense
-    ].map(v => String(v || '').trim().toLowerCase()).join('|');
+  function generateLibraryIndexHtml(sets){
+    sets.sort((a,b)=>(a.setName||a.setCode).localeCompare(b.setName||b.setCode));
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MTG Library</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f6f6;color:#111}.wrap{max-width:800px;margin:0 auto;padding:16px}h1{text-align:center}.set{background:white;border:1px solid #bbb;border-radius:8px;margin:10px 0;padding:12px}a{font-size:1.2em;font-weight:bold;color:#0645ad}</style></head><body><div class="wrap"><h1>MTG Library</h1><p>${sets.length} generated sets</p>${sets.map(s=>`<div class="set"><a href="${esc(s.htmlFile)}">${esc(s.setName)}</a><br><small>${esc(s.setCode)} · ${esc(s.cardCount)} cards${s.releaseDate?` · ${esc(s.releaseDate)}`:''}</small></div>`).join('')}</div></body></html>`;
   }
 
-  function normalizeRulesText(text) {
-    return String(text || '').replace(/\s+/g, ' ').trim();
+  async function buildLibraryIndexOnly(){
+    const count = await ensureDiscovered();
+    if(!count){ log('catalogSummary','No discovered sets found.'); return; }
+    const sets = discoveredSets.map(s => ({ setCode:s.code, setName:s.name, cardCount:s.cardCount, releaseDate:s.releaseDate, htmlFile:`${s.code}.html` }));
+    saveTextFile('library-index.html', generateLibraryIndexHtml(sets), 'text/html');
+    await delay(500);
+    saveTextFile('library-index.json', JSON.stringify({ builtAt:new Date().toISOString(), sets }, null, 2), 'application/json');
+    log('catalogSummary', `Built library-index files for ${sets.length} discovered sets.`);
   }
 
-  function generateCompactSetHtml(set, options) {
-    const title = escapeHtml(set.name);
-    const nav = generateNav(set.cards, options);
-    const cards = set.cards.map((card, index) => cardSectionHtml(card, options, index)).join('\n');
-    const duplicateMeta = options.duplicateMode === 'collapse'
-      ? ` &bull; ${set.cards.length} Entries from ${options.originalCount} Printings`
-      : ` &bull; ${set.cards.length} Cards`;
-    const bodyClass = `size-${options.textSizeMode || 'comfortable'}`;
-    return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title}</title>
-<style>
-body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f3efe4;color:#191919;line-height:1.5;font-size:17px}body.size-compact{font-size:15px;line-height:1.38}body.size-large{font-size:20px;line-height:1.6}#top{padding:24px 12px;text-align:center;border-bottom:3px solid #111;background:#fff}h1{font-size:36px;margin:0 0 8px;letter-spacing:.2px}body.size-compact h1{font-size:30px}body.size-large h1{font-size:42px}.meta{font-size:.82em;color:#555}.wrap{display:block;max-width:960px;margin:0 auto;padding:14px}.letters{border:1px solid #aaa;background:#fff;padding:10px;margin:0 0 14px;text-align:center}.letters a{display:inline-block;margin:3px 5px;padding:3px 6px;color:#003b73;text-decoration:none;border:1px solid #ddd;border-radius:4px}.nav{border:1px solid #999;background:#fff;padding:14px;margin-bottom:18px}.nav h2{margin:0 0 10px;font-size:1.25em}.letter{font-weight:bold;margin:16px 0 6px;border-bottom:2px solid #ddd;font-size:1.08em}.nav a{display:block;padding:5px 0;color:#003b73;text-decoration:none}.card{border:1px solid #777;background:#fff;margin:0 0 16px;padding:16px;border-radius:4px}.card:nth-child(even){background:#fcfbf7}.card h2{font-size:1.45em;margin:0 0 10px;padding-bottom:5px;border-bottom:1px solid #ddd}.line{margin:7px 0}.label{font-weight:bold;color:#333}.text{white-space:pre-wrap;background:#f8f8f8;border-left:4px solid #ddd;padding:8px}.toplink{display:block;margin-top:12px;font-size:.85em}.pt{font-weight:bold;font-size:1.08em}.small{font-size:.78em;color:#555}.mana{display:inline-block;vertical-align:-3px;width:1.1em;height:1.1em;margin:0 1px}.prints{margin-top:10px;border-top:1px solid #ddd;padding-top:8px}.prints ul{margin:4px 0 0 18px;padding:0}@media print{.nav,.letters,.toplink{display:none}.card{break-inside:avoid}}
-</style>
-</head>
-<body class="${escapeHtml(bodyClass)}">
-<header id="top"><h1>${title}</h1><div class="meta">${set.code ? `Set Code: ${escapeHtml(set.code)}` : ''}${set.releaseDate ? ` &bull; Release: ${escapeHtml(set.releaseDate)}` : ''}${duplicateMeta}</div></header>
-<div class="wrap">
-${generateLetterJumpBar(set.cards, options)}
-<nav class="nav"><h2>Card Navigator</h2>${nav}</nav>
-<main>
-${cards}
-</main>
-</div>
-</body>
-</html>`;
+  function bind(){
+    initTabs();
+    $('checkSetsBtn')?.addEventListener('click', checkInstalledSets);
+    $('downloadMissingBtn')?.addEventListener('click', downloadMissingSets);
+    $('scanCatalogSetsBtn')?.addEventListener('click', scanCatalogSets);
+    $('buildCatalogBtn')?.addEventListener('click', buildSelected);
+    $('buildAllCatalogsBtn')?.addEventListener('click', buildAll);
+    $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
+    console.log('MTG Builder v4.1 loaded');
   }
-
-  function generateLetterJumpBar(cards, options) {
-    if (options.navigatorMode !== 'alphabetical') return '';
-    const letters = [];
-    for (const card of cards) {
-      const letter = navLetter(card.name);
-      if (!letters.includes(letter)) letters.push(letter);
-    }
-    return `<div class="letters"><strong>Jump:</strong> ${letters.map(l => `<a href="#letter-${safeId(l)}">${escapeHtml(l)}</a>`).join(' ')}</div>`;
-  }
-
-  function generateNav(cards, options) {
-    let current = '';
-    return cards.map(card => {
-      const letter = navLetter(card.name);
-      const heading = options.navigatorMode === 'alphabetical' && letter !== current ? (current = letter, `<div class="letter" id="letter-${safeId(letter)}">${escapeHtml(letter)}</div>`) : '';
-      const printCount = card.alternatePrintings?.length ? ` <span class="small">(${card.alternatePrintings.length + 1})</span>` : '';
-      return `${heading}<a href="#${card.id}">${escapeHtml(card.name)}${printCount}</a>`;
-    }).join('\n');
-  }
-
-  function navLetter(name) {
-    const first = (name || '#').trim()[0] || '#';
-    return /[A-Za-z]/.test(first) ? first.toUpperCase() : '#';
-  }
-
-  function safeId(value) {
-    return String(value || 'x').toLowerCase().replace(/[^a-z0-9]+/g, '-');
-  }
-
-  function cardSectionHtml(card, options, index) {
-    const pt = card.power || card.toughness ? `<p class="line pt"><span class="label">Power/Toughness:</span> ${escapeHtml(card.power)}/${escapeHtml(card.toughness)}</p>` : '';
-    const loyalty = card.loyalty ? field('Loyalty', card.loyalty, options) : '';
-    const defense = card.defense ? field('Defense', card.defense, options) : '';
-    const flavor = card.flavorText && options.fieldMode === 'full' ? `<p class="line"><span class="label">Flavor:</span><br><em>${renderManaSymbols(escapeHtml(card.flavorText), options)}</em></p>` : '';
-    const alternates = alternatePrintingsHtml(card, options);
-    return `<section class="card" id="${card.id}">
-<h2>${escapeHtml(card.name)}</h2>
-${field('Number', card.number, options)}
-${field('Mana Cost', card.manaCost, options)}
-${field('Mana Value', String(card.manaValue ?? ''), options)}
-${field('Type', card.type, options)}
-${card.text ? `<p class="line text"><span class="label">Text:</span><br>${renderManaSymbols(escapeHtml(card.text), options)}</p>` : ''}
-${flavor}
-${pt}
-${loyalty}
-${defense}
-${field('Rarity', card.rarity, options)}
-${field('Artist', card.artist, options)}
-${alternates}
-<a class="toplink" href="#top">Back to top</a>
-</section>`;
-  }
-
-  function alternatePrintingsHtml(card, options) {
-    if (!card.alternatePrintings?.length) return '';
-    if (options.fieldMode !== 'full') return `<div class="prints"><span class="label">Other printings collapsed:</span> ${card.alternatePrintings.length}</div>`;
-    const items = card.alternatePrintings.map((p, i) => {
-      const bits = [];
-      if (p.number) bits.push(`#${escapeHtml(p.number)}`);
-      if (p.rarity) bits.push(escapeHtml(p.rarity));
-      if (p.artist) bits.push(`Artist: ${escapeHtml(p.artist)}`);
-      if (p.flavorText && p.flavorText !== card.flavorText) bits.push(`Different flavor text`);
-      return `<li>${bits.join(' &bull; ') || `Alternate printing ${i + 2}`}</li>`;
-    }).join('');
-    return `<div class="prints"><span class="label">Other printings collapsed:</span><ul>${items}</ul></div>`;
-  }
-
-  function field(label, value, options) {
-    if (!value) return '';
-    const essential = new Set(['Mana Cost', 'Type', 'Loyalty', 'Defense']);
-    if (options.fieldMode === 'essential' && !essential.has(label)) return '';
-    const rendered = label === 'Mana Cost' ? renderManaSymbols(escapeHtml(value), options) : escapeHtml(value);
-    return `<p class="line"><span class="label">${escapeHtml(label)}:</span> ${rendered}</p>`;
-  }
-
-  function renderManaSymbols(text, options) {
-    if (options.symbolMode !== 'embedded') return text;
-    return String(text).replace(/\{([^}]+)\}/g, (match, rawSymbol) => {
-      const symbol = rawSymbol.toUpperCase().replace(/∞/g, 'INF');
-      const svg = symbolSvg(symbol);
-      if (!svg) return match;
-      return `<img class="mana" alt="${escapeHtml(match)}" title="${escapeHtml(match)}" src="${svg}">`;
-    });
-  }
-
-  function symbolSvg(symbol) {
-    const labelMap = { TAP: 'T', T: 'T', W: 'W', U: 'U', B: 'B', R: 'R', G: 'G', C: 'C', X: 'X', Y: 'Y', Z: 'Z' };
-    const label = labelMap[symbol] || symbol;
-    if (!/^[A-Z0-9/+-]+$/.test(label) || label.length > 4) return null;
-    const palette = {
-      W: ['#f2ead0', '#111'], U: ['#b9d9ef', '#111'], B: ['#222', '#fff'], R: ['#e69a73', '#111'], G: ['#9acb99', '#111'], C: ['#d8d8d8', '#111']
-    };
-    const first = symbol[0];
-    const [fill, color] = palette[first] || ['#ddd', '#111'];
-    const safeLabel = escapeHtml(label);
-    const fontSize = label.length <= 2 ? 12 : 9;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18"><circle cx="9" cy="9" r="8" fill="${fill}" stroke="#333" stroke-width="1"/><text x="9" y="13" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="${fontSize}" font-weight="bold" fill="${color}">${safeLabel}</text></svg>`;
-    return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
-  }
-
-
-  function generateLibraryIndexHtml(indexes, options) {
-    const sorted = [...indexes].sort((a, b) => {
-      const ad = a.releaseDate || '';
-      const bd = b.releaseDate || '';
-      if (ad && bd && ad !== bd) return bd.localeCompare(ad);
-      return String(a.setName || a.setCode).localeCompare(String(b.setName || b.setCode));
-    });
-    const totalEntries = sorted.reduce((sum, item) => sum + Number(item.cardCount || 0), 0);
-    const totalPrintings = sorted.reduce((sum, item) => sum + Number(item.originalPrintingCount || item.cardCount || 0), 0);
-    const rows = sorted.map(item => `<tr>
-<td><a href="${escapeHtml(item.htmlFile || `${item.setCode}.html`)}">${escapeHtml(item.setName || item.setCode)}</a></td>
-<td>${escapeHtml(item.setCode || '')}</td>
-<td>${escapeHtml(item.releaseDate || '')}</td>
-<td>${escapeHtml(item.cardCount || 0)}</td>
-<td>${escapeHtml(item.originalPrintingCount || item.cardCount || 0)}</td>
-</tr>`).join('\n');
-    const generated = new Date().toISOString().slice(0, 10);
-    return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Magic Catalog Library</title>
-<style>
-body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f3efe4;color:#191919;line-height:1.5;font-size:17px}header{padding:24px 12px;text-align:center;background:#fff;border-bottom:3px solid #111}h1{font-size:36px;margin:0 0 8px}.meta{font-size:.9em;color:#555}.wrap{max-width:980px;margin:0 auto;padding:16px}.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:0 0 16px}.box{background:#fff;border:1px solid #aaa;padding:12px;border-radius:4px}.box strong{display:block;font-size:1.4em}table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #999}th,td{border-bottom:1px solid #ddd;padding:9px;text-align:left}th{background:#eee}a{color:#003b73;text-decoration:none}tr:nth-child(even){background:#fcfbf7}@media(max-width:640px){body{font-size:15px}th:nth-child(3),td:nth-child(3),th:nth-child(5),td:nth-child(5){display:none}}
-</style>
-</head>
-<body>
-<header><h1>Magic Catalog Library</h1><div class="meta">Generated ${escapeHtml(generated)} &bull; ${sorted.length} Sets</div></header>
-<div class="wrap">
-<div class="summary">
-<div class="box"><span>Sets</span><strong>${sorted.length}</strong></div>
-<div class="box"><span>Card Entries</span><strong>${totalEntries}</strong></div>
-<div class="box"><span>Original Printings</span><strong>${totalPrintings}</strong></div>
-</div>
-<table>
-<thead><tr><th>Set</th><th>Code</th><th>Release</th><th>Entries</th><th>Printings</th></tr></thead>
-<tbody>
-${rows}
-</tbody>
-</table>
-</div>
-</body>
-</html>`;
-  }
-
-  function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[ch]));
-  }
-
-  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+  document.addEventListener('DOMContentLoaded', bind);
 })();
