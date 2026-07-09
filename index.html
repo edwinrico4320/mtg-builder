@@ -12,7 +12,7 @@
       <h1>MTG Builder</h1>
       <p>GitHub Pages browser workbench</p>
     </div>
-    <span class="badge">Builder v1</span>
+    <span class="badge">Catalog v2</span>
   </header>
 
   <main class="app-shell">
@@ -38,8 +38,8 @@
         </article>
         <article class="status-card">
           <h3>Output Profile</h3>
-          <p class="big">Compact</p>
-          <p>No-JavaScript, basic HTML viewer friendly.</p>
+          <p class="big">Compact v2</p>
+          <p>No-JavaScript HTML with optional embedded mana symbols.</p>
         </article>
       </div>
     </section>
@@ -62,10 +62,29 @@
       <div class="actions">
         <button id="scanCatalogSetsBtn">Scan Available Sets</button>
       </div>
+
       <label class="field-label" for="catalogSetSelect">Choose a set</label>
       <select id="catalogSetSelect">
         <option value="">Scan sets first...</option>
       </select>
+
+      <div class="options-grid">
+        <div>
+          <label class="field-label" for="manaSymbolMode">Mana symbol rendering</label>
+          <select id="manaSymbolMode">
+            <option value="embedded">Embedded symbol images</option>
+            <option value="text">Text only</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="duplicateMode">Duplicate handling</label>
+          <select id="duplicateMode">
+            <option value="collapse">Collapse identical gameplay cards</option>
+            <option value="show-all">Show all printings</option>
+          </select>
+        </div>
+      </div>
+
       <div class="actions">
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
       </div>
@@ -76,7 +95,7 @@
 
     <section id="settings" class="panel">
       <h2>Settings</h2>
-      <p>Future settings will control output profiles, card fields, sorting, and image behavior.</p>
+      <p>Catalog v2 adds embedded mana symbols and duplicate-printing collapse. Future settings will control field visibility, sorting, images, and alternate layouts.</p>
     </section>
   </main>
 
