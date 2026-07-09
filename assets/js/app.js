@@ -76,6 +76,69 @@ function copyText(text, successMessage) {
     .catch(() => log("Clipboard copy failed. Select the text manually and copy it."));
 }
 
+
+let downloadQueueTimer = null;
+let stopRequested = false;
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function triggerBrowserDownload(url, filename) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.target = "_blank";
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
+function getMissingOrAllCodes() {
+  return state.lastCheck ? state.missingSets : state.recommendedSets;
+}
+
+async function multiDownloadMissing() {
+  const codes = getMissingOrAllCodes();
+  const delayInput = document.querySelector("#downloadDelay");
+  const delay = Math.max(500, Number(delayInput?.value || 1500));
+  const progress = document.querySelector("#multiProgress");
+
+  if (!codes.length) {
+    log("No missing sets to download.");
+    return;
+  }
+
+  stopRequested = false;
+  document.querySelector("#startMultiDownload").disabled = true;
+  document.querySelector("#stopMultiDownload").disabled = false;
+  log(`Starting multi-download for ${codes.length} set file(s).`);
+  log("Your browser may ask whether to allow multiple downloads from this site. Choose Allow if prompted.");
+
+  for (let i = 0; i < codes.length; i++) {
+    if (stopRequested) {
+      log("Multi-download stopped by user.");
+      break;
+    }
+
+    const code = codes[i];
+    if (progress) progress.textContent = `${i + 1} / ${codes.length} — ${code}.json`;
+    log(`Downloading ${code}.json`);
+    triggerBrowserDownload(downloadUrl(code), `${code}.json`);
+    await sleep(delay);
+  }
+
+  document.querySelector("#startMultiDownload").disabled = false;
+  document.querySelector("#stopMultiDownload").disabled = true;
+  if (progress && !stopRequested) progress.textContent = `Done — ${codes.length} file(s) queued`;
+  if (!stopRequested) log("Multi-download queue finished. Upload the downloaded JSON files into data/json/ in GitHub.");
+}
+
+function stopMultiDownload() {
+  stopRequested = true;
+}
+
 function renderSetRows() {
   const installed = new Set(state.installedSets);
   return state.recommendedSets.map(code => {
@@ -104,13 +167,21 @@ function renderSets() {
   mount.innerHTML = `
     <div class="card">
       <h2>Set Downloader v1</h2>
-      <p>This plugin checks your GitHub Pages project for files in <code>data/json/</code> and gives you direct MTGJSON download links for anything missing.</p>
+      <p>This plugin checks your GitHub Pages project for files in <code>data/json/</code>, then queues browser downloads for anything missing.</p>
       <div class="actions">
         <button class="primary" id="checkSets">Check Installed Sets</button>
+        <button class="secondary" id="startMultiDownload">Download Missing Sets</button>
+        <button class="secondary" id="stopMultiDownload" disabled>Stop Download Queue</button>
         <button class="secondary" id="copyMissing">Copy Missing URLs</button>
         <button class="secondary" id="copyCodes">Copy Missing Set Codes</button>
       </div>
+      <div class="downloadControls">
+        <label for="downloadDelay">Delay between downloads</label>
+        <input id="downloadDelay" type="number" min="500" step="250" value="1500" />
+        <span class="muted">milliseconds</span>
+      </div>
       <p class="muted">Check progress: <span id="checkProgress">${state.lastCheck ? state.recommendedSets.length + " / " + state.recommendedSets.length : "Not checked yet"}</span></p>
+      <p class="muted">Multi-download progress: <span id="multiProgress">Not started</span></p>
     </div>
 
     <div class="grid">
@@ -144,6 +215,8 @@ function renderSets() {
   `;
 
   document.querySelector("#checkSets").addEventListener("click", checkInstalledSets);
+  document.querySelector("#startMultiDownload").addEventListener("click", multiDownloadMissing);
+  document.querySelector("#stopMultiDownload").addEventListener("click", stopMultiDownload);
   document.querySelector("#copyMissing").addEventListener("click", () => {
     copyText(document.querySelector("#missingUrls").value, "Copied missing download URLs.");
   });
