@@ -1,50 +1,35 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MTG Builder</title>
-  <link rel="stylesheet" href="assets/css/builder.css" />
+  <link rel="stylesheet" href="./assets/css/builder.css">
 </head>
 <body>
   <header class="app-header">
-    <div>
-      <h1>MTG Builder</h1>
-      <p>GitHub Pages browser workbench</p>
-    </div>
-    <span class="badge">Catalog v4</span>
+    <h1>MTG Builder</h1>
+    <p>GitHub Pages browser workbench</p>
   </header>
 
-  <main class="app-shell">
-    <nav class="tabs" aria-label="Builder sections">
-      <button class="tab active" data-tab="dashboard">Dashboard</button>
-      <button class="tab" data-tab="downloader">Set Downloader</button>
-      <button class="tab" data-tab="catalog">Catalog Builder</button>
-      <button class="tab" data-tab="settings">Settings</button>
-    </nav>
+  <nav class="tabs" aria-label="Builder sections">
+    <button class="tab-button active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-button" data-tab="downloader">Set Downloader</button>
+    <button class="tab-button" data-tab="catalog">Catalog Builder</button>
+    <button class="tab-button" data-tab="settings">Settings</button>
+  </nav>
 
-    <section id="dashboard" class="panel active">
+  <main class="app-main">
+    <section id="dashboard" class="tab-panel active">
       <h2>Dashboard</h2>
       <div class="cards-grid">
-        <article class="status-card">
-          <h3>Project</h3>
-          <p class="big">GitHub Pages</p>
-          <p>Hosted browser app is live.</p>
-        </article>
-        <article class="status-card">
-          <h3>JSON Folder</h3>
-          <p class="big" id="jsonCount">Unknown</p>
-          <p>Use the catalog checker to scan <code>data/json</code>.</p>
-        </article>
-        <article class="status-card">
-          <h3>Output Profile</h3>
-          <p class="big">Compact v4</p>
-          <p>No-JavaScript HTML with readability controls, alphabet navigation, embedded mana symbols, batch build, and library index output.</p>
-        </article>
+        <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
+        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Use Catalog Builder to scan <code>data/json</code>.</small></article>
+        <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
       </div>
     </section>
 
-    <section id="downloader" class="panel">
+    <section id="downloader" class="tab-panel">
       <h2>Set Downloader</h2>
       <p>Checks your repo for recommended MTGJSON set files and downloads missing files from MTGJSON.</p>
       <div class="actions">
@@ -52,78 +37,68 @@
         <button id="downloadMissingBtn">Download Missing Sets</button>
       </div>
       <p class="hint">Downloaded files must still be uploaded to <code>data/json</code> in your GitHub repo.</p>
-      <div id="downloaderSummary" class="summary">Ready.</div>
+      <div id="downloadSummary" class="summary-box">Ready.</div>
       <div id="setList" class="set-list"></div>
     </section>
 
-    <section id="catalog" class="panel">
+    <section id="catalog" class="tab-panel">
       <h2>Catalog Builder</h2>
-      <p>Create compact static HTML catalogs for one set or batch-build every discovered set. The output uses only HTML/CSS and anchor links.</p>
-      <div class="actions">
-        <button id="scanCatalogSetsBtn">Scan Available Sets</button>
-      </div>
+      <p>Create compact static HTML catalogs. Outputs use only HTML/CSS and anchor links.</p>
 
-      <label class="field-label" for="catalogSetSelect">Choose a set</label>
-      <select id="catalogSetSelect">
-        <option value="">Scan sets first...</option>
-      </select>
-
-      <div class="options-grid">
-        <div>
-          <label class="field-label" for="manaSymbolMode">Mana symbol rendering</label>
-          <select id="manaSymbolMode">
-            <option value="embedded">Embedded symbol images</option>
-            <option value="text">Text only</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label" for="duplicateMode">Duplicate handling</label>
-          <select id="duplicateMode">
-            <option value="collapse">Collapse identical gameplay cards</option>
-            <option value="show-all">Show all printings</option>
-          </select>
-        </div>
-        <div>
-          <label class="field-label" for="textSizeMode">Text size</label>
-          <select id="textSizeMode">
-            <option value="comfortable">Comfortable</option>
+      <div class="builder-options">
+        <label>Text size
+          <select id="textSizeSelect">
             <option value="compact">Compact</option>
+            <option value="comfortable" selected>Comfortable</option>
             <option value="large">Large</option>
           </select>
-        </div>
-        <div>
-          <label class="field-label" for="fieldMode">Field display</label>
-          <select id="fieldMode">
-            <option value="essential">Essential</option>
+        </label>
+        <label>Field display
+          <select id="fieldModeSelect">
+            <option value="essential" selected>Essential</option>
             <option value="full">Full</option>
           </select>
-        </div>
-        <div>
-          <label class="field-label" for="navigatorMode">Navigator</label>
-          <select id="navigatorMode">
-            <option value="alphabetical">Alphabetical sections</option>
-            <option value="full">Plain full list</option>
+        </label>
+        <label>Navigator
+          <select id="navModeSelect">
+            <option value="alpha" selected>Alphabetical</option>
+            <option value="plain">Plain full list</option>
           </select>
-        </div>
+        </label>
+        <label>Mana symbols
+          <select id="symbolModeSelect">
+            <option value="embedded" selected>Embedded symbol images</option>
+            <option value="text">Text only</option>
+          </select>
+        </label>
+        <label>Duplicate handling
+          <select id="duplicateModeSelect">
+            <option value="collapse" selected>Collapse identical gameplay cards</option>
+            <option value="all">Show all printings</option>
+          </select>
+        </label>
       </div>
 
       <div class="actions">
+        <button id="scanCatalogSetsBtn">Scan Available Sets</button>
+        <select id="catalogSetSelect"><option value="">Scan sets first...</option></select>
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
+      </div>
+      <div class="actions">
         <button id="buildAllCatalogsBtn">Build All Discovered Sets</button>
         <button id="buildLibraryIndexBtn">Build Library Index Only</button>
       </div>
-      <p class="hint">Selected build downloads <code>SET.html</code> and <code>SET.index.json</code>. Batch build downloads every discovered set plus <code>library-index.html</code>. Upload results to <code>data/output</code>.</p>
-      <div id="catalogSummary" class="summary">Ready.</div>
-      <pre id="catalogPreview" class="preview"></pre>
+      <p class="hint">Generated files download to your computer. Upload them to <code>data/output</code>.</p>
+      <div id="catalogSummary" class="summary-box">Ready.</div>
     </section>
 
-    <section id="settings" class="panel">
+    <section id="settings" class="tab-panel">
       <h2>Settings</h2>
-      <p>Catalog v4 adds readability profiles, field display controls, alphabet navigation, full set-name labels from JSON metadata, embedded mana symbols, and duplicate-printing collapse.</p>
+      <p>Future settings will control storage plugins, richer output profiles, and image handling.</p>
     </section>
   </main>
 
-  <script src="assets/js/recommended-sets.js"></script>
-  <script src="assets/js/app.js"></script>
+  <script src="./assets/js/recommended-sets.js"></script>
+  <script src="./assets/js/app.js"></script>
 </body>
 </html>
