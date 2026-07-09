@@ -1,345 +1,256 @@
-import { recommendedSets } from "./recommended-sets.js";
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const sets = window.RECOMMENDED_SETS || [];
+  const state = { installed: new Map(), discovered: [] };
 
-const mount = document.querySelector("#pluginMount");
-const status = document.querySelector("#appStatus");
-const navButtons = [...document.querySelectorAll(".nav")];
-
-const MTGJSON_BASE = "https://mtgjson.com/api/v5/";
-
-const state = {
-  installedSets: [],
-  missingSets: [],
-  recommendedSets,
-  lastCheck: null
-};
-
-function setStatus(text) {
-  status.textContent = text;
-}
-
-function mtgjsonUrl(code) {
-  return `${MTGJSON_BASE}${code}.json`;
-}
-
-function localJsonPath(code) {
-  return `data/json/${code}.json`;
-}
-
-function downloadUrl(code) {
-  return mtgjsonUrl(code);
-}
-
-function objectUrlFromText(text, mimeType = "application/json") {
-  const blob = new Blob([text], { type: mimeType });
-  return URL.createObjectURL(blob);
-}
-
-function log(message) {
-  const box = document.querySelector("#log");
-  if (!box) return;
-  const time = new Date().toLocaleTimeString();
-  box.textContent += `\n[${time}] ${message}`;
-  box.scrollTop = box.scrollHeight;
-}
-
-async function fileExists(path) {
-  try {
-    const response = await fetch(`${path}?v=${Date.now()}`, {
-      method: "HEAD",
-      cache: "no-store"
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      $(btn.dataset.tab).classList.add('active');
     });
-    return response.ok;
-  } catch {
-    return false;
+  });
+
+  $('checkSetsBtn')?.addEventListener('click', checkInstalledSets);
+  $('downloadMissingBtn')?.addEventListener('click', downloadMissingSets);
+  $('scanCatalogSetsBtn')?.addEventListener('click', scanCatalogSets);
+  $('buildCatalogBtn')?.addEventListener('click', buildSelectedCatalog);
+
+  async function checkInstalledSets() {
+    const summary = $('downloaderSummary');
+    const list = $('setList');
+    summary.textContent = 'Checking data/json...';
+    list.innerHTML = '';
+    state.installed.clear();
+
+    let installedCount = 0;
+    for (const code of sets) {
+      const exists = await fileExists(`data/json/${code}.json`);
+      state.installed.set(code, exists);
+      if (exists) installedCount++;
+      const row = document.createElement('div');
+      row.className = 'set-row';
+      row.innerHTML = `<strong>${escapeHtml(code)}</strong><span class="${exists ? 'ok' : 'missing'}">${exists ? 'Installed' : 'Missing'}</span>`;
+      list.appendChild(row);
+    }
+    $('jsonCount').textContent = `${installedCount} / ${sets.length}`;
+    summary.textContent = `Found ${installedCount} installed set files. Missing ${sets.length - installedCount}.`;
   }
-}
 
-async function checkInstalledSets() {
-  setStatus("Checking sets...");
-  const installed = [];
-  const missing = [];
-
-  for (const code of state.recommendedSets) {
-    const exists = await fileExists(localJsonPath(code));
-    if (exists) installed.push(code);
-    else missing.push(code);
-    const count = installed.length + missing.length;
-    const progress = document.querySelector("#checkProgress");
-    if (progress) progress.textContent = `${count} / ${state.recommendedSets.length}`;
+  async function downloadMissingSets() {
+    if (!state.installed.size) await checkInstalledSets();
+    const missing = sets.filter(code => !state.installed.get(code));
+    const summary = $('downloaderSummary');
+    if (!missing.length) { summary.textContent = 'No missing recommended sets.'; return; }
+    summary.textContent = `Downloading ${missing.length} missing sets. Chrome may ask to allow multiple downloads.`;
+    for (let i = 0; i < missing.length; i++) {
+      const code = missing[i];
+      summary.textContent = `Downloading ${code}.json (${i + 1}/${missing.length})...`;
+      try {
+        await forcedDownload(`https://mtgjson.com/api/v5/${code}.json`, `${code}.json`);
+        await delay(900);
+      } catch (err) {
+        console.error(err);
+        open(`https://mtgjson.com/api/v5/${code}.json`, '_blank');
+        await delay(1200);
+      }
+    }
+    summary.textContent = 'Download queue finished. Upload downloaded JSON files to data/json in GitHub.';
   }
 
-  state.installedSets = installed;
-  state.missingSets = missing;
-  state.lastCheck = new Date();
-  setStatus("Set Downloader");
-  renderSets();
-}
+  async function scanCatalogSets() {
+    const summary = $('catalogSummary');
+    const select = $('catalogSetSelect');
+    summary.textContent = 'Scanning recommended set files in data/json...';
+    select.innerHTML = '<option value="">Scanning...</option>';
+    const found = [];
+    for (const code of sets) {
+      if (await fileExists(`data/json/${code}.json`)) found.push(code);
+    }
+    state.discovered = found;
+    select.innerHTML = found.length
+      ? '<option value="">Choose a set...</option>' + found.map(code => `<option value="${code}">${code}</option>`).join('')
+      : '<option value="">No set JSON files found</option>';
+    summary.textContent = `Found ${found.length} available set files.`;
+    $('jsonCount').textContent = `${found.length} / ${sets.length}`;
+  }
 
-function copyText(text, successMessage) {
-  navigator.clipboard.writeText(text)
-    .then(() => log(successMessage))
-    .catch(() => log("Clipboard copy failed. Select the text manually and copy it."));
-}
-
-
-let downloadQueueTimer = null;
-let stopRequested = false;
-
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function triggerDownloadFromBlob(blob, filename) {
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 15000);
-}
-
-function triggerDirectFallback(url, filename) {
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.target = "_blank";
-  link.rel = "noopener";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-}
-
-async function downloadSetJson(code, { fallbackToDirect = true } = {}) {
-  const url = downloadUrl(code);
-  const filename = `${code}.json`;
-
-  try {
-    const response = await fetch(url, { cache: "no-store" });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const text = await response.text();
-
+  async function buildSelectedCatalog() {
+    const code = $('catalogSetSelect').value;
+    const summary = $('catalogSummary');
+    const preview = $('catalogPreview');
+    if (!code) { summary.textContent = 'Choose a set first.'; return; }
+    summary.textContent = `Loading ${code}.json...`;
+    preview.textContent = '';
     try {
-      JSON.parse(text);
-    } catch {
-      throw new Error("Downloaded response was not valid JSON");
+      const json = await fetchJson(`data/json/${code}.json`);
+      const normalized = normalizeSet(json, code);
+      const html = generateCompactSetHtml(normalized);
+      const index = {
+        setName: normalized.name,
+        setCode: normalized.code,
+        cardCount: normalized.cards.length,
+        releaseDate: normalized.releaseDate || '',
+        htmlFile: `${normalized.code}.html`,
+        profile: 'compact-no-js',
+        generatedAt: new Date().toISOString()
+      };
+      downloadText(`${normalized.code}.html`, html, 'text/html;charset=utf-8');
+      await delay(350);
+      downloadText(`${normalized.code}.index.json`, JSON.stringify(index, null, 2), 'application/json;charset=utf-8');
+      summary.textContent = `Built ${normalized.code}.html with ${normalized.cards.length} cards.`;
+      preview.textContent = `${normalized.name}\n${normalized.code}\n${normalized.cards.length} cards\n\nFirst cards:\n` + normalized.cards.slice(0, 10).map(c => `- ${c.name}`).join('\n');
+    } catch (err) {
+      console.error(err);
+      summary.textContent = `Build failed: ${err.message}`;
     }
-
-    const blob = new Blob([text], { type: "application/json" });
-    triggerDownloadFromBlob(blob, filename);
-    return { ok: true, method: "blob" };
-  } catch (error) {
-    if (fallbackToDirect) {
-      log(`Fetch download failed for ${filename}: ${error.message}. Opening fallback link instead.`);
-      triggerDirectFallback(url, filename);
-      return { ok: false, method: "fallback", error };
-    }
-    return { ok: false, method: "fetch", error };
-  }
-}
-
-function getMissingOrAllCodes() {
-  return state.lastCheck ? state.missingSets : state.recommendedSets;
-}
-
-async function multiDownloadMissing() {
-  const codes = getMissingOrAllCodes();
-  const delayInput = document.querySelector("#downloadDelay");
-  const delay = Math.max(500, Number(delayInput?.value || 1500));
-  const progress = document.querySelector("#multiProgress");
-
-  if (!codes.length) {
-    log("No missing sets to download.");
-    return;
   }
 
-  stopRequested = false;
-  document.querySelector("#startMultiDownload").disabled = true;
-  document.querySelector("#stopMultiDownload").disabled = false;
-  log(`Starting multi-download for ${codes.length} set file(s).`);
-  log("Your browser may ask whether to allow multiple downloads from this site. Choose Allow if prompted.");
-
-  for (let i = 0; i < codes.length; i++) {
-    if (stopRequested) {
-      log("Multi-download stopped by user.");
-      break;
-    }
-
-    const code = codes[i];
-    if (progress) progress.textContent = `${i + 1} / ${codes.length} — ${code}.json`;
-    log(`Fetching ${code}.json and forcing browser download...`);
-    const result = await downloadSetJson(code);
-    if (result.ok) {
-      log(`Queued ${code}.json as a real file download.`);
-    } else if (result.method === "fallback") {
-      log(`${code}.json used fallback direct link. If it opens in a tab, right-click the page and choose Save As.`);
-    }
-    await sleep(delay);
+  async function fileExists(url) {
+    try {
+      const res = await fetch(`${url}?cacheBust=${Date.now()}`, { method: 'HEAD', cache: 'no-store' });
+      if (res.ok) return true;
+      if (res.status === 405) {
+        const getRes = await fetch(url, { method: 'GET', cache: 'no-store' });
+        return getRes.ok;
+      }
+      return false;
+    } catch { return false; }
   }
 
-  document.querySelector("#startMultiDownload").disabled = false;
-  document.querySelector("#stopMultiDownload").disabled = true;
-  if (progress && !stopRequested) progress.textContent = `Done — ${codes.length} file(s) queued`;
-  if (!stopRequested) log("Multi-download queue finished. Upload the downloaded JSON files into data/json/ in GitHub.");
-}
-
-function stopMultiDownload() {
-  stopRequested = true;
-}
-
-function renderSetRows() {
-  const installed = new Set(state.installedSets);
-  return state.recommendedSets.map(code => {
-    const hasFile = installed.has(code);
-    const label = hasFile ? "Installed" : "Missing";
-    const className = hasFile ? "ok" : "warn";
-    return `
-      <tr>
-        <td><strong>${code}</strong></td>
-        <td><span class="pill ${className}">${label}</span></td>
-        <td><code>${localJsonPath(code)}</code></td>
-        <td>
-          <button class="linkButton" data-download-set="${code}">Force Download</button>
-          <a href="${downloadUrl(code)}" target="_blank" rel="noopener">Open source</a>
-        </td>
-      </tr>
-    `;
-  }).join("");
-}
-
-function renderSets() {
-  const missingUrls = (state.missingSets.length ? state.missingSets : state.recommendedSets)
-    .map(code => downloadUrl(code))
-    .join("\n");
-
-  const installedCount = state.installedSets.length;
-  const missingCount = state.lastCheck ? state.missingSets.length : "?";
-
-  mount.innerHTML = `
-    <div class="card">
-      <h2>Set Downloader v3</h2>
-      <p>This plugin checks your GitHub Pages project for files in <code>data/json/</code>, then fetches missing MTGJSON files and forces real <code>.json</code> browser downloads.</p>
-      <div class="actions">
-        <button class="primary" id="checkSets">Check Installed Sets</button>
-        <button class="secondary" id="startMultiDownload">Download Missing Sets</button>
-        <button class="secondary" id="stopMultiDownload" disabled>Stop Download Queue</button>
-        <button class="secondary" id="copyMissing">Copy Missing URLs</button>
-        <button class="secondary" id="copyCodes">Copy Missing Set Codes</button>
-      </div>
-      <div class="downloadControls">
-        <label for="downloadDelay">Delay between downloads</label>
-        <input id="downloadDelay" type="number" min="500" step="250" value="1500" />
-        <span class="muted">milliseconds</span>
-      </div>
-      <p class="muted">Check progress: <span id="checkProgress">${state.lastCheck ? state.recommendedSets.length + " / " + state.recommendedSets.length : "Not checked yet"}</span></p>
-      <p class="muted">Multi-download progress: <span id="multiProgress">Not started</span></p>
-    </div>
-
-    <div class="grid">
-      <div class="stat"><strong>${state.recommendedSets.length}</strong><span>Recommended sets</span></div>
-      <div class="stat"><strong>${installedCount}</strong><span>Installed in data/json</span></div>
-      <div class="stat"><strong>${missingCount}</strong><span>Missing files</span></div>
-    </div>
-
-    <div class="card">
-      <h3>Missing download URLs</h3>
-      <p class="muted">Download these files, then upload the resulting <code>.json</code> files into your repo at <code>data/json/</code>. If forced download fails, the app falls back to direct source links.</p>
-      <textarea id="missingUrls" rows="10" readonly>${missingUrls}</textarea>
-    </div>
-
-    <div class="card">
-      <h3>Recommended Set Status</h3>
-      <div class="tableWrap">
-        <table>
-          <thead>
-            <tr><th>Set</th><th>Status</th><th>Expected repo path</th><th>Source</th></tr>
-          </thead>
-          <tbody>${renderSetRows()}</tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Activity Log</h3>
-      <div class="log" id="log">Ready.</div>
-    </div>
-  `;
-
-  document.querySelector("#checkSets").addEventListener("click", checkInstalledSets);
-  document.querySelector("#startMultiDownload").addEventListener("click", multiDownloadMissing);
-  document.querySelector("#stopMultiDownload").addEventListener("click", stopMultiDownload);
-  document.querySelector("#copyMissing").addEventListener("click", () => {
-    copyText(document.querySelector("#missingUrls").value, "Copied missing download URLs.");
-  });
-  document.querySelector("#copyCodes").addEventListener("click", () => {
-    const codes = (state.missingSets.length ? state.missingSets : state.recommendedSets).join("\n");
-    copyText(codes, "Copied missing set codes.");
-  });
-
-  document.querySelectorAll("[data-download-set]").forEach(button => {
-    button.addEventListener("click", async () => {
-      const code = button.dataset.downloadSet;
-      button.disabled = true;
-      button.textContent = "Downloading...";
-      const result = await downloadSetJson(code);
-      button.disabled = false;
-      button.textContent = "Force Download";
-      if (result.ok) log(`Queued ${code}.json as a real file download.`);
-    });
-  });
-}
-
-const plugins = {
-  dashboard() {
-    mount.innerHTML = `
-      <div class="card">
-        <h2>Dashboard</h2>
-        <p>This is the plugin-based MTG Builder running from GitHub Pages.</p>
-        <div class="grid">
-          <div class="stat"><strong>${state.recommendedSets.length}</strong><span>Recommended sets</span></div>
-          <div class="stat"><strong>${state.installedSets.length}</strong><span>Installed sets tracked</span></div>
-          <div class="stat"><strong>0</strong><span>Catalogs built</span></div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Current milestone</h3>
-        <p>Use <strong>Set Downloader</strong> to check <code>data/json/</code>, download missing MTGJSON files, and upload them into the repository.</p>
-      </div>
-    `;
-  },
-
-  sets() {
-    renderSets();
-  },
-
-  catalog() {
-    mount.innerHTML = `
-      <div class="card">
-        <h2>Catalog Builder</h2>
-        <p>Coming next: load set JSON files from <code>data/json/</code>, dedupe cards, and export a lightweight offline catalog.</p>
-      </div>
-    `;
-  },
-
-  settings() {
-    mount.innerHTML = `
-      <div class="card">
-        <h2>Settings</h2>
-        <label>MTGJSON API base URL</label>
-        <input value="${MTGJSON_BASE}" readonly />
-        <p class="muted">Repo JSON folder: <code>data/json/</code></p>
-      </div>
-    `;
+  async function fetchJson(url) {
+    const res = await fetch(`${url}?cacheBust=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Could not fetch ${url}: ${res.status}`);
+    return res.json();
   }
-};
 
-function loadPlugin(name) {
-  navButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.plugin === name));
-  setStatus(`${name[0].toUpperCase()}${name.slice(1)} Plugin`);
-  plugins[name]();
-}
+  async function forcedDownload(url, filename) {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 3000);
+  }
 
-navButtons.forEach(btn => btn.addEventListener("click", () => loadPlugin(btn.dataset.plugin)));
-loadPlugin("dashboard");
+  function downloadText(filename, text, type) {
+    const blob = new Blob([text], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  }
+
+  function normalizeSet(raw, fallbackCode) {
+    const data = raw.data || raw;
+    const cards = (data.cards || []).map((card, i) => normalizeCard(card, i)).filter(c => c.name);
+    cards.sort((a, b) => (a.sortName || a.name).localeCompare(b.sortName || b.name, undefined, { numeric: true }));
+    return {
+      name: data.name || fallbackCode,
+      code: (data.code || fallbackCode).toUpperCase(),
+      releaseDate: data.releaseDate || '',
+      type: data.type || '',
+      cards
+    };
+  }
+
+  function normalizeCard(card, index) {
+    const faceText = Array.isArray(card.faceName) ? card.faceName.join(' / ') : '';
+    const names = Array.isArray(card.names) ? card.names.join(' / ') : '';
+    return {
+      id: `card-${index + 1}`,
+      number: card.number || '',
+      name: card.name || faceText || names || '',
+      sortName: (card.name || '').replace(/^The\s+/i, ''),
+      manaCost: card.manaCost || card.mana_cost || '',
+      manaValue: card.manaValue ?? card.convertedManaCost ?? '',
+      type: card.type || card.typeLine || '',
+      text: card.text || card.oracleText || '',
+      flavorText: card.flavorText || '',
+      power: card.power || '',
+      toughness: card.toughness || '',
+      loyalty: card.loyalty || '',
+      defense: card.defense || '',
+      rarity: card.rarity || '',
+      artist: card.artist || ''
+    };
+  }
+
+  function generateCompactSetHtml(set) {
+    const title = escapeHtml(set.name);
+    const nav = generateNav(set.cards);
+    const cards = set.cards.map(cardSectionHtml).join('\n');
+    return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f3ea;color:#191919;line-height:1.35}#top{padding:18px 12px;text-align:center;border-bottom:2px solid #111;background:#fff}h1{font-size:30px;margin:0 0 6px}.meta{font-size:13px;color:#555}.wrap{display:block;max-width:920px;margin:0 auto;padding:12px}.nav{border:1px solid #999;background:#fff;padding:10px;margin-bottom:14px}.nav h2{margin:0 0 8px;font-size:20px}.letter{font-weight:bold;margin:12px 0 5px;border-bottom:1px solid #ddd}.nav a{display:block;padding:3px 0;color:#003b73;text-decoration:none}.card{border:1px solid #777;background:#fff;margin:0 0 12px;padding:12px}.card h2{font-size:22px;margin:0 0 8px}.line{margin:5px 0}.label{font-weight:bold}.text{white-space:pre-wrap}.toplink{display:block;margin-top:10px;font-size:13px}.pt{font-weight:bold}.small{font-size:12px;color:#555}@media print{.nav,.toplink{display:none}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header id="top"><h1>${title}</h1><div class="meta">Set Code: ${escapeHtml(set.code)}${set.releaseDate ? ` &bull; Release: ${escapeHtml(set.releaseDate)}` : ''} &bull; ${set.cards.length} Cards</div></header>
+<div class="wrap">
+<nav class="nav"><h2>Card Navigator</h2>${nav}</nav>
+<main>
+${cards}
+</main>
+</div>
+</body>
+</html>`;
+  }
+
+  function generateNav(cards) {
+    let current = '';
+    return cards.map(card => {
+      const letter = (card.name[0] || '#').toUpperCase();
+      const heading = letter !== current ? (current = letter, `<div class="letter">${escapeHtml(letter)}</div>`) : '';
+      return `${heading}<a href="#${card.id}">${escapeHtml(card.name)}</a>`;
+    }).join('\n');
+  }
+
+  function cardSectionHtml(card) {
+    const pt = card.power || card.toughness ? `<p class="line pt">${escapeHtml(card.power)}/${escapeHtml(card.toughness)}</p>` : '';
+    const loyalty = card.loyalty ? field('Loyalty', card.loyalty) : '';
+    const defense = card.defense ? field('Defense', card.defense) : '';
+    const flavor = card.flavorText ? `<p class="line"><span class="label">Flavor:</span><br><em>${escapeHtml(card.flavorText)}</em></p>` : '';
+    return `<section class="card" id="${card.id}">
+<h2>${escapeHtml(card.name)}</h2>
+${field('Number', card.number)}
+${field('Mana Cost', card.manaCost)}
+${field('Mana Value', String(card.manaValue ?? ''))}
+${field('Type', card.type)}
+${card.text ? `<p class="line text"><span class="label">Text:</span><br>${escapeHtml(card.text)}</p>` : ''}
+${flavor}
+${pt}
+${loyalty}
+${defense}
+${field('Rarity', card.rarity)}
+${field('Artist', card.artist)}
+<a class="toplink" href="#top">Back to top</a>
+</section>`;
+  }
+
+  function field(label, value) {
+    if (!value) return '';
+    return `<p class="line"><span class="label">${escapeHtml(label)}:</span> ${escapeHtml(value)}</p>`;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[ch]));
+  }
+
+  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+})();
