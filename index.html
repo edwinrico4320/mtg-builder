@@ -12,7 +12,7 @@
       <h1>MTG Builder</h1>
       <p>GitHub Pages browser workbench</p>
     </div>
-    <span class="badge">Catalog v3</span>
+    <span class="badge">Catalog v4</span>
   </header>
 
   <main class="app-shell">
@@ -38,8 +38,8 @@
         </article>
         <article class="status-card">
           <h3>Output Profile</h3>
-          <p class="big">Compact v3</p>
-          <p>No-JavaScript HTML with readability controls, alphabet navigation, and embedded mana symbols.</p>
+          <p class="big">Compact v4</p>
+          <p>No-JavaScript HTML with readability controls, alphabet navigation, embedded mana symbols, batch build, and library index output.</p>
         </article>
       </div>
     </section>
@@ -58,7 +58,7 @@
 
     <section id="catalog" class="panel">
       <h2>Catalog Builder</h2>
-      <p>Create a compact static HTML catalog for one set. The output uses only HTML/CSS and anchor links.</p>
+      <p>Create compact static HTML catalogs for one set or batch-build every discovered set. The output uses only HTML/CSS and anchor links.</p>
       <div class="actions">
         <button id="scanCatalogSetsBtn">Scan Available Sets</button>
       </div>
@@ -109,15 +109,17 @@
 
       <div class="actions">
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
+        <button id="buildAllCatalogsBtn">Build All Discovered Sets</button>
+        <button id="buildLibraryIndexBtn">Build Library Index Only</button>
       </div>
-      <p class="hint">This downloads <code>SET.html</code> and <code>SET.index.json</code>. Upload them to <code>data/output</code> when you like the result.</p>
+      <p class="hint">Selected build downloads <code>SET.html</code> and <code>SET.index.json</code>. Batch build downloads every discovered set plus <code>library-index.html</code>. Upload results to <code>data/output</code>.</p>
       <div id="catalogSummary" class="summary">Ready.</div>
       <pre id="catalogPreview" class="preview"></pre>
     </section>
 
     <section id="settings" class="panel">
       <h2>Settings</h2>
-      <p>Catalog v3 adds readability profiles, field display controls, alphabet navigation, full set-name labels from JSON metadata, embedded mana symbols, and duplicate-printing collapse.</p>
+      <p>Catalog v4 adds readability profiles, field display controls, alphabet navigation, full set-name labels from JSON metadata, embedded mana symbols, and duplicate-printing collapse.</p>
     </section>
   </main>
 
