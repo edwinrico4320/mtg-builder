@@ -29,6 +29,11 @@ function downloadUrl(code) {
   return mtgjsonUrl(code);
 }
 
+function objectUrlFromText(text, mimeType = "application/json") {
+  const blob = new Blob([text], { type: mimeType });
+  return URL.createObjectURL(blob);
+}
+
 function log(message) {
   const box = document.querySelector("#log");
   if (!box) return;
@@ -84,7 +89,18 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function triggerBrowserDownload(url, filename) {
+function triggerDownloadFromBlob(blob, filename) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(objectUrl), 15000);
+}
+
+function triggerDirectFallback(url, filename) {
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
@@ -93,6 +109,35 @@ function triggerBrowserDownload(url, filename) {
   document.body.appendChild(link);
   link.click();
   link.remove();
+}
+
+async function downloadSetJson(code, { fallbackToDirect = true } = {}) {
+  const url = downloadUrl(code);
+  const filename = `${code}.json`;
+
+  try {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const text = await response.text();
+
+    try {
+      JSON.parse(text);
+    } catch {
+      throw new Error("Downloaded response was not valid JSON");
+    }
+
+    const blob = new Blob([text], { type: "application/json" });
+    triggerDownloadFromBlob(blob, filename);
+    return { ok: true, method: "blob" };
+  } catch (error) {
+    if (fallbackToDirect) {
+      log(`Fetch download failed for ${filename}: ${error.message}. Opening fallback link instead.`);
+      triggerDirectFallback(url, filename);
+      return { ok: false, method: "fallback", error };
+    }
+    return { ok: false, method: "fetch", error };
+  }
 }
 
 function getMissingOrAllCodes() {
@@ -124,8 +169,13 @@ async function multiDownloadMissing() {
 
     const code = codes[i];
     if (progress) progress.textContent = `${i + 1} / ${codes.length} — ${code}.json`;
-    log(`Downloading ${code}.json`);
-    triggerBrowserDownload(downloadUrl(code), `${code}.json`);
+    log(`Fetching ${code}.json and forcing browser download...`);
+    const result = await downloadSetJson(code);
+    if (result.ok) {
+      log(`Queued ${code}.json as a real file download.`);
+    } else if (result.method === "fallback") {
+      log(`${code}.json used fallback direct link. If it opens in a tab, right-click the page and choose Save As.`);
+    }
     await sleep(delay);
   }
 
@@ -150,7 +200,10 @@ function renderSetRows() {
         <td><strong>${code}</strong></td>
         <td><span class="pill ${className}">${label}</span></td>
         <td><code>${localJsonPath(code)}</code></td>
-        <td><a href="${downloadUrl(code)}" target="_blank" rel="noopener">Download JSON</a></td>
+        <td>
+          <button class="linkButton" data-download-set="${code}">Force Download</button>
+          <a href="${downloadUrl(code)}" target="_blank" rel="noopener">Open source</a>
+        </td>
       </tr>
     `;
   }).join("");
@@ -166,8 +219,8 @@ function renderSets() {
 
   mount.innerHTML = `
     <div class="card">
-      <h2>Set Downloader v1</h2>
-      <p>This plugin checks your GitHub Pages project for files in <code>data/json/</code>, then queues browser downloads for anything missing.</p>
+      <h2>Set Downloader v3</h2>
+      <p>This plugin checks your GitHub Pages project for files in <code>data/json/</code>, then fetches missing MTGJSON files and forces real <code>.json</code> browser downloads.</p>
       <div class="actions">
         <button class="primary" id="checkSets">Check Installed Sets</button>
         <button class="secondary" id="startMultiDownload">Download Missing Sets</button>
@@ -192,7 +245,7 @@ function renderSets() {
 
     <div class="card">
       <h3>Missing download URLs</h3>
-      <p class="muted">Download these files, then upload the resulting <code>.json</code> files into your repo at <code>data/json/</code>.</p>
+      <p class="muted">Download these files, then upload the resulting <code>.json</code> files into your repo at <code>data/json/</code>. If forced download fails, the app falls back to direct source links.</p>
       <textarea id="missingUrls" rows="10" readonly>${missingUrls}</textarea>
     </div>
 
@@ -223,6 +276,18 @@ function renderSets() {
   document.querySelector("#copyCodes").addEventListener("click", () => {
     const codes = (state.missingSets.length ? state.missingSets : state.recommendedSets).join("\n");
     copyText(codes, "Copied missing set codes.");
+  });
+
+  document.querySelectorAll("[data-download-set]").forEach(button => {
+    button.addEventListener("click", async () => {
+      const code = button.dataset.downloadSet;
+      button.disabled = true;
+      button.textContent = "Downloading...";
+      const result = await downloadSetJson(code);
+      button.disabled = false;
+      button.textContent = "Force Download";
+      if (result.ok) log(`Queued ${code}.json as a real file download.`);
+    });
   });
 }
 
