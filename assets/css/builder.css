@@ -134,3 +134,84 @@ textarea, input {
   .layout { grid-template-columns: 1fr; }
   .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
 }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+
+.muted { color: var(--muted); }
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 760px;
+}
+
+th, td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #111722;
+  color: #dce6f8;
+}
+
+tr:last-child td { border-bottom: 0; }
+
+a { color: var(--accent); }
+code {
+  color: #dce6f8;
+  background: #0c1018;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 5px;
+}
+
+.pill {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill.ok {
+  background: #153d2a;
+  color: #9af0bd;
+  border: 1px solid #286d48;
+}
+
+.pill.warn {
+  background: #4a3015;
+  color: #ffd394;
+  border: 1px solid #7c5525;
+}
+
+.downloadControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 8px 0 2px;
+}
+
+.downloadControls input {
+  width: 120px;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
