@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder</title>
+  <title>MTG Builder v6</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
 </head>
 <body>
@@ -84,11 +84,39 @@
         <select id="catalogSetSelect"><option value="">Scan sets first...</option></select>
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
       </div>
+      <section class="batch-panel">
+        <div class="batch-heading">
+          <div>
+            <h3>Batch Selection</h3>
+            <p class="hint">Choose exactly which discovered sets to build.</p>
+          </div>
+          <div class="actions compact-actions">
+            <button id="selectAllSetsBtn" type="button">Select All</button>
+            <button id="selectNoSetsBtn" type="button">Select None</button>
+          </div>
+        </div>
+        <div id="batchSetList" class="batch-set-list"><p class="hint">Scan available sets first.</p></div>
+      </section>
+
       <div class="actions">
+        <button id="buildCheckedCatalogsBtn">Build Checked Sets</button>
+        <button id="buildChangedCatalogsBtn">Build Changed/New Sets</button>
         <button id="buildAllCatalogsBtn">Build All Discovered Sets</button>
         <button id="buildLibraryIndexBtn">Build Library Index Only</button>
       </div>
-      <p class="hint">Generated files download to your computer. Upload them to <code>data/output</code>.</p>
+
+      <section class="report-panel">
+        <div class="batch-heading">
+          <div>
+            <h3>Size & Compatibility Report</h3>
+            <p class="hint">Creates an exact HTML-size estimate using the current settings.</p>
+          </div>
+          <button id="analyzeCheckedSetsBtn" type="button">Analyze Checked Sets</button>
+        </div>
+        <div id="sizeReport" class="size-report"><p class="hint">No report generated yet.</p></div>
+      </section>
+
+      <p class="hint">Generated files download to your computer. Upload HTML/index files and <code>build-manifest.json</code> to <code>data/output</code>.</p>
       <div id="catalogSummary" class="summary-box">Ready.</div>
     </section>
 
