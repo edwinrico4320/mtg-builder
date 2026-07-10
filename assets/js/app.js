@@ -1,6 +1,7 @@
 (() => {
   const setCodes = Array.from(new Set((window.RECOMMENDED_SETS || []).map(s => String(s).toUpperCase())));
   let discoveredSets = [];
+  let loadedManifest = null;
 
   const $ = id => document.getElementById(id);
   const log = (id, msg) => { const el = $(id); if (el) el.textContent = msg; };
@@ -106,8 +107,12 @@
     if(!Array.isArray(items)) throw new Error('GitHub returned an unexpected folder response.');
     return items
       .filter(item => item.type === 'file' && /\.json$/i.test(item.name))
-      .map(item => item.name.replace(/\.json$/i,'').toUpperCase())
-      .sort();
+      .map(item => ({
+        code: item.name.replace(/\.json$/i,'').toUpperCase(),
+        sha: item.sha || '',
+        sourceBytes: Number(item.size || 0)
+      }))
+      .sort((a,b) => a.code.localeCompare(b.code));
   }
 
   async function scanCatalogSets(){
@@ -120,7 +125,7 @@
       codes = await listRepoJsonCodes();
     }catch(err){
       console.warn(err);
-      codes = setCodes;
+      codes = setCodes.map(code => ({code, sha:'', sourceBytes:0}));
       log('catalogSummary', `Automatic GitHub scan failed; checking the fallback list instead. ${err.message}`);
     }
     if(!codes.length){
@@ -129,11 +134,12 @@
       return;
     }
     let checked=0;
-    for(const code of codes){
+    for(const entry of codes){
+      const code = typeof entry === 'string' ? entry : entry.code;
       try{
         const data = await fetchSet(code);
         const cards = getCards(data);
-        discoveredSets.push({ code, name: data.name || code, releaseDate: data.releaseDate || '', cardCount: cards.length });
+        discoveredSets.push({ code, name: data.name || code, releaseDate: data.releaseDate || '', cardCount: cards.length, sourceSha: entry.sha || '', sourceBytes: entry.sourceBytes || 0 });
       }catch(err){ console.warn(`Skipped ${code}`, err); }
       checked++;
       log('catalogSummary', `Reading set metadata ${checked}/${codes.length}...`);
@@ -149,7 +155,94 @@
       const opt = document.createElement('option'); opt.value = s.code; opt.textContent = `${s.name} (${s.code})`; select.appendChild(opt);
     }
     log('jsonStatus', `${discoveredSets.length} sets discovered automatically`);
+    renderBatchSetList();
+    await loadBuildManifest();
     log('catalogSummary', `Discovered ${discoveredSets.length} sets from the live GitHub data/json folder.`);
+  }
+
+  function renderBatchSetList(){
+    const box = $('batchSetList');
+    if(!box) return;
+    if(!discoveredSets.length){ box.innerHTML = '<p class="hint">No sets discovered.</p>'; return; }
+    box.innerHTML = discoveredSets.map(s => `<label class="batch-set-item"><input class="batch-set-checkbox" type="checkbox" value="${esc(s.code)}" checked><span><strong>${esc(s.name)}</strong><small>${esc(s.code)} · ${esc(s.cardCount)} cards</small></span></label>`).join('');
+  }
+
+  function setAllBatchChecks(checked){
+    document.querySelectorAll('.batch-set-checkbox').forEach(cb => { cb.checked = checked; });
+  }
+
+  function getCheckedSets(){
+    const selected = new Set(Array.from(document.querySelectorAll('.batch-set-checkbox:checked')).map(cb => cb.value));
+    return discoveredSets.filter(s => selected.has(s.code));
+  }
+
+  function byteLength(text){ return new Blob([text]).size; }
+  function formatBytes(bytes){
+    if(bytes < 1024) return `${bytes} B`;
+    if(bytes < 1024*1024) return `${(bytes/1024).toFixed(1)} KB`;
+    return `${(bytes/(1024*1024)).toFixed(2)} MB`;
+  }
+
+  function compatibilityForSize(bytes){
+    if(bytes < 750*1024) return {label:'Excellent', cls:'status-good'};
+    if(bytes < 2*1024*1024) return {label:'Likely compatible', cls:'status-good'};
+    if(bytes < 5*1024*1024) return {label:'Test on device', cls:'status-warn'};
+    return {label:'Large file', cls:'status-large'};
+  }
+
+  function optionsSignature(opts=getOptions()){
+    return JSON.stringify({
+      textSize:opts.textSize, fieldMode:opts.fieldMode, navMode:opts.navMode,
+      symbolMode:opts.symbolMode, duplicateMode:opts.duplicateMode,
+      generatorVersion:'6.0'
+    });
+  }
+
+  async function loadBuildManifest(){
+    try{
+      const res = await fetch('data/output/build-manifest.json', {cache:'no-store'});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      loadedManifest = await res.json();
+    }catch{
+      loadedManifest = null;
+    }
+  }
+
+  function previousManifestEntry(code){
+    if(!loadedManifest) return null;
+    if(Array.isArray(loadedManifest.sets)) return loadedManifest.sets.find(s => s.setCode === code) || null;
+    return loadedManifest.sets?.[code] || null;
+  }
+
+  function isChangedOrNew(set, opts=getOptions()){
+    const previous = previousManifestEntry(set.code);
+    if(!previous) return true;
+    if(previous.optionsSignature !== optionsSignature(opts)) return true;
+    if(set.sourceSha && previous.sourceSha) return set.sourceSha !== previous.sourceSha;
+    return false;
+  }
+
+  async function analyzeSets(sets){
+    if(!sets.length){ log('catalogSummary','Select at least one set to analyze.'); return []; }
+    const report = $('sizeReport');
+    report.innerHTML = '<p class="hint">Analyzing selected sets...</p>';
+    const rows=[];
+    let i=0;
+    for(const s of sets){
+      i++;
+      log('catalogSummary', `Analyzing ${i}/${sets.length}: ${s.name}`);
+      try{
+        const data = await fetchSet(s.code);
+        const html = generateSetHtml(data, {...getOptions(), code:s.code});
+        const bytes = byteLength(html);
+        rows.push({...s, outputBytes:bytes, compatibility:compatibilityForSize(bytes)});
+      }catch(err){
+        rows.push({...s, outputBytes:0, error:err.message, compatibility:{label:'Error',cls:'status-large'}});
+      }
+    }
+    report.innerHTML = `<table class="report-table"><thead><tr><th>Set</th><th>Cards</th><th>Source JSON</th><th>Output HTML</th><th>Compatibility</th></tr></thead><tbody>${rows.map(r=>`<tr><td><strong>${esc(r.name)}</strong><br><small>${esc(r.code)}</small></td><td>${esc(r.cardCount)}</td><td>${formatBytes(r.sourceBytes||0)}</td><td>${r.error?'—':formatBytes(r.outputBytes)}</td><td class="${r.compatibility.cls}">${esc(r.compatibility.label)}${r.error?`<br><small>${esc(r.error)}</small>`:''}</td></tr>`).join('')}</tbody></table>`;
+    log('catalogSummary', `Analyzed ${rows.length} set(s).`);
+    return rows;
   }
 
   function manaToHtml(text, embedded){
@@ -240,37 +333,90 @@
     saveTextFile(`${code}.html`, html, 'text/html');
     await delay(500);
     saveTextFile(`${code}.index.json`, JSON.stringify(idx,null,2), 'application/json');
-    log('catalogSummary', `Built ${data.name || code}. Upload ${code}.html and ${code}.index.json to data/output.`);
+    await delay(400);
+    const setMeta = discoveredSets.find(s=>s.code===code) || {code,name:data.name||code,sourceSha:'',sourceBytes:0};
+    saveTextFile('build-manifest.json', JSON.stringify(makeManifest([manifestEntryFor(setMeta,data,cards,html)]),null,2), 'application/json');
+    log('catalogSummary', `Built ${data.name || code}. Upload ${code}.html, ${code}.index.json, and build-manifest.json to data/output.`);
   }
 
   async function ensureDiscovered(){ if(!discoveredSets.length) await scanCatalogSets(); return discoveredSets.length; }
 
-  async function buildAll(){
-    const count = await ensureDiscovered();
-    if(!count){ log('catalogSummary','No discovered sets to build. Run Scan Available Sets first or make sure JSON files exist in data/json.'); return; }
-    log('catalogSummary', `Building ${count} discovered sets. Chrome may ask to allow multiple downloads.`);
+  function manifestEntryFor(set, data, cards, html){
+    return {
+      setCode:set.code,
+      setName:data.name || set.name || set.code,
+      sourceFile:`data/json/${set.code}.json`,
+      sourceSha:set.sourceSha || '',
+      sourceBytes:set.sourceBytes || 0,
+      outputFile:`${set.code}.html`,
+      outputBytes:byteLength(html),
+      cardCount:cards.length,
+      releaseDate:data.releaseDate || '',
+      optionsSignature:optionsSignature(),
+      builtAt:new Date().toISOString()
+    };
+  }
+
+  function makeManifest(entries){
+    const previousSets = loadedManifest && loadedManifest.sets && !Array.isArray(loadedManifest.sets)
+      ? loadedManifest.sets
+      : {};
+    const sets={...previousSets};
+    entries.forEach(e => { sets[e.setCode]=e; });
+    return { generator:'MTG Builder', generatorVersion:'6.0', builtAt:new Date().toISOString(), options:getOptions(), sets };
+  }
+
+  async function buildSetBatch(sets, label='selected'){
+    if(!sets.length){ log('catalogSummary', `No ${label} sets to build.`); return; }
+    log('catalogSummary', `Building ${sets.length} ${label} set(s). Chrome may ask to allow multiple downloads.`);
     const built=[]; let i=0;
-    for(const s of discoveredSets){
+    for(const s of sets){
       i++;
       try{
-        const data = await fetchSet(s.code);
-        const html = generateSetHtml(data, {...getOptions(), code:s.code});
-        const cards = normalizeCards(getCards(data), getOptions().duplicateMode);
-        saveTextFile(`${s.code}.html`, html, 'text/html');
-        built.push({ setCode:s.code, setName:data.name||s.name||s.code, cardCount:cards.length, releaseDate:data.releaseDate||'', htmlFile:`${s.code}.html` });
-        log('catalogSummary', `Built ${i}/${count}: ${data.name || s.code}`);
+        const data=await fetchSet(s.code);
+        const html=generateSetHtml(data,{...getOptions(),code:s.code});
+        const cards=normalizeCards(getCards(data),getOptions().duplicateMode);
+        saveTextFile(`${s.code}.html`,html,'text/html');
+        built.push(manifestEntryFor(s,data,cards,html));
+        log('catalogSummary',`Built ${i}/${sets.length}: ${data.name||s.code}`);
         await delay(800);
       }catch(err){
         console.error(err);
-        log('catalogSummary', `Error building ${s.code}: ${err.message}`);
-        await delay(800);
+        log('catalogSummary',`Error building ${s.code}: ${err.message}`);
+        await delay(500);
       }
     }
-    await delay(800);
-    saveTextFile('library-index.html', generateLibraryIndexHtml(built), 'text/html');
+    const librarySets=built.map(e=>({setCode:e.setCode,setName:e.setName,cardCount:e.cardCount,releaseDate:e.releaseDate,htmlFile:e.outputFile}));
     await delay(500);
-    saveTextFile('library-index.json', JSON.stringify({ builtAt:new Date().toISOString(), sets:built }, null, 2), 'application/json');
-    log('catalogSummary', `Done. Built ${built.length}/${count} set files plus library-index.html/json.`);
+    saveTextFile('library-index.html',generateLibraryIndexHtml(librarySets),'text/html');
+    await delay(400);
+    saveTextFile('library-index.json',JSON.stringify({builtAt:new Date().toISOString(),sets:librarySets},null,2),'application/json');
+    await delay(400);
+    saveTextFile('build-manifest.json',JSON.stringify(makeManifest(built),null,2),'application/json');
+    log('catalogSummary',`Done. Built ${built.length}/${sets.length} set file(s), library index files, and build-manifest.json.`);
+  }
+
+  async function buildChecked(){
+    await ensureDiscovered();
+    await buildSetBatch(getCheckedSets(),'checked');
+  }
+
+  async function buildChanged(){
+    await ensureDiscovered();
+    await loadBuildManifest();
+    const changed=discoveredSets.filter(s=>isChangedOrNew(s));
+    if(!changed.length){ log('catalogSummary','No new or changed sets were detected for the current output settings.'); return; }
+    setAllBatchChecks(false);
+    const changedCodes=new Set(changed.map(s=>s.code));
+    document.querySelectorAll('.batch-set-checkbox').forEach(cb=>{ cb.checked=changedCodes.has(cb.value); });
+    await buildSetBatch(changed,'changed/new');
+  }
+
+  async function buildAll(){
+    const count = await ensureDiscovered();
+    if(!count){ log('catalogSummary','No discovered sets to build.'); return; }
+    setAllBatchChecks(true);
+    await buildSetBatch(discoveredSets,'discovered');
   }
 
   function generateLibraryIndexHtml(sets){
@@ -294,9 +440,14 @@
     $('downloadMissingBtn')?.addEventListener('click', downloadMissingSets);
     $('scanCatalogSetsBtn')?.addEventListener('click', scanCatalogSets);
     $('buildCatalogBtn')?.addEventListener('click', buildSelected);
+    $('selectAllSetsBtn')?.addEventListener('click', ()=>setAllBatchChecks(true));
+    $('selectNoSetsBtn')?.addEventListener('click', ()=>setAllBatchChecks(false));
+    $('buildCheckedCatalogsBtn')?.addEventListener('click', buildChecked);
+    $('buildChangedCatalogsBtn')?.addEventListener('click', buildChanged);
+    $('analyzeCheckedSetsBtn')?.addEventListener('click', async()=>{ await ensureDiscovered(); await analyzeSets(getCheckedSets()); });
     $('buildAllCatalogsBtn')?.addEventListener('click', buildAll);
     $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
-    console.log('MTG Builder v5 loaded');
+    console.log('MTG Builder v6 loaded');
   }
   document.addEventListener('DOMContentLoaded', bind);
 })();
