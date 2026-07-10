@@ -88,40 +88,79 @@
     return getSetPayload(json);
   }
 
+  function getGitHubRepoInfo(){
+    const host = location.hostname.toLowerCase();
+    const parts = location.pathname.split('/').filter(Boolean);
+    if(host.endsWith('.github.io') && parts.length){
+      return { owner: host.replace('.github.io',''), repo: parts[0], branch: 'main' };
+    }
+    return { owner: 'edwinrico4320', repo: 'mtg-builder', branch: 'main' };
+  }
+
+  async function listRepoJsonCodes(){
+    const {owner, repo, branch} = getGitHubRepoInfo();
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/data/json?ref=${encodeURIComponent(branch)}`;
+    const res = await fetch(url, { headers:{'Accept':'application/vnd.github+json'}, cache:'no-store' });
+    if(!res.ok) throw new Error(`GitHub folder scan failed (HTTP ${res.status})`);
+    const items = await res.json();
+    if(!Array.isArray(items)) throw new Error('GitHub returned an unexpected folder response.');
+    return items
+      .filter(item => item.type === 'file' && /\.json$/i.test(item.name))
+      .map(item => item.name.replace(/\.json$/i,'').toUpperCase())
+      .sort();
+  }
+
   async function scanCatalogSets(){
     const select = $('catalogSetSelect');
-    select.innerHTML = '<option value="">Scanning...</option>';
+    select.innerHTML = '<option value="">Scanning GitHub data/json...</option>';
     discoveredSets = [];
-    log('catalogSummary','Scanning known set codes against data/json...');
-    for(const code of setCodes){
+    log('catalogSummary','Reading the current data/json folder from GitHub...');
+    let codes;
+    try{
+      codes = await listRepoJsonCodes();
+    }catch(err){
+      console.warn(err);
+      codes = setCodes;
+      log('catalogSummary', `Automatic GitHub scan failed; checking the fallback list instead. ${err.message}`);
+    }
+    if(!codes.length){
+      select.innerHTML = '<option value="">No JSON files found</option>';
+      log('catalogSummary','No .json files were found in data/json.');
+      return;
+    }
+    let checked=0;
+    for(const code of codes){
       try{
         const data = await fetchSet(code);
         const cards = getCards(data);
         discoveredSets.push({ code, name: data.name || code, releaseDate: data.releaseDate || '', cardCount: cards.length });
-      }catch{}
+      }catch(err){ console.warn(`Skipped ${code}`, err); }
+      checked++;
+      log('catalogSummary', `Reading set metadata ${checked}/${codes.length}...`);
     }
     select.innerHTML = '';
     if(!discoveredSets.length){
-      select.innerHTML = '<option value="">No sets found</option>';
-      log('catalogSummary','No JSON files found. Make sure files are uploaded to data/json and listed in recommended-sets.js.');
+      select.innerHTML = '<option value="">No readable sets found</option>';
+      log('catalogSummary','JSON filenames were found, but none could be read as MTGJSON set files.');
       return;
     }
     discoveredSets.sort((a,b)=> (a.name||a.code).localeCompare(b.name||b.code));
     for(const s of discoveredSets){
       const opt = document.createElement('option'); opt.value = s.code; opt.textContent = `${s.name} (${s.code})`; select.appendChild(opt);
     }
-    log('jsonStatus', `${discoveredSets.length} sets discovered`);
-    log('catalogSummary', `Discovered ${discoveredSets.length} sets.`);
+    log('jsonStatus', `${discoveredSets.length} sets discovered automatically`);
+    log('catalogSummary', `Discovered ${discoveredSets.length} sets from the live GitHub data/json folder.`);
   }
 
   function manaToHtml(text, embedded){
     const raw = esc(text || '');
     if(!embedded) return raw;
-    // Tiny inline SVG circles with symbol text, self-contained and basic-viewer friendly.
+    const symbols = window.MTG_SYMBOLS || {};
     return raw.replace(/\{([^}]+)\}/g, (_, sym) => {
-      const s = esc(sym.toUpperCase().replace('/', '⁄'));
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22"><circle cx="11" cy="11" r="10" fill="#eee" stroke="#222"/><text x="11" y="15" font-size="10" text-anchor="middle" font-family="Arial" fill="#111">${s}</text></svg>`;
-      return `<img class="mana" alt="{${s}}" src="data:image/svg+xml;utf8,${encodeURIComponent(svg)}">`;
+      const key = String(sym).toUpperCase();
+      const src = symbols[key];
+      if(src) return `<img class="mana" alt="{${esc(key)}}" src="${src}">`;
+      return `<span class="mana-fallback">${esc(key.replace('/', '⁄'))}</span>`;
     });
   }
 
@@ -172,11 +211,12 @@
       const pt = c.power || c.toughness ? `<p><b>Power/Toughness:</b> ${esc(c.power)}/${esc(c.toughness)}</p>` : '';
       const loyalty = c.loyalty ? `<p><b>Loyalty:</b> ${esc(c.loyalty)}</p>` : '';
       const defense = c.defense ? `<p><b>Defense:</b> ${esc(c.defense)}</p>` : '';
-      const fullFields = full ? `${c.rarity?`<p><b>Rarity:</b> ${esc(c.rarity)}</p>`:''}${c.artist?`<p><b>Artist:</b> ${esc(c.artist)}</p>`:''}${c.flavorText?`<p><b>Flavor:</b> <i>${esc(c.flavorText)}</i></p>`:''}` : '';
+      const flavorField = c.flavorText ? `<p class="flavor"><b>Flavor:</b><br><i>${esc(c.flavorText).replace(/\n/g,'<br>')}</i></p>` : '';
+      const fullFields = full ? `${c.rarity?`<p><b>Rarity:</b> ${esc(c.rarity)}</p>`:''}${c.artist?`<p><b>Artist:</b> ${esc(c.artist)}</p>`:''}` : '';
       const printings = c.printings.length > 1 ? `<details open><summary>Alternate printings in this set (${c.printings.length})</summary><ul>${c.printings.map(p=>`<li>#${esc(p.number)}${p.artist?` — ${esc(p.artist)}`:''}${p.rarity?` — ${esc(p.rarity)}`:''}</li>`).join('')}</ul></details>` : '';
-      return `<article class="card" id="${c.id}"><h2>${esc(c.name)}</h2>${c.manaCost?`<p><b>Mana Cost:</b> <span class="mana-line">${manaToHtml(c.manaCost, symbolImages)}</span></p>`:''}${c.type?`<p><b>Type:</b> ${esc(c.type)}</p>`:''}${c.text?`<p class="rules"><b>Text:</b><br>${manaToHtml(c.text, symbolImages).replace(/\n/g,'<br>')}</p>`:''}${pt}${loyalty}${defense}${fullFields}${printings}<p><a href="#top">Back to top</a></p></article>`;
+      return `<article class="card" id="${c.id}"><h2>${esc(c.name)}</h2>${c.manaCost?`<p><b>Mana Cost:</b> <span class="mana-line">${manaToHtml(c.manaCost, symbolImages)}</span></p>`:''}${c.type?`<p><b>Type:</b> ${esc(c.type)}</p>`:''}${c.text?`<p class="rules"><b>Text:</b><br>${manaToHtml(c.text, symbolImages).replace(/\n/g,'<br>')}</p>`:''}${pt}${loyalty}${defense}${flavorField}${fullFields}${printings}<p><a href="#top">Back to top</a></p></article>`;
     }).join('\n');
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(setName)}</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f6f6;color:#111;line-height:1.45}.wrap{max-width:900px;margin:0 auto;padding:16px}.title{text-align:center;font-size:2.2em;margin:.5em 0}.meta{text-align:center;color:#444;margin-bottom:1.5em}.nav,.card{background:#fff;border:1px solid #bbb;border-radius:8px;margin:12px 0;padding:14px}.nav a{display:inline-block;margin:4px 8px 4px 0;padding:3px 6px;border:1px solid #ccc;border-radius:4px;text-decoration:none;color:#0645ad}.letters a{font-weight:bold}.card{border-left:6px solid #444}.card:nth-child(even){background:#fbfbfb}.card h2{margin-top:0;border-bottom:1px solid #ddd;padding-bottom:6px}.rules{white-space:normal}.mana{width:22px;height:22px;vertical-align:middle;margin:0 1px}.size-compact{font-size:14px}.size-comfortable{font-size:17px}.size-large{font-size:20px}summary{font-weight:bold}a{color:#0645ad}</style></head><body class="${bodyClass}"><div class="wrap" id="top"><h1 class="title">${esc(setName)}</h1><div class="meta">${setCode?`Set Code: ${esc(setCode)} · `:''}${cards.length} cards${data.releaseDate?` · Released ${esc(data.releaseDate)}`:''}</div>${nav}<main>${cardBlocks}</main></div></body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(setName)}</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f6f6;color:#111;line-height:1.45}.wrap{max-width:900px;margin:0 auto;padding:16px}.title{text-align:center;font-size:2.2em;margin:.5em 0}.meta{text-align:center;color:#444;margin-bottom:1.5em}.nav,.card{background:#fff;border:1px solid #bbb;border-radius:8px;margin:12px 0;padding:14px}.nav a{display:inline-block;margin:4px 8px 4px 0;padding:3px 6px;border:1px solid #ccc;border-radius:4px;text-decoration:none;color:#0645ad}.letters a{font-weight:bold}.card{border-left:6px solid #444}.card:nth-child(even){background:#fbfbfb}.card h2{margin-top:0;border-bottom:1px solid #ddd;padding-bottom:6px}.rules{white-space:normal}.mana{width:22px;height:22px;vertical-align:middle;margin:0 1px}.mana-fallback{display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;border:1px solid #333;border-radius:50%;background:#ddd;font-size:11px;font-weight:bold;margin:0 1px}.flavor{border-left:3px solid #aaa;padding-left:10px}.size-compact{font-size:14px}.size-comfortable{font-size:17px}.size-large{font-size:20px}summary{font-weight:bold}a{color:#0645ad}</style></head><body class="${bodyClass}"><div class="wrap" id="top"><h1 class="title">${esc(setName)}</h1><div class="meta">${setCode?`Set Code: ${esc(setCode)} · `:''}${cards.length} cards${data.releaseDate?` · Released ${esc(data.releaseDate)}`:''}</div>${nav}<main>${cardBlocks}</main></div></body></html>`;
   }
 
   function getOptions(){
@@ -207,7 +247,7 @@
 
   async function buildAll(){
     const count = await ensureDiscovered();
-    if(!count){ log('catalogSummary','No discovered sets to build. Run Scan Available Sets first or add set codes to recommended-sets.js.'); return; }
+    if(!count){ log('catalogSummary','No discovered sets to build. Run Scan Available Sets first or make sure JSON files exist in data/json.'); return; }
     log('catalogSummary', `Building ${count} discovered sets. Chrome may ask to allow multiple downloads.`);
     const built=[]; let i=0;
     for(const s of discoveredSets){
@@ -256,7 +296,7 @@
     $('buildCatalogBtn')?.addEventListener('click', buildSelected);
     $('buildAllCatalogsBtn')?.addEventListener('click', buildAll);
     $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
-    console.log('MTG Builder v4.1 loaded');
+    console.log('MTG Builder v5 loaded');
   }
   document.addEventListener('DOMContentLoaded', bind);
 })();
