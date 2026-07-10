@@ -257,22 +257,75 @@
     });
   }
 
+  function faceFromCard(c, index){
+    return {
+      name: c.faceName || c.name || `Face ${index + 1}`,
+      manaCost: c.manaCost || '',
+      type: c.type || '',
+      text: cardText(c),
+      flavorText: c.flavorText || '',
+      power: c.power || '',
+      toughness: c.toughness || '',
+      loyalty: c.loyalty || '',
+      defense: c.defense || '',
+      side: c.side || '',
+      number: c.number || ''
+    };
+  }
+
+  function collectCardFaces(c, linkedCards){
+    const explicit = c.cardFaces || c.faces;
+    if(Array.isArray(explicit) && explicit.length){
+      return explicit.map((f,i)=>faceFromCard(f,i));
+    }
+    if(linkedCards && linkedCards.length > 1){
+      return linkedCards
+        .slice()
+        .sort((a,b)=>String(a.side||'').localeCompare(String(b.side||'')) || String(a.number||'').localeCompare(String(b.number||''),undefined,{numeric:true}))
+        .map((f,i)=>faceFromCard(f,i));
+    }
+    return [];
+  }
+
+  function groupLinkedCards(cards){
+    const byId = new Map();
+    cards.forEach(c => {
+      const id = c.uuid || c.identifiers?.mtgjsonV4Id || c.identifiers?.scryfallId;
+      if(id) byId.set(id,c);
+    });
+    const visited = new Set();
+    const groups = [];
+    cards.forEach(c => {
+      if(visited.has(c)) return;
+      const ids = Array.isArray(c.otherFaceIds) ? c.otherFaceIds : [];
+      const linked = [c, ...ids.map(id=>byId.get(id)).filter(Boolean)];
+      const unique = [...new Set(linked)];
+      unique.forEach(x=>visited.add(x));
+      groups.push(unique);
+    });
+    return groups;
+  }
+
   function normalizeCards(cards, duplicateMode){
     const out=[]; const seen = new Map();
-    cards.forEach((c, idx) => {
+    groupLinkedCards(cards).forEach((group, idx) => {
+      const c = group[0];
+      const faces = collectCardFaces(c, group);
       const n = {
         number: c.number || c.identifiers?.mtgjsonV4Id || idx+1,
-        name: c.name || c.faceName || 'Unnamed Card',
+        name: c.name || (faces.length ? faces.map(f=>f.name).join(' // ') : c.faceName) || 'Unnamed Card',
         manaCost: c.manaCost || '',
         manaValue: c.manaValue ?? c.convertedManaCost ?? '',
         type: c.type || '',
         text: cardText(c),
         flavorText: c.flavorText || '',
         power: c.power || '', toughness: c.toughness || '', loyalty: c.loyalty || '', defense: c.defense || '',
-        rarity: c.rarity || '', artist: c.artist || '',
+        rarity: c.rarity || '', artist: c.artist || '', layout: c.layout || '',
+        faces,
         original: c
       };
-      const key = [n.name,n.manaCost,n.type,n.text,n.power,n.toughness,n.loyalty,n.defense].join('|');
+      const faceKey = faces.map(f=>[f.name,f.manaCost,f.type,f.text,f.power,f.toughness,f.loyalty,f.defense].join('~')).join('||');
+      const key = [n.name,n.manaCost,n.type,n.text,n.power,n.toughness,n.loyalty,n.defense,faceKey].join('|');
       if(duplicateMode === 'collapse' && seen.has(key)){
         seen.get(key).printings.push({ number:n.number, artist:n.artist, rarity:n.rarity });
       }else{
@@ -291,8 +344,23 @@
     return `<nav class="nav" id="top"><h2>Cards</h2><div class="letters">${letters.map(l=>`<a href="#letter-${esc(l)}">${esc(l)}</a>`).join('')}</div>` + letters.map(l => `<h3 id="letter-${esc(l)}">${esc(l)}</h3>${groups[l].map(c=>`<a href="#${c.id}">${esc(c.name)}</a>`).join('')}`).join('') + '</nav>';
   }
 
+  function renderStats(face){
+    const stats=[];
+    if(face.power || face.toughness) stats.push(`<span><b>Power/Toughness:</b> ${esc(face.power)}/${esc(face.toughness)}</span>`);
+    if(face.loyalty) stats.push(`<span><b>Loyalty:</b> ${esc(face.loyalty)}</span>`);
+    if(face.defense) stats.push(`<span><b>Defense:</b> ${esc(face.defense)}</span>`);
+    return stats.length ? `<div class="stats-panel">${stats.join('')}</div>` : '';
+  }
+
+  function renderFace(face, symbolImages, index){
+    const title = face.name ? `<h3>${esc(face.name)}</h3>` : `<h3>Face ${index+1}</h3>`;
+    const identity = `<div class="identity-panel">${face.manaCost?`<div><b>Mana Cost:</b> <span class="mana-line">${manaToHtml(face.manaCost,symbolImages)}</span></div>`:''}${face.type?`<div><b>Type:</b> ${esc(face.type)}</div>`:''}</div>`;
+    const rules = face.text ? `<div class="rules-panel"><b>Rules Text</b><div>${manaToHtml(face.text,symbolImages).replace(/\n/g,'<br>')}</div></div>` : '';
+    const flavor = face.flavorText ? `<div class="flavor-panel"><b>Flavor Text</b><div><i>${esc(face.flavorText).replace(/\n/g,'<br>')}</i></div></div>` : '';
+    return `<section class="face-panel">${title}${identity}${rules}${renderStats(face)}${flavor}</section>`;
+  }
+
   function generateSetHtml(data, opts){
-    const code = data.code || data.baseSetSize ? (data.code || '') : '';
     const setCode = (data.code || opts.code || '').toUpperCase();
     const setName = data.name || setCode || 'Magic Set';
     let cards = normalizeCards(getCards(data), opts.duplicateMode).map((c,i)=>({...c,id:safeId(c.name,i)}));
@@ -301,15 +369,16 @@
     const full = opts.fieldMode === 'full';
     const nav = buildNav(cards, opts.navMode);
     const cardBlocks = cards.map(c => {
-      const pt = c.power || c.toughness ? `<p><b>Power/Toughness:</b> ${esc(c.power)}/${esc(c.toughness)}</p>` : '';
-      const loyalty = c.loyalty ? `<p><b>Loyalty:</b> ${esc(c.loyalty)}</p>` : '';
-      const defense = c.defense ? `<p><b>Defense:</b> ${esc(c.defense)}</p>` : '';
-      const flavorField = c.flavorText ? `<p class="flavor"><b>Flavor:</b><br><i>${esc(c.flavorText).replace(/\n/g,'<br>')}</i></p>` : '';
-      const fullFields = full ? `${c.rarity?`<p><b>Rarity:</b> ${esc(c.rarity)}</p>`:''}${c.artist?`<p><b>Artist:</b> ${esc(c.artist)}</p>`:''}` : '';
-      const printings = c.printings.length > 1 ? `<details open><summary>Alternate printings in this set (${c.printings.length})</summary><ul>${c.printings.map(p=>`<li>#${esc(p.number)}${p.artist?` — ${esc(p.artist)}`:''}${p.rarity?` — ${esc(p.rarity)}`:''}</li>`).join('')}</ul></details>` : '';
-      return `<article class="card" id="${c.id}"><h2>${esc(c.name)}</h2>${c.manaCost?`<p><b>Mana Cost:</b> <span class="mana-line">${manaToHtml(c.manaCost, symbolImages)}</span></p>`:''}${c.type?`<p><b>Type:</b> ${esc(c.type)}</p>`:''}${c.text?`<p class="rules"><b>Text:</b><br>${manaToHtml(c.text, symbolImages).replace(/\n/g,'<br>')}</p>`:''}${pt}${loyalty}${defense}${flavorField}${fullFields}${printings}<p><a href="#top">Back to top</a></p></article>`;
+      const hasFaces = Array.isArray(c.faces) && c.faces.length > 1;
+      const identity = `<div class="identity-panel">${c.manaCost?`<div><b>Mana Cost:</b> <span class="mana-line">${manaToHtml(c.manaCost,symbolImages)}</span></div>`:''}${c.type?`<div><b>Type:</b> ${esc(c.type)}</div>`:''}${c.layout?`<div><b>Layout:</b> ${esc(c.layout)}</div>`:''}</div>`;
+      const rules = c.text ? `<div class="rules-panel"><b>Rules Text</b><div>${manaToHtml(c.text,symbolImages).replace(/\n/g,'<br>')}</div></div>` : '';
+      const flavor = c.flavorText ? `<div class="flavor-panel"><b>Flavor Text</b><div><i>${esc(c.flavorText).replace(/\n/g,'<br>')}</i></div></div>` : '';
+      const faces = hasFaces ? `<div class="faces-wrap"><h3 class="faces-heading">Card Faces</h3>${c.faces.map((f,i)=>renderFace(f,symbolImages,i)).join('')}</div>` : '';
+      const details = full && (c.rarity || c.artist || c.number) ? `<div class="details-panel"><b>Printing Details</b>${c.rarity?`<div>Rarity: ${esc(c.rarity)}</div>`:''}${c.artist?`<div>Artist: ${esc(c.artist)}</div>`:''}${c.number?`<div>Collector Number: ${esc(c.number)}</div>`:''}</div>` : '';
+      const printings = c.printings.length > 1 ? `<details class="printings-panel" open><summary>Alternate printings in this set (${c.printings.length})</summary><ul>${c.printings.map(p=>`<li>#${esc(p.number)}${p.artist?` — ${esc(p.artist)}`:''}${p.rarity?` — ${esc(p.rarity)}`:''}</li>`).join('')}</ul></details>` : '';
+      return `<article class="card" id="${c.id}"><header class="card-header"><h2>${esc(c.name)}</h2></header>${identity}${hasFaces?'':rules}${hasFaces?'':renderStats(c)}${hasFaces?'':flavor}${faces}${details}${printings}<p class="back-link"><a href="#top">Back to top</a></p></article>`;
     }).join('\n');
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(setName)}</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#f6f6f6;color:#111;line-height:1.45}.wrap{max-width:900px;margin:0 auto;padding:16px}.title{text-align:center;font-size:2.2em;margin:.5em 0}.meta{text-align:center;color:#444;margin-bottom:1.5em}.nav,.card{background:#fff;border:1px solid #bbb;border-radius:8px;margin:12px 0;padding:14px}.nav a{display:inline-block;margin:4px 8px 4px 0;padding:3px 6px;border:1px solid #ccc;border-radius:4px;text-decoration:none;color:#0645ad}.letters a{font-weight:bold}.card{border-left:6px solid #444}.card:nth-child(even){background:#fbfbfb}.card h2{margin-top:0;border-bottom:1px solid #ddd;padding-bottom:6px}.rules{white-space:normal}.mana{width:22px;height:22px;vertical-align:middle;margin:0 1px}.mana-fallback{display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;border:1px solid #333;border-radius:50%;background:#ddd;font-size:11px;font-weight:bold;margin:0 1px}.flavor{border-left:3px solid #aaa;padding-left:10px}.size-compact{font-size:14px}.size-comfortable{font-size:17px}.size-large{font-size:20px}summary{font-weight:bold}a{color:#0645ad}</style></head><body class="${bodyClass}"><div class="wrap" id="top"><h1 class="title">${esc(setName)}</h1><div class="meta">${setCode?`Set Code: ${esc(setCode)} · `:''}${cards.length} cards${data.releaseDate?` · Released ${esc(data.releaseDate)}`:''}</div>${nav}<main>${cardBlocks}</main></div></body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(setName)}</title><style>body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#111;line-height:1.48}.wrap{max-width:900px;margin:0 auto;padding:16px}.title{text-align:center;font-size:2.2em;margin:.5em 0}.meta{text-align:center;color:#444;margin-bottom:1.5em}.nav,.card{background:#fff;border:1px solid #aaa;border-radius:8px;margin:14px 0}.nav{padding:14px}.nav a{display:inline-block;margin:4px 8px 4px 0;padding:4px 7px;border:1px solid #bbb;border-radius:4px;text-decoration:none;color:#0645ad;background:#fafafa}.letters a{font-weight:bold}.card{overflow:hidden;border-left:6px solid #444}.card-header{background:#e1e1e1;padding:12px 14px;border-bottom:1px solid #aaa}.card-header h2{margin:0}.identity-panel,.rules-panel,.stats-panel,.flavor-panel,.details-panel,.printings-panel{margin:10px 14px;padding:10px 12px;border:1px solid #bbb;border-radius:6px}.identity-panel{background:#f7f7f7}.identity-panel>div+div{margin-top:6px}.rules-panel{background:#f1ead8}.rules-panel>b,.flavor-panel>b,.details-panel>b{display:block;margin-bottom:6px}.stats-panel{background:#e5edf5;display:flex;flex-wrap:wrap;gap:12px}.flavor-panel{background:#eee8f1;border-left:5px solid #8d7896}.details-panel{background:#edf2e8}.face-panel{margin:12px 14px;padding:10px;border:2px solid #999;border-radius:7px;background:#fafafa}.face-panel h3{margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid #bbb}.face-panel .identity-panel,.face-panel .rules-panel,.face-panel .stats-panel,.face-panel .flavor-panel{margin:8px 0}.faces-heading{margin:12px 14px 0}.mana{width:22px;height:22px;vertical-align:middle;margin:0 1px}.mana-fallback{display:inline-block;min-width:20px;height:20px;line-height:20px;text-align:center;border:1px solid #333;border-radius:50%;background:#ddd;font-size:11px;font-weight:bold;margin:0 1px}.back-link{margin:12px 14px 14px}.size-compact{font-size:14px}.size-comfortable{font-size:17px}.size-large{font-size:20px}summary{font-weight:bold}a{color:#0645ad}</style></head><body class="${bodyClass}"><div class="wrap" id="top"><h1 class="title">${esc(setName)}</h1><div class="meta">${setCode?`Set Code: ${esc(setCode)} · `:''}${cards.length} cards${data.releaseDate?` · Released ${esc(data.releaseDate)}`:''}</div>${nav}<main>${cardBlocks}</main></div></body></html>`;
   }
 
   function getOptions(){
