@@ -24,7 +24,7 @@
       <h2>Dashboard</h2>
       <div class="cards-grid">
         <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
-        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Use Catalog Builder to scan <code>data/json</code>.</small></article>
+        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Catalog scan reads the live GitHub <code>data/json</code> folder.</small></article>
         <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
       </div>
     </section>
@@ -67,7 +67,7 @@
         </label>
         <label>Mana symbols
           <select id="symbolModeSelect">
-            <option value="embedded" selected>Embedded symbol images</option>
+            <option value="embedded" selected>Embedded PNG symbols</option>
             <option value="text">Text only</option>
           </select>
         </label>
@@ -99,6 +99,7 @@
   </main>
 
   <script src="./assets/js/recommended-sets.js"></script>
+  <script src="./assets/js/symbols.js"></script>
   <script src="./assets/js/app.js"></script>
 </body>
 </html>
