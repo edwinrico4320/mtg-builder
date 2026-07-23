@@ -1,5 +1,3 @@
-// MTG Builder v8 Image Lab
-// Proof-of-concept image pipeline
 
 const ImageLab = {
   settings: {

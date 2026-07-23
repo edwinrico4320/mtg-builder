@@ -1,8 +1,7 @@
-// MTG Builder v8 Master Card Index Foundation
 
 const CardIndex = [];
 
-// Future fields:
+// v8 planned fields:
 // name
 // colors
 // manaIdentity
