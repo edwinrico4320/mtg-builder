@@ -1,9 +1,9 @@
-function createImageReport(results) {
+function generateImageReport(results) {
+  const found = results.filter(r => r.image).length;
+
   return {
     cardsProcessed: results.length,
-    imagesFound: results.filter(x => x.image).length,
-    estimatedSizeKB: Math.round(
-      JSON.stringify(results).length / 1024
-    )
+    imagesFound: found,
+    successRate: `${found}/${results.length}`
   };
 }
