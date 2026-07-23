@@ -1,146 +1,105 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <div id="version-info"></div>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder Testing</title>
-  <link rel="stylesheet" href="assets/css/builder.css">
-  <link rel="stylesheet" href="assets/css/image-lab.css">
-  <link rel="stylesheet" href="assets/css/v8.css>
-  <link rel="stylesheet" href="assets/css/image-lab.css">
-    
+<meta charset="UTF-8">
+<title>MTG Builder v8.0.2</title>
+
+<link rel="stylesheet" href="assets/css/builder.css">
+<link rel="stylesheet" href="assets/css/v8.css">
+<link rel="stylesheet" href="assets/css/image-lab.css">
+
 </head>
-</head>
+
 <body>
-  <header class="app-header">
-    <h1>MTG Builder</h1>
-    <p>GitHub Pages browser workbench</p>
-  </header>
 
-  <nav class="tabs" aria-label="Builder sections">
-    <button class="tab-button active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-button" data-tab="downloader">Set Downloader</button>
-    <button class="tab-button" data-tab="catalog">Catalog Builder</button>
-    <button class="tab-button" data-tab="settings">Settings</button>
-  </nav>
+<div id="version-info" class="version-banner">
+Loading version...
+</div>
 
-  <main class="app-main">
-    <section id="dashboard" class="tab-panel active">
-      <h2>Dashboard</h2>
-      <div class="cards-grid">
-        <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
-        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Catalog scan reads the live GitHub <code>data/json</code> folder.</small></article>
-        <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
-      </div>
-    </section>
+<div id="module-status" class="v8-module-status">
+Loading modules...
+</div>
 
-    <section id="downloader" class="tab-panel">
-      <h2>Set Downloader</h2>
-      <p>Checks your repo for recommended MTGJSON set files and downloads missing files from MTGJSON.</p>
-      <div class="actions">
-        <button id="checkSetsBtn">Check Installed Sets</button>
-        <button id="downloadMissingBtn">Download Missing Sets</button>
-      </div>
-      <p class="hint">Downloaded files must still be uploaded to <code>data/json</code> in your GitHub repo.</p>
-      <div id="downloadSummary" class="summary-box">Ready.</div>
-      <div id="setList" class="set-list"></div>
-    </section>
+<hr>
 
-    <section id="catalog" class="tab-panel">
-      <h2>Catalog Builder</h2>
-      <p>Create compact static HTML catalogs. Outputs use only HTML/CSS and anchor links.</p>
+<nav class="tabs">
+<button data-tab="catalog">Catalog Builder</button>
+<button data-tab="downloader">Set Downloader</button>
+<button data-tab="batch">Batch Builder</button>
+<button data-tab="image-lab">Image Lab</button>
+</nav>
 
-      <div class="builder-options">
-        <label>Text size
-          <select id="textSizeSelect">
-            <option value="compact">Compact</option>
-            <option value="comfortable" selected>Comfortable</option>
-            <option value="large">Large</option>
-          </select>
-        </label>
-        <label>Field display
-          <select id="fieldModeSelect">
-            <option value="essential" selected>Essential</option>
-            <option value="full">Full</option>
-          </select>
-        </label>
-        <label>Navigator
-          <select id="navModeSelect">
-            <option value="alpha" selected>Alphabetical</option>
-            <option value="plain">Plain full list</option>
-          </select>
-        </label>
-        <label>Mana symbols
-          <select id="symbolModeSelect">
-            <option value="embedded" selected>Embedded PNG symbols</option>
-            <option value="text">Text only</option>
-          </select>
-        </label>
-        <label>Duplicate handling
-          <select id="duplicateModeSelect">
-            <option value="collapse" selected>Collapse identical gameplay cards</option>
-            <option value="all">Show all printings</option>
-          </select>
-        </label>
-      </div>
+<section id="catalog" class="panel">
+<h2>Catalog Builder</h2>
+<p>Existing catalog builder panel loads here.</p>
+</section>
 
-      <div class="actions">
-        <button id="scanCatalogSetsBtn">Scan Available Sets</button>
-        <select id="catalogSetSelect"><option value="">Scan sets first...</option></select>
-        <button id="buildCatalogBtn">Build Selected Set HTML</button>
-      </div>
-      <section class="batch-panel">
-        <div class="batch-heading">
-          <div>
-            <h3>Batch Selection</h3>
-            <p class="hint">Choose exactly which discovered sets to build.</p>
-          </div>
-          <div class="actions compact-actions">
-            <button id="selectAllSetsBtn" type="button">Select All</button>
-            <button id="selectNoSetsBtn" type="button">Select None</button>
-          </div>
-        </div>
-        <div id="batchSetList" class="batch-set-list"><p class="hint">Scan available sets first.</p></div>
-      </section>
+<section id="downloader" class="panel">
+<h2>Set Downloader</h2>
+<p>Existing downloader panel loads here.</p>
+</section>
 
-      <div class="actions">
-        <button id="buildCheckedCatalogsBtn">Build Checked Sets</button>
-        <button id="buildChangedCatalogsBtn">Build Changed/New Sets</button>
-        <button id="buildAllCatalogsBtn">Build All Discovered Sets</button>
-        <button id="buildLibraryIndexBtn">Build Library Index Only</button>
-      </div>
+<section id="batch" class="panel">
+<h2>Batch Builder</h2>
+<p>Existing batch builder panel loads here.</p>
+</section>
 
-      <section class="report-panel">
-        <div class="batch-heading">
-          <div>
-            <h3>Size & Compatibility Report</h3>
-            <p class="hint">Creates an exact HTML-size estimate using the current settings.</p>
-          </div>
-          <button id="analyzeCheckedSetsBtn" type="button">Analyze Checked Sets</button>
-        </div>
-        <div id="sizeReport" class="size-report"><p class="hint">No report generated yet.</p></div>
-      </section>
+<section id="image-lab" class="panel image-lab-panel">
 
-      <p class="hint">Generated files download to your computer. Upload HTML/index files and <code>build-manifest.json</code> to <code>data/output</code>.</p>
-      <div id="catalogSummary" class="summary-box">Ready.</div>
-    </section>
+<h2>Image Lab v8.0.2</h2>
 
-    <section id="settings" class="tab-panel">
-      <h2>Settings</h2>
-      <p>Future settings will control storage plugins, richer output profiles, and image handling.</p>
-    </section>
-  </main>
-  <script src="assets/js/version-loader.js"></script>
+<div class="image-lab-control">
+<label>Test Size:</label>
+<select id="image-test-size">
+<option value="10">10 cards</option>
+<option value="50">50 cards</option>
+<option value="all">Entire set</option>
+</select>
+</div>
 
-  <script src="assets/js/image-lab.js"></script>
-  <script src="assets/js/image-lab-ui.js"></script>
-  <script src="assets/js/image-report.js"></script>
+<div class="image-lab-control">
+<label>Image Mode:</label>
+<select id="image-mode">
+<option value="embedded">Embedded</option>
+<option value="external">External URL</option>
+</select>
+</div>
 
-  <script src="assets/js/card-index.js"></script>
-  <script src="assets/js/module-registry.js"></script>
-  <script src="assets/js/image-lab.js"></script>
-  <script src="assets/js/image-lab-ui.js"></script>
-  <script src="assets/js/app.js"></script>
+<div class="image-lab-control">
+<label>Width:</label>
+<select id="image-width">
+<option>180</option>
+<option selected>300</option>
+<option>488</option>
+</select>
+</div>
+
+<div class="image-lab-control">
+<label>Quality:</label>
+<select id="image-quality">
+<option value=".55">55%</option>
+<option value=".65" selected>65%</option>
+<option value=".75">75%</option>
+</select>
+</div>
+
+<button id="run-image-test">Run Image Test</button>
+
+<div id="image-report" class="image-lab-report">
+Waiting for test...
+</div>
+
+</section>
+
+<script src="assets/js/version-loader.js"></script>
+<script src="assets/js/module-registry.js"></script>
+
+<script src="assets/js/image-lab.js"></script>
+<script src="assets/js/image-lab-ui.js"></script>
+<script src="assets/js/image-report.js"></script>
+
+<script src="assets/js/card-index.js"></script>
+<script src="assets/js/app.js"></script>
+
 </body>
 </html>
