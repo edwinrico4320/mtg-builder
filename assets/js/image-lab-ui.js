@@ -1,43 +1,34 @@
-// MTG Builder v8.0.1 Image Lab UI
-
 const ImageLabUI = {
-  testCount: 10,
+  selectedCount: 10,
+  mode: "embedded",
+  width: 300,
+  quality: 0.65,
 
-  setCount(value) {
-    this.testCount = Number(value);
-  },
-
-  async runTest(cards) {
-    const selected = cards.slice(0, this.testCount);
+  async run(cards) {
     const results = [];
 
-    for (const card of selected) {
-      if (!card.identifiers || !card.identifiers.scryfallId) {
-        results.push({
-          name: card.name,
-          image: false
-        });
-        continue;
-      }
+    const selected = cards.slice(0, this.selectedCount);
 
-      try {
-        const url = await ImageLab.getScryfallImage(
+    for (const card of selected) {
+      let image = null;
+
+      if (card.identifiers?.scryfallId) {
+        image = await ImageLab.getScryfallImage(
           card.identifiers.scryfallId
         );
-
-        results.push({
-          name: card.name,
-          image: !!url,
-          url
-        });
-      } catch {
-        results.push({
-          name: card.name,
-          image: false
-        });
       }
+
+      results.push({
+        name: card.name,
+        imageFound: !!image,
+        image
+      });
     }
 
     return results;
   }
 };
+
+if (typeof BuilderModules !== "undefined") {
+  BuilderModules.register("Image Lab", "8.0.2");
+}
