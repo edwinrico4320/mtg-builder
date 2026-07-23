@@ -1,10 +1,19 @@
 .image-lab-panel {
-  border: 1px solid #ccc;
+  border: 1px solid #bbb;
+  border-radius: 8px;
   padding: 15px;
-  margin: 15px;
+  margin: 15px 0;
 }
 
-.image-lab-result {
-  margin-top: 10px;
+.image-lab-panel h2 {
+  margin-top: 0;
+}
+
+.image-lab-control {
+  margin: 8px 0;
+}
+
+.image-lab-report {
+  margin-top: 20px;
   padding: 10px;
 }
