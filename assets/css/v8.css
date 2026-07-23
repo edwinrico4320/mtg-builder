@@ -1,0 +1,11 @@
+
+.version-banner {
+  text-align:center;
+  font-weight:bold;
+  padding:10px;
+}
+
+.v8-module-status {
+  font-size:0.9em;
+  text-align:center;
+}
