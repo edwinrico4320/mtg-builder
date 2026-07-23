@@ -29,6 +29,26 @@ const ImageLabUI = {
   }
 };
 
+document
+.getElementById("run-image-test")
+.addEventListener("click", async () => {
+
+    const report =
+    document.getElementById("image-report");
+
+    report.innerHTML =
+    "Running image test...";
+
+    // temporary test
+    report.innerHTML =
+    `
+    Cards processed: 10<br>
+    Scryfall IDs found: 10<br>
+    Images found: 10
+    `;
+
+});
+
 if (typeof BuilderModules !== "undefined") {
   BuilderModules.register("Image Lab", "8.0.2");
 }
