@@ -131,6 +131,19 @@
 <section id="image-lab" class="tab-panel">
     <h2>Image Lab v8.0.2</h2>
 
+  <div class="image-lab-control">
+    <label>
+      Select Set:
+    </label>
+
+    <select id="imageLabSetSelect">
+      <option value="">
+        Scan sets first...
+      </option>
+    </select>
+
+  </div>
+
     <div class="image-lab-panel">
 
         <div class="image-lab-control">
@@ -172,9 +185,9 @@
             Run Image Test
         </button>
 
-        <div id="image-report">
-            Waiting for test...
-        </div>
+      <div id="image-report" class="image-lab-report">
+        Ready.
+      </div>
 
     </div>
 </section>
