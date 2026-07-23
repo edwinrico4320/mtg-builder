@@ -1,0 +1,13 @@
+{
+  "name": "MTG Builder",
+  "version": "8.0 Image Lab Foundation",
+  "branch": "v8-image-experiments",
+  "build": "Image Foundation",
+  "lastUpdated": "2026-07-23",
+  "features": [
+    "Catalog Builder",
+    "Image Lab Foundation",
+    "Card Index Foundation",
+    "Version Detection"
+  ]
+}
