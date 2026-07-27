@@ -11,14 +11,19 @@ function formatBytes(bytes) {
 }
 
 function buildImageReportHtml(report) {
+  const warnings = (report.warnings || []).map(w => `<li>${w}</li>`).join('');
+  const warningBlock = warnings ? `<div class="image-lab-warning"><strong>Warnings</strong><ul>${warnings}</ul></div>` : '';
+
   return `
 <strong>Set:</strong> ${report.setCode}<br>
-<strong>Cards processed:</strong> ${report.cardsProcessed}<br>
+<strong>Cards processed:</strong> ${report.cardsProcessed}/${report.cardsRequested}<br>
 <strong>Scryfall IDs found:</strong> ${report.idsFound}/${report.cardsProcessed}<br>
 <strong>Images retrieved:</strong> ${report.imagesFound}/${report.cardsProcessed}<br>
+<strong>Missing / failed images:</strong> ${report.failures}<br>
 <strong>Mode:</strong> ${report.mode}<br>
 <strong>Approx image payload:</strong> ${formatBytes(report.totalBytes)}<br>
 <strong>Approx generated HTML:</strong> ${formatBytes(report.htmlBytes)}<br>
-<strong>Status:</strong> ${report.imagesFound > 0 ? "SUCCESS" : "No images found"}
-`;
+<strong>Compatibility estimate:</strong> ${report.compatibility}<br>
+<strong>Status:</strong> ${report.status}
+${warningBlock}`;
 }
