@@ -396,11 +396,13 @@
   }
 
   function cancelCurrentSet() {
+    if (!state.running) return;
     state.cancelCurrentSet = true;
     setStatus('<strong>Cancellation requested:</strong> current set will stop after the current card.');
   }
 
   function cancelEntireBatch() {
+    if (!state.running) return;
     state.cancelEntireBatch = true;
     state.cancelCurrentSet = true;
     setStatus('<strong>Cancellation requested:</strong> batch will stop after the current card/set.');
