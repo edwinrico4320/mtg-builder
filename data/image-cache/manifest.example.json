@@ -1,0 +1,11 @@
+{
+  "version": "8.3.0",
+  "generatedAt": null,
+  "profiles": {
+    "300-65": {
+      "files": {
+        "example-scryfall-id": "300-65/example-scryfall-id.jpg"
+      }
+    }
+  }
+}
