@@ -184,7 +184,20 @@
 
     <section id="settings" class="tab-panel">
       <h2>Settings</h2>
-      <p>Future settings will control storage plugins, richer output profiles, and image handling.</p>
+      <p>Storage plugins, richer output profiles, and shared image caching.</p>
+      <div class="builder-options">
+        <label><input id="enableGithubImageCache" type="checkbox" checked> Use GitHub-hosted processed image cache</label>
+        <label><input id="enableLocalImageCache" type="checkbox" checked> Use local browser image cache</label>
+        <label>GitHub cache base path
+          <input id="githubImageCacheBase" type="text" value="./data/image-cache" spellcheck="false">
+        </label>
+      </div>
+      <div class="actions">
+        <button id="refreshImageCacheStatusBtn" type="button">Refresh Cache Status</button>
+        <button id="downloadImageCacheUpdateBtn" type="button">Download Cache Update ZIP</button>
+        <button id="clearLocalImageCacheBtn" type="button">Clear Local Cache</button>
+      </div>
+      <div id="imageCacheStatus" class="summary-box">Cache status not loaded yet.</div>
     </section>
 
 <section id="image-lab" class="tab-panel">
@@ -248,6 +261,8 @@
   <script src="assets/js/image-lab.js"></script>
   <script src="assets/js/image-lab-ui.js"></script>
   <script src="assets/js/image-report.js"></script>
+  <script src="assets/js/shared-image-cache.js"></script>
+  <script src="assets/js/catalog-profile-core.js"></script>
 
   <script src="assets/js/card-index.js"></script>
   <script src="assets/js/catalog-image-profile.js"></script>
