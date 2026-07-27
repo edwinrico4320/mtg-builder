@@ -1,0 +1,11 @@
+{
+  "title": "Magic Rules Library",
+  "version": "replace-with-source-version",
+  "updated": "YYYY-MM-DD",
+  "chapters": [
+    {"id": "000", "title": "Introduction", "file": "000-introduction.md"},
+    {"id": "100", "title": "Game Concepts", "file": "100-game-concepts.md"},
+    {"id": "200", "title": "Parts of a Card", "file": "200-parts-of-a-card.md"},
+    {"id": "glossary", "title": "Glossary", "file": "glossary.md"}
+  ]
+}
