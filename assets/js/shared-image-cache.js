@@ -6,7 +6,7 @@
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
-      .replace(/\"/g, '&quot;');
+      .replace(/"/g, '&quot;');
   }
 
   function blobToDataUrl(blob) {
@@ -34,19 +34,31 @@
     else if (lower.endsWith('.png')) type = 'image/png';
     else if (lower.endsWith('.webp')) type = 'image/webp';
     else if (lower.endsWith('.json')) type = 'application/json';
-    return new Blob([bytes], { type });
+    return new Blob([bytes], {type});
   }
 
   function formatBytes(bytes) {
     if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
     const units = ['B', 'KB', 'MB', 'GB'];
     let value = bytes;
-    let idx = 0;
-    while (value >= 1024 && idx < units.length - 1) {
+    let index = 0;
+    while (value >= 1024 && index < units.length - 1) {
       value /= 1024;
-      idx += 1;
+      index += 1;
     }
-    return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`;
+    return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
+  }
+
+  function downloadText(filename, text) {
+    const blob = new Blob([text], {type: 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   class SimpleZipReader {
@@ -57,9 +69,9 @@
     }
 
     _findEndOfCentralDirectory() {
-      const minOffset = Math.max(0, this.buffer.byteLength - 0xFFFF - 22);
-      for (let i = this.buffer.byteLength - 22; i >= minOffset; i--) {
-        if (this.view.getUint32(i, true) === 0x06054b50) return i;
+      const minimum = Math.max(0, this.buffer.byteLength - 0xFFFF - 22);
+      for (let offset = this.buffer.byteLength - 22; offset >= minimum; offset--) {
+        if (this.view.getUint32(offset, true) === 0x06054b50) return offset;
       }
       throw new Error('ZIP end-of-central-directory record not found');
     }
@@ -68,12 +80,14 @@
       if (this.entries) return this.entries;
       const eocd = this._findEndOfCentralDirectory();
       const totalEntries = this.view.getUint16(eocd + 10, true);
-      const centralDirOffset = this.view.getUint32(eocd + 16, true);
-      let offset = centralDirOffset;
+      const centralDirectoryOffset = this.view.getUint32(eocd + 16, true);
+      let offset = centralDirectoryOffset;
       const entries = {};
 
-      for (let i = 0; i < totalEntries; i++) {
-        if (this.view.getUint32(offset, true) !== 0x02014b50) throw new Error('Invalid central directory record');
+      for (let index = 0; index < totalEntries; index++) {
+        if (this.view.getUint32(offset, true) !== 0x02014b50) {
+          throw new Error('Invalid central directory record');
+        }
         const compression = this.view.getUint16(offset + 10, true);
         const compressedSize = this.view.getUint32(offset + 20, true);
         const uncompressedSize = this.view.getUint32(offset + 24, true);
@@ -83,7 +97,6 @@
         const localHeaderOffset = this.view.getUint32(offset + 42, true);
         const fileNameBytes = new Uint8Array(this.buffer, offset + 46, fileNameLength);
         const fileName = new TextDecoder().decode(fileNameBytes);
-
         entries[fileName] = {
           fileName,
           compression,
@@ -91,10 +104,8 @@
           uncompressedSize,
           localHeaderOffset
         };
-
         offset += 46 + fileNameLength + extraLength + commentLength;
       }
-
       this.entries = entries;
       return entries;
     }
@@ -104,23 +115,20 @@
     }
 
     async getEntryBytes(name) {
-      const entries = this._readEntries();
-      const entry = entries[name];
+      const entry = this._readEntries()[name];
       if (!entry) return null;
       const offset = entry.localHeaderOffset;
-      if (this.view.getUint32(offset, true) !== 0x04034b50) throw new Error('Invalid local ZIP header');
+      if (this.view.getUint32(offset, true) !== 0x04034b50) {
+        throw new Error('Invalid local ZIP header');
+      }
       const fileNameLength = this.view.getUint16(offset + 26, true);
       const extraLength = this.view.getUint16(offset + 28, true);
       const dataOffset = offset + 30 + fileNameLength + extraLength;
       const raw = new Uint8Array(this.buffer.slice(dataOffset, dataOffset + entry.compressedSize));
-
-      if (entry.compression === 0) {
-        return raw;
-      }
+      if (entry.compression === 0) return raw;
       if (entry.compression === 8 && typeof DecompressionStream !== 'undefined') {
         const stream = new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
-        const response = new Response(stream);
-        return new Uint8Array(await response.arrayBuffer());
+        return new Uint8Array(await new Response(stream).arrayBuffer());
       }
       throw new Error(`Unsupported ZIP compression method: ${entry.compression}`);
     }
@@ -128,8 +136,7 @@
     async getEntryDataUrl(name) {
       const bytes = await this.getEntryBytes(name);
       if (!bytes) return null;
-      const blob = bytesToBlob(bytes, name);
-      return blobToDataUrl(blob);
+      return blobToDataUrl(bytesToBlob(bytes, name));
     }
   }
 
@@ -140,6 +147,7 @@
     remoteManifest: null,
     pendingUpdates: new Map(),
     packReaders: new Map(),
+    lastVerificationReport: null,
     stats: {
       localHits: 0,
       githubLooseHits: 0,
@@ -151,14 +159,16 @@
     },
 
     registerModule() {
-      if (typeof BuilderModules !== 'undefined') BuilderModules.register('Packed Shared Image Cache', '8.3.1');
+      if (typeof BuilderModules !== 'undefined') {
+        BuilderModules.register('Packed Shared Image Cache', '8.3.2');
+      }
     },
 
     getConfig() {
       return {
-        useGithub: !$("enableGithubImageCache") || $("enableGithubImageCache").checked,
-        useLocal: !$("enableLocalImageCache") || $("enableLocalImageCache").checked,
-        basePath: (($("githubImageCacheBase") || {}).value || './data/image-cache').replace(/\/$/, '')
+        useGithub: !$('enableGithubImageCache') || $('enableGithubImageCache').checked,
+        useLocal: !$('enableLocalImageCache') || $('enableLocalImageCache').checked,
+        basePath: (($('githubImageCacheBase') || {}).value || './data/image-cache').replace(/\/$/, '')
       };
     },
 
@@ -187,114 +197,116 @@
     async getLocal(key) {
       const db = await this.openDb();
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(this.storeName, 'readonly');
-        const store = tx.objectStore(this.storeName);
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result || null);
-        req.onerror = () => reject(req.error);
+        const request = db.transaction(this.storeName, 'readonly').objectStore(this.storeName).get(key);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
       });
     },
 
     async putLocal(key, value) {
       const db = await this.openDb();
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(this.storeName, 'readwrite');
-        const store = tx.objectStore(this.storeName);
-        const req = store.put(value, key);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+        const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).put(value, key);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
       });
     },
 
     async countLocal() {
       const db = await this.openDb();
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(this.storeName, 'readonly');
-        const store = tx.objectStore(this.storeName);
-        const req = store.count();
-        req.onsuccess = () => resolve(req.result || 0);
-        req.onerror = () => reject(req.error);
+        const request = db.transaction(this.storeName, 'readonly').objectStore(this.storeName).count();
+        request.onsuccess = () => resolve(request.result || 0);
+        request.onerror = () => reject(request.error);
       });
     },
 
     async clearLocal() {
       const db = await this.openDb();
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(this.storeName, 'readwrite');
-        const store = tx.objectStore(this.storeName);
-        const req = store.clear();
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+        const request = db.transaction(this.storeName, 'readwrite').objectStore(this.storeName).clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
       });
     },
 
-    async loadRemoteManifest() {
+    async loadRemoteManifest(forceReload) {
+      if (forceReload) this.remoteManifest = null;
       if (this.remoteManifest) return this.remoteManifest;
-      const cfg = this.getConfig();
-      try {
-        const response = await fetch(`${cfg.basePath}/manifest.json`, { cache: 'no-store' });
-        if (!response.ok) throw new Error('manifest not found');
-        this.remoteManifest = await response.json();
-      } catch (err) {
-        this.remoteManifest = { version: '8.3.1', generatedAt: null, profiles: {} };
+      const config = this.getConfig();
+      const response = await fetch(`${config.basePath}/manifest.json`, {cache: 'no-store'});
+      if (!response.ok) throw new Error(`Cache manifest could not be loaded (${response.status}).`);
+      const manifest = await response.json();
+      if (!manifest || typeof manifest !== 'object' || !manifest.profiles) {
+        throw new Error('Cache manifest is missing its profiles object.');
       }
-      return this.remoteManifest;
+      this.remoteManifest = manifest;
+      return manifest;
+    },
+
+    async loadRemoteManifestOrEmpty() {
+      try {
+        return await this.loadRemoteManifest(false);
+      } catch (error) {
+        return {version: '8.3.2', generatedAt: null, profiles: {}};
+      }
     },
 
     async fetchGithubImage(path) {
-      const cfg = this.getConfig();
-      const response = await fetch(`${cfg.basePath}/${path}`, { cache: 'no-store' });
+      const config = this.getConfig();
+      const response = await fetch(`${config.basePath}/${path}`, {cache: 'no-store'});
       if (!response.ok) return null;
       const blob = await response.blob();
       if (!(blob.type || '').startsWith('image/')) return null;
       return blobToDataUrl(blob);
     },
 
-    async getPackReader(packPath) {
-      const cfg = this.getConfig();
+    async getPackReader(packPath, forceReload) {
+      const config = this.getConfig();
+      if (forceReload) this.packReaders.delete(packPath);
       if (this.packReaders.has(packPath)) return this.packReaders.get(packPath);
-      const response = await fetch(`${cfg.basePath}/${packPath}`, { cache: 'no-store' });
-      if (!response.ok) throw new Error(`Pack not found: ${packPath}`);
+      const response = await fetch(`${config.basePath}/${packPath}`, {cache: 'no-store'});
+      if (!response.ok) throw new Error(`Pack not found (${response.status}): ${packPath}`);
       const buffer = await response.arrayBuffer();
       const reader = new SimpleZipReader(buffer);
+      reader.listEntries();
       this.packReaders.set(packPath, reader);
       return reader;
     },
 
     async resolveRemoteReference(folder, scryfallId) {
-      const manifest = await this.loadRemoteManifest();
-      const profile = manifest && manifest.profiles ? manifest.profiles[folder] : null;
-      if (!profile || !profile.files) return null;
-      return profile.files[scryfallId] || null;
+      const manifest = await this.loadRemoteManifestOrEmpty();
+      const profile = manifest.profiles ? manifest.profiles[folder] : null;
+      return profile && profile.files ? profile.files[scryfallId] || null : null;
     },
 
     async fetchFromPackedCache(reference) {
-      const parts = String(reference).split('#');
-      if (parts.length !== 2) return null;
-      const packPath = parts[0];
-      const entryName = parts[1];
-      const reader = await this.getPackReader(packPath);
+      const hashIndex = String(reference).indexOf('#');
+      if (hashIndex < 1) return null;
+      const packPath = String(reference).slice(0, hashIndex);
+      const entryName = String(reference).slice(hashIndex + 1);
+      const reader = await this.getPackReader(packPath, false);
       return reader.getEntryDataUrl(entryName);
     },
 
     async resolveProcessedImage(scryfallId, width, quality) {
       const key = this.key(scryfallId, width, quality);
-      const cfg = this.getConfig();
+      const config = this.getConfig();
 
-      if (cfg.useLocal) {
+      if (config.useLocal) {
         try {
           const local = await this.getLocal(key);
           if (local) {
             this.stats.localHits += 1;
             this.refreshStatusSoon();
-            return { dataUrl: local, source: 'local' };
+            return {dataUrl: local, source: 'local'};
           }
-        } catch (err) {
-          console.warn('Local cache read failed', err);
+        } catch (error) {
+          console.warn('Local cache read failed', error);
         }
       }
 
-      if (cfg.useGithub) {
+      if (config.useGithub) {
         try {
           const folder = this.folder(width, quality);
           const reference = await this.resolveRemoteReference(folder, scryfallId);
@@ -308,24 +320,24 @@
               if (githubData) this.stats.githubLooseHits += 1;
             }
             if (githubData) {
-              if (cfg.useLocal) {
-                try { await this.putLocal(key, githubData); } catch (err) {}
+              if (config.useLocal) {
+                try { await this.putLocal(key, githubData); } catch (error) {}
               }
               this.refreshStatusSoon();
-              return { dataUrl: githubData, source: 'github' };
+              return {dataUrl: githubData, source: 'github'};
             }
           }
-        } catch (err) {
-          console.warn('GitHub cache fetch failed', err);
+        } catch (error) {
+          console.warn('GitHub cache fetch failed', error);
         }
       }
 
-      if (typeof ImageLab === 'undefined') return { dataUrl: null, source: 'missing' };
+      if (typeof ImageLab === 'undefined') return {dataUrl: null, source: 'missing'};
       const imageUrl = await ImageLab.getScryfallImage(scryfallId);
-      if (!imageUrl) return { dataUrl: null, source: 'missing' };
+      if (!imageUrl) return {dataUrl: null, source: 'missing'};
       const processed = await ImageLab.processImage(imageUrl);
-      if (cfg.useLocal) {
-        try { await this.putLocal(key, processed); } catch (err) {}
+      if (config.useLocal) {
+        try { await this.putLocal(key, processed); } catch (error) {}
       }
       this.pendingUpdates.set(key, {
         key,
@@ -340,7 +352,7 @@
       });
       this.stats.processedFresh += 1;
       this.refreshStatusSoon();
-      return { dataUrl: processed, source: 'scryfall' };
+      return {dataUrl: processed, source: 'scryfall'};
     },
 
     buildPackPlan() {
@@ -358,7 +370,7 @@
         for (const entry of entries) {
           const estimated = entry.byteLength + 200;
           if (bucket.length && bucketBytes + estimated > this.config.maxPackBytes) {
-            plan.push({ folder, packName: `packs/${folder}-pack-${timestamp}-${String(packIndex).padStart(3, '0')}.zip`, entries: bucket });
+            plan.push({folder, packName: `packs/${folder}-pack-${timestamp}-${String(packIndex).padStart(3, '0')}.zip`, entries: bucket});
             packIndex += 1;
             bucket = [];
             bucketBytes = 0;
@@ -367,19 +379,19 @@
           bucketBytes += estimated;
         }
         if (bucket.length) {
-          plan.push({ folder, packName: `packs/${folder}-pack-${timestamp}-${String(packIndex).padStart(3, '0')}.zip`, entries: bucket });
+          plan.push({folder, packName: `packs/${folder}-pack-${timestamp}-${String(packIndex).padStart(3, '0')}.zip`, entries: bucket});
         }
       }
       return plan;
     },
 
     async buildMergedManifest(plan) {
-      const manifest = JSON.parse(JSON.stringify(await this.loadRemoteManifest() || { version: '8.3.1', profiles: {} }));
+      const manifest = JSON.parse(JSON.stringify(await this.loadRemoteManifestOrEmpty()));
       if (!manifest.profiles) manifest.profiles = {};
-      manifest.version = '8.3.1';
+      manifest.version = '8.3.2';
       manifest.generatedAt = new Date().toISOString();
       for (const pack of plan) {
-        if (!manifest.profiles[pack.folder]) manifest.profiles[pack.folder] = { files: {} };
+        if (!manifest.profiles[pack.folder]) manifest.profiles[pack.folder] = {files: {}};
         for (const entry of pack.entries) {
           manifest.profiles[pack.folder].files[entry.scryfallId] = `${pack.packName}#${entry.fileName}`;
         }
@@ -397,63 +409,210 @@
         if (status) status.innerHTML = 'ZIP module is not loaded.';
         return;
       }
-
       const plan = this.buildPackPlan();
       const manifest = await this.buildMergedManifest(plan);
       const outerFiles = [];
       for (const pack of plan) {
-        const innerFiles = pack.entries.map(entry => ({ name: entry.fileName, content: dataUrlToBytes(entry.dataUrl) }));
-        const innerZipBlob = SimpleZip.create(innerFiles);
-        const innerBytes = new Uint8Array(await innerZipBlob.arrayBuffer());
-        outerFiles.push({ name: `data/image-cache/${pack.packName}`, content: innerBytes });
+        const innerFiles = pack.entries.map(entry => ({name: entry.fileName, content: dataUrlToBytes(entry.dataUrl)}));
+        const innerZip = SimpleZip.create(innerFiles);
+        outerFiles.push({name: `data/image-cache/${pack.packName}`, content: new Uint8Array(await innerZip.arrayBuffer())});
       }
-      outerFiles.push({ name: 'data/image-cache/manifest.json', content: JSON.stringify(manifest, null, 2) });
-      outerFiles.push({ name: 'README-upload.txt', content: [
+      outerFiles.push({name: 'data/image-cache/manifest.json', content: JSON.stringify(manifest, null, 2)});
+      outerFiles.push({name: 'README-upload.txt', content: [
         'Packed Image Cache Update',
         '',
-        'Upload the contents of the data/ folder in this ZIP to your GitHub repository root.',
-        'This update contains packed cache ZIP files plus an updated data/image-cache/manifest.json.',
-        '',
-        'Recommended upload target:',
-        'data/image-cache/'
-      ].join('\n') });
-
+        'Upload the data/image-cache folder from this ZIP to your repository root.',
+        'The update contains one or more packed cache ZIPs plus a merged manifest.json.'
+      ].join('\n')});
       const zip = SimpleZip.create(outerFiles);
-      const a = document.createElement('a');
       const url = URL.createObjectURL(zip);
+      const a = document.createElement('a');
       a.href = url;
       a.download = 'image-cache-packed-update.zip';
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-
+      const totalImages = plan.reduce((sum, pack) => sum + pack.entries.length, 0);
       if (status) {
-        const totalImages = plan.reduce((sum, pack) => sum + pack.entries.length, 0);
         status.innerHTML = `<strong>Packed cache update ready.</strong><br>` +
           `<strong>New images:</strong> ${totalImages}<br>` +
           `<strong>Pack files:</strong> ${plan.length}<br>` +
-          `<strong>Upload target:</strong> <code>data/image-cache</code><br>` +
           `<strong>Download:</strong> <code>image-cache-packed-update.zip</code>`;
       }
+    },
+
+    async verifyPackedCache() {
+      const status = $('cacheVerificationStatus');
+      const verifyButton = $('verifyPackedCacheBtn');
+      const reportButton = $('downloadCacheVerificationReportBtn');
+      if (verifyButton) verifyButton.disabled = true;
+      if (reportButton) reportButton.disabled = true;
+      if (status) status.innerHTML = '<strong>Loading packed-cache manifest...</strong>';
+
+      const report = {
+        verifiedAt: new Date().toISOString(),
+        manifestVersion: '',
+        manifestGeneratedAt: '',
+        profiles: 0,
+        totalReferences: 0,
+        packedReferences: 0,
+        looseReferences: 0,
+        malformedReferences: 0,
+        uniquePacks: 0,
+        verifiedPacks: 0,
+        failedPacks: [],
+        missingEntries: [],
+        totalPackBytes: 0,
+        notes: ['Loose-file entries are counted but not individually fetched by the packed-cache verifier.', 'Static GitHub Pages cannot list folders, so unreferenced/orphaned pack files cannot be detected automatically.']
+      };
+
+      try {
+        const manifest = await this.loadRemoteManifest(true);
+        report.manifestVersion = manifest.version || 'Not specified';
+        report.manifestGeneratedAt = manifest.generatedAt || 'Not specified';
+        const profiles = manifest.profiles || {};
+        report.profiles = Object.keys(profiles).length;
+        const packs = new Map();
+
+        for (const [profileName, profile] of Object.entries(profiles)) {
+          const files = profile && profile.files ? profile.files : {};
+          for (const [scryfallId, referenceValue] of Object.entries(files)) {
+            report.totalReferences += 1;
+            const reference = String(referenceValue || '');
+            const hashIndex = reference.indexOf('#');
+            if (reference.includes('.zip#') && hashIndex > 0 && hashIndex < reference.length - 1) {
+              report.packedReferences += 1;
+              const packPath = reference.slice(0, hashIndex);
+              const entryName = reference.slice(hashIndex + 1);
+              if (!packs.has(packPath)) packs.set(packPath, []);
+              packs.get(packPath).push({profileName, scryfallId, entryName});
+            } else if (/\.(?:jpe?g|png|webp)$/i.test(reference)) {
+              report.looseReferences += 1;
+            } else {
+              report.malformedReferences += 1;
+            }
+          }
+        }
+
+        report.uniquePacks = packs.size;
+        let packNumber = 0;
+        for (const [packPath, expected] of packs.entries()) {
+          packNumber += 1;
+          if (status) {
+            status.innerHTML = `<strong>Verifying pack ${packNumber} of ${packs.size}</strong><br>` +
+              `<code>${escapeHtml(packPath)}</code><br>` +
+              `Expected entries: ${expected.length}`;
+          }
+          try {
+            const reader = await this.getPackReader(packPath, true);
+            report.totalPackBytes += reader.buffer.byteLength;
+            const actualEntries = new Set(reader.listEntries());
+            for (const item of expected) {
+              if (!actualEntries.has(item.entryName)) {
+                report.missingEntries.push({packPath, entryName: item.entryName, scryfallId: item.scryfallId, profile: item.profileName});
+              }
+            }
+            report.verifiedPacks += 1;
+          } catch (error) {
+            report.failedPacks.push({packPath, error: error && error.message ? error.message : String(error)});
+          }
+        }
+
+        this.lastVerificationReport = report;
+        const success = !report.failedPacks.length && !report.missingEntries.length && !report.malformedReferences;
+        if (status) {
+          status.innerHTML = `<strong>${success ? 'Packed cache verification passed.' : 'Packed cache verification found problems.'}</strong><br>` +
+            `<strong>Profiles:</strong> ${report.profiles}<br>` +
+            `<strong>Manifest references:</strong> ${report.totalReferences}<br>` +
+            `<strong>Packed references:</strong> ${report.packedReferences}<br>` +
+            `<strong>Loose references:</strong> ${report.looseReferences}<br>` +
+            `<strong>Packs verified:</strong> ${report.verifiedPacks}/${report.uniquePacks}<br>` +
+            `<strong>Total pack data checked:</strong> ${formatBytes(report.totalPackBytes)}<br>` +
+            `<strong>Missing pack files:</strong> ${report.failedPacks.length}<br>` +
+            `<strong>Missing image entries:</strong> ${report.missingEntries.length}<br>` +
+            `<strong>Malformed references:</strong> ${report.malformedReferences}` +
+            `${report.failedPacks.length ? `<div class="image-lab-warning"><strong>Pack failures</strong><ul>${report.failedPacks.slice(0, 20).map(item => `<li><code>${escapeHtml(item.packPath)}</code>: ${escapeHtml(item.error)}</li>`).join('')}</ul></div>` : ''}` +
+            `${report.missingEntries.length ? `<div class="image-lab-warning"><strong>Missing entries</strong><ul>${report.missingEntries.slice(0, 20).map(item => `<li><code>${escapeHtml(item.packPath)}#${escapeHtml(item.entryName)}</code></li>`).join('')}</ul></div>` : ''}`;
+        }
+        if (reportButton) reportButton.disabled = false;
+      } catch (error) {
+        this.lastVerificationReport = null;
+        if (status) status.innerHTML = `<strong>Verification failed:</strong> ${escapeHtml(error && error.message ? error.message : String(error))}`;
+      } finally {
+        if (verifyButton) verifyButton.disabled = false;
+      }
+    },
+
+    downloadVerificationReport() {
+      if (!this.lastVerificationReport) return;
+      const report = this.lastVerificationReport;
+      const lines = [
+        'MTG Builder v8.3.2 Packed Cache Verification',
+        `Verified: ${report.verifiedAt}`,
+        `Manifest version: ${report.manifestVersion}`,
+        `Manifest generated: ${report.manifestGeneratedAt}`,
+        '',
+        `Profiles: ${report.profiles}`,
+        `Total references: ${report.totalReferences}`,
+        `Packed references: ${report.packedReferences}`,
+        `Loose references: ${report.looseReferences}`,
+        `Malformed references: ${report.malformedReferences}`,
+        `Unique packs: ${report.uniquePacks}`,
+        `Verified packs: ${report.verifiedPacks}`,
+        `Total pack bytes: ${report.totalPackBytes}`,
+        `Failed packs: ${report.failedPacks.length}`,
+        `Missing entries: ${report.missingEntries.length}`,
+        '',
+        'FAILED PACKS',
+        ...report.failedPacks.map(item => `${item.packPath} :: ${item.error}`),
+        '',
+        'MISSING ENTRIES',
+        ...report.missingEntries.map(item => `${item.packPath}#${item.entryName} :: ${item.scryfallId} :: ${item.profile}`),
+        '',
+        'NOTES',
+        ...report.notes
+      ];
+      downloadText('packed-cache-verification.txt', lines.join('\n'));
     },
 
     async refreshStatus() {
       const status = $('imageCacheStatus');
       if (!status) return;
       let localCount = 0;
-      try { localCount = await this.countLocal(); } catch (err) {}
-      const cfg = this.getConfig();
+      try { localCount = await this.countLocal(); } catch (error) {}
+      const config = this.getConfig();
       const packPlan = this.buildPackPlan();
-      const pendingImages = Array.from(this.pendingUpdates.values()).length;
-      const pendingPackBytes = packPlan.reduce((sum, pack) => sum + pack.entries.reduce((acc, e) => acc + e.byteLength, 0), 0);
-      status.innerHTML = `<strong>GitHub cache path:</strong> <code>${escapeHtml(cfg.basePath)}</code><br>` +
+      const pendingPackBytes = packPlan.reduce((sum, pack) => sum + pack.entries.reduce((subtotal, entry) => subtotal + entry.byteLength, 0), 0);
+      let remoteSummary = 'not checked';
+      try {
+        const manifest = await this.loadRemoteManifest(false);
+        const profiles = Object.keys(manifest.profiles || {});
+        let references = 0;
+        let packed = 0;
+        const packs = new Set();
+        for (const profile of Object.values(manifest.profiles || {})) {
+          for (const reference of Object.values((profile && profile.files) || {})) {
+            references += 1;
+            const value = String(reference || '');
+            if (value.includes('.zip#')) {
+              packed += 1;
+              packs.add(value.slice(0, value.indexOf('#')));
+            }
+          }
+        }
+        remoteSummary = `${profiles.length} profiles · ${references} images · ${packed} packed references · ${packs.size} packs`;
+      } catch (error) {
+        remoteSummary = `manifest unavailable: ${error && error.message ? error.message : String(error)}`;
+      }
+      status.innerHTML = `<strong>GitHub cache path:</strong> <code>${escapeHtml(config.basePath)}</code><br>` +
+        `<strong>Remote cache:</strong> ${escapeHtml(remoteSummary)}<br>` +
         `<strong>Local cached images:</strong> ${localCount}<br>` +
-        `<strong>Pending upload images:</strong> ${pendingImages}<br>` +
-        `<strong>Estimated packed ZIP files:</strong> ${packPlan.length}<br>` +
-        `<strong>Pending packed image payload:</strong> ${formatBytes(pendingPackBytes)}<br>` +
-        `<strong>Cache hits:</strong> local ${this.stats.localHits} · GitHub loose ${this.stats.githubLooseHits} · GitHub packed ${this.stats.githubPackHits}<br>` +
-        `<strong>Freshly processed:</strong> ${this.stats.processedFresh}`;
+        `<strong>Pending upload images:</strong> ${this.pendingUpdates.size}<br>` +
+        `<strong>Estimated pending packs:</strong> ${packPlan.length}<br>` +
+        `<strong>Pending packed payload:</strong> ${formatBytes(pendingPackBytes)}<br>` +
+        `<strong>Session cache hits:</strong> local ${this.stats.localHits} · GitHub loose ${this.stats.githubLooseHits} · GitHub packed ${this.stats.githubPackHits}<br>` +
+        `<strong>Freshly processed this session:</strong> ${this.stats.processedFresh}`;
     },
 
     refreshStatusSoon() {
@@ -463,12 +622,16 @@
 
     async init() {
       this.registerModule();
-      const refreshBtn = $('refreshImageCacheStatusBtn');
-      const downloadBtn = $('downloadImageCacheUpdateBtn');
-      const clearBtn = $('clearLocalImageCacheBtn');
-      if (refreshBtn) refreshBtn.addEventListener('click', () => this.refreshStatus());
-      if (downloadBtn) downloadBtn.addEventListener('click', () => this.downloadUpdateZip());
-      if (clearBtn) clearBtn.addEventListener('click', async () => {
+      const refreshButton = $('refreshImageCacheStatusBtn');
+      const verifyButton = $('verifyPackedCacheBtn');
+      const reportButton = $('downloadCacheVerificationReportBtn');
+      const updateButton = $('downloadImageCacheUpdateBtn');
+      const clearButton = $('clearLocalImageCacheBtn');
+      if (refreshButton) refreshButton.addEventListener('click', () => this.refreshStatus());
+      if (verifyButton) verifyButton.addEventListener('click', () => this.verifyPackedCache());
+      if (reportButton) reportButton.addEventListener('click', () => this.downloadVerificationReport());
+      if (updateButton) updateButton.addEventListener('click', () => this.downloadUpdateZip());
+      if (clearButton) clearButton.addEventListener('click', async () => {
         await this.clearLocal();
         this.stats.localHits = 0;
         this.refreshStatus();
@@ -477,38 +640,8 @@
     }
   };
 
-  // fix accidental Python-style syntax introduced in buildPackPlan check helper path
-  SharedImageCache.buildPackPlan = function () {
-    const groups = new Map();
-    for (const entry of this.pendingUpdates.values()) {
-      if (!groups.has(entry.folder)) groups.set(entry.folder, []);
-      groups.get(entry.folder).push(entry);
-    }
-    const plan = [];
-    const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-    for (const [folder, entries] of groups.entries()) {
-      let bucket = [];
-      let bucketBytes = 0;
-      let packIndex = 1;
-      for (const entry of entries) {
-        const estimated = entry.byteLength + 200;
-        if (bucket.length && bucketBytes + estimated > this.config.maxPackBytes) {
-          plan.push({ folder, packName: `packs/${folder}-pack-${timestamp}-${String(packIndex).padStart(3, '0')}.zip`, entries: bucket });
-          packIndex += 1;
-          bucket = [];
-          bucketBytes = 0;
-        }
-        bucket.push(entry);
-        bucketBytes += estimated;
-      }
-      if (bucket.length) {
-        plan.push({ folder, packName: `packs/${folder}-pack-${timestamp}-${String(packIndex).padStart(3, '0')}.zip`, entries: bucket });
-      }
-    }
-    return plan;
-  };
-
   window.SharedImageCache = SharedImageCache;
+  window.SimpleZipReader = SimpleZipReader;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => SharedImageCache.init());
