@@ -19,6 +19,7 @@
     <button class="tab-button" data-tab="downloader">Set Downloader</button>
     <button class="tab-button" data-tab="catalog">Catalog Builder</button>
     <button class="tab-button" data-tab="image-lab">Image Lab</button>
+    <button class="tab-button" data-tab="rules-library">Rules Library</button>
     <button class="tab-button" data-tab="settings">Settings</button>
   </nav>
 
@@ -148,6 +149,39 @@
       <div id="catalogSummary" class="summary-box">Ready.</div>
     </section>
 
+
+    <section id="rules-library" class="tab-panel">
+      <h2>Rules Library Generator</h2>
+      <p>Generate an offline, no-JavaScript Magic rules reference from a text file stored in your GitHub repository.</p>
+
+      <div class="builder-options">
+        <label>Rules source
+          <input id="rulesSourcePath" type="text" value="./data/rules/index.json" spellcheck="false">
+        </label>
+        <label>Output package
+          <select id="rulesOutputMode">
+            <option value="hybrid" selected>Hybrid ZIP — Chapters + All Rules</option>
+            <option value="chapters">Chapter ZIP — Smaller Pages</option>
+            <option value="single">Single HTML Page</option>
+          </select>
+        </label>
+        <label>Text size
+          <select id="rulesTextSize">
+            <option value="compact">Compact</option>
+            <option value="comfortable" selected>Comfortable</option>
+            <option value="large">Large</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="buildRulesLibraryBtn" type="button">Build Rules Library</button>
+      </div>
+
+      <p class="hint">Place the official Comprehensive Rules TXT in <code>data/rules</code>, and point <code>index.json</code> to its filename. The generated files use HTML/CSS only.</p>
+      <div id="rulesBuildStatus" class="summary-box">Ready.</div>
+    </section>
+
     <section id="settings" class="tab-panel">
       <h2>Settings</h2>
       <p>Future settings will control storage plugins, richer output profiles, and image handling.</p>
@@ -219,5 +253,8 @@
   <script src="assets/js/catalog-image-profile.js"></script>
   <script src="assets/js/catalog-batch-image-profile.js"></script>
   <script src="assets/js/catalog-changed-image-profile.js"></script>
+  <script src="assets/js/catalog-all-image-profile.js"></script>
+  <script src="assets/js/simple-zip.js"></script>
+  <script src="assets/js/rules-library.js"></script>
 </body>
 </html>
