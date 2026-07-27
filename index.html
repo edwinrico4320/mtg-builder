@@ -174,11 +174,16 @@
         </label>
       </div>
 
+      <div class="builder-options">
+        <label><input id="forceRulesRebuild" type="checkbox"> Force rebuild even when unchanged</label>
+      </div>
+
       <div class="actions">
+        <button id="analyzeRulesChangesBtn" type="button">Check Rules Changes</button>
         <button id="buildRulesLibraryBtn" type="button">Build Rules Library</button>
       </div>
 
-      <p class="hint">Place the official Comprehensive Rules TXT in <code>data/rules</code>, and point <code>index.json</code> to its filename. The generated files use HTML/CSS only.</p>
+      <p class="hint">Rules source and output settings are fingerprinted against <code>data/output/build-manifest.json</code>. Unchanged builds are skipped unless force rebuild is selected.</p>
       <div id="rulesBuildStatus" class="summary-box">Ready.</div>
     </section>
 
@@ -194,10 +199,13 @@
       </div>
       <div class="actions">
         <button id="refreshImageCacheStatusBtn" type="button">Refresh Cache Status</button>
+        <button id="verifyPackedCacheBtn" type="button">Verify Packed Cache</button>
+        <button id="downloadCacheVerificationReportBtn" type="button" disabled>Download Verification Report</button>
         <button id="downloadImageCacheUpdateBtn" type="button">Download Packed Cache Update ZIP</button>
         <button id="clearLocalImageCacheBtn" type="button">Clear Local Cache</button>
       </div>
       <div id="imageCacheStatus" class="summary-box">Packed cache status not loaded yet.</div>
+      <div id="cacheVerificationStatus" class="size-report"><p class="hint">Packed cache has not been verified during this session.</p></div>
     </section>
 
 <section id="image-lab" class="tab-panel">
