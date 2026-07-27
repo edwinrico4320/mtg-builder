@@ -1,44 +1,24 @@
 (function () {
   function $(id) { return document.getElementById(id); }
-
-  function registerModule() {
-    if (typeof BuilderModules !== 'undefined') {
-      BuilderModules.register('All Discovered Image Profile', '8.2.2');
-    }
-  }
-
-  function buildAllWithSelectedProfile(event) {
-    const profile = (($('outputProfileSelect') || {}).value) || 'compact-text';
-    if (profile === 'compact-text') return;
-
-    event.preventDefault();
-    event.stopImmediatePropagation();
-
-    const checkboxes = Array.from(document.querySelectorAll('#batchSetList input[type="checkbox"]'));
+  async function buildAll(ev) {
+    const options = CatalogProfileCore.gatherOptions();
+    if (options.profile === 'compact-text') return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    if (!window.BatchImageProfileRunner || BatchImageProfileRunner.state.running) return;
+    const allCodes = CatalogProfileCore.getAllSetCodes();
     const status = $('batchBuildStatus');
-    if (!checkboxes.length) {
-      if (status) status.innerHTML = '<p class="hint">Scan available sets first.</p>';
-      return;
+    if (!allCodes.length) { if (status) status.innerHTML = '<p class="hint">No discovered sets available.</p>'; return; }
+    BatchImageProfileRunner.state.running = true; BatchImageProfileRunner.state.cancelCurrent = false; BatchImageProfileRunner.state.cancelBatch = false;
+    const currentBtn = $('cancelCurrentBatchSetBtn'); const batchBtn = $('cancelEntireBatchBtn');
+    if (currentBtn) currentBtn.disabled = false; if (batchBtn) batchBtn.disabled = false;
+    try {
+      const manifest = await CatalogProfileCore.loadManifest();
+      await BatchImageProfileRunner.runBatch(allCodes, options, manifest, null);
+    } finally {
+      BatchImageProfileRunner.state.running = false; BatchImageProfileRunner.state.cancelCurrent = false; BatchImageProfileRunner.state.cancelBatch = false;
+      if (currentBtn) currentBtn.disabled = true; if (batchBtn) batchBtn.disabled = true; if (window.SharedImageCache) SharedImageCache.refreshStatusSoon();
     }
-
-    checkboxes.forEach(box => { box.checked = true; });
-    if (status) {
-      status.innerHTML = `<strong>All discovered sets selected:</strong> ${checkboxes.length}<br>Starting the checked-set batch engine...`;
-    }
-
-    const checkedButton = $('buildCheckedCatalogsBtn');
-    if (checkedButton) checkedButton.click();
   }
-
-  function init() {
-    registerModule();
-    const button = $('buildAllCatalogsBtn');
-    if (button) button.addEventListener('click', buildAllWithSelectedProfile, true);
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  function init(){ const btn=$('buildAllCatalogsBtn'); if(btn) btn.addEventListener('click', buildAll, true); if(typeof BuilderModules!=='undefined') BuilderModules.register('All-Sets Image Profile','8.3.0'); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();
