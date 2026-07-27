@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.0.3</title>
+  <title>MTG Builder v6</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
   <link rel="stylesheet" href="assets/css/v8.css">
   <link rel="stylesheet" href="assets/css/image-lab.css">
@@ -12,8 +12,6 @@
   <header class="app-header">
     <h1>MTG Builder</h1>
     <p>GitHub Pages browser workbench</p>
-    <div id="version-info" class="version-banner"></div>
-    <div id="module-status" class="v8-module-status"></div>
   </header>
 
   <nav class="tabs" aria-label="Builder sections">
@@ -82,12 +80,34 @@
             <option value="all">Show all printings</option>
           </select>
         </label>
+        <label>Output profile
+          <select id="outputProfileSelect">
+            <option value="compact-text" selected>Compact Text Only</option>
+            <option value="card-no-images">Card Profile — No Images</option>
+            <option value="card-embedded-images">Card Profile — Embedded Images</option>
+          </select>
+        </label>
+        <label>Image width
+          <select id="catalogImageWidthSelect">
+            <option value="180">180</option>
+            <option value="300" selected>300</option>
+            <option value="488">488</option>
+          </select>
+        </label>
+        <label>Image quality
+          <select id="catalogImageQualitySelect">
+            <option value="0.55">55%</option>
+            <option value="0.65" selected>65%</option>
+            <option value="0.75">75%</option>
+          </select>
+        </label>
       </div>
 
       <div class="actions">
         <button id="scanCatalogSetsBtn">Scan Available Sets</button>
         <select id="catalogSetSelect"><option value="">Scan sets first...</option></select>
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
+        <button id="cancelCatalogBuildBtn" type="button" disabled>Cancel Image Build</button>
       </div>
       <section class="batch-panel">
         <div class="batch-heading">
@@ -130,76 +150,69 @@
       <p>Future settings will control storage plugins, richer output profiles, and image handling.</p>
     </section>
 
+<section id="image-lab" class="tab-panel">
+    <h2>Image Lab v8.0.2</h2>
 
-    <section id="image-lab" class="tab-panel">
-      <h2>Image Lab v8.0.3</h2>
-      <p>Run a real image pipeline test using one of your hosted set JSON files and Scryfall IDs.</p>
-
-      <div class="image-lab-panel">
-        <div class="image-lab-control">
-          <label>Select Set:</label>
-          <select id="imageLabSetSelect">
-            <option value="">Scan or sync sets first...</option>
-          </select>
-          <button id="imageLabSyncBtn" type="button">Load Scanned Sets</button>
-          <button id="imageLabScanBtn" type="button">Scan Sets for Image Lab</button>
-        </div>
+    <div class="image-lab-panel">
 
         <div class="image-lab-control">
-          <label>Test Size:</label>
-          <select id="image-test-size">
-            <option value="10">10 cards</option>
-            <option value="50">50 cards</option>
-            <option value="all">Entire set</option>
-          </select>
+            <label>Test Size:</label>
+            <select id="image-test-size">
+                <option value="10">10 cards</option>
+                <option value="50">50 cards</option>
+                <option value="all">Entire set</option>
+            </select>
         </div>
 
         <div class="image-lab-control">
-          <label>Image Mode:</label>
-          <select id="image-mode">
-            <option value="embedded">Embedded</option>
-            <option value="external">External URL</option>
-          </select>
+            <label>Image Mode:</label>
+            <select id="image-mode">
+                <option value="embedded">Embedded</option>
+                <option value="external">External URL</option>
+            </select>
         </div>
 
         <div class="image-lab-control">
-          <label>Width:</label>
-          <select id="image-width">
-            <option value="180">180</option>
-            <option value="300" selected>300</option>
-            <option value="488">488</option>
-          </select>
+            <label>Width:</label>
+            <select id="image-width">
+                <option>180</option>
+                <option selected>300</option>
+                <option>488</option>
+            </select>
         </div>
 
         <div class="image-lab-control">
-          <label>Quality:</label>
-          <select id="image-quality">
-            <option value=".55">55%</option>
-            <option value=".65" selected>65%</option>
-            <option value=".75">75%</option>
-          </select>
+            <label>Quality:</label>
+            <select id="image-quality">
+                <option value=".55">55%</option>
+                <option selected value=".65">65%</option>
+                <option value=".75">75%</option>
+            </select>
         </div>
 
-        <div class="actions">
-          <button id="run-image-test" type="button">Run Image Test</button>
-          <button id="downloadImageTestBtn" type="button" disabled>Download Test HTML</button>
+        <button id="run-image-test">
+            Run Image Test
+        </button>
+
+        <div id="image-report">
+            Waiting for test...
         </div>
 
-        <div id="image-report" class="image-lab-report">
-          Ready. Click <strong>Scan Sets for Image Lab</strong> or scan sets in Catalog Builder, then choose a set and run a test.
-        </div>
-      </div>
-    </section>
+    </div>
+</section>
   </main>
 
-  <script src="assets/js/version-loader.js"></script>
-  <script src="assets/js/module-registry.js"></script>
   <script src="./assets/js/recommended-sets.js"></script>
   <script src="./assets/js/symbols.js"></script>
-  <script src="assets/js/image-lab.js"></script>
-  <script src="assets/js/image-report.js"></script>
-  <script src="assets/js/image-lab-ui.js"></script>
-  <script src="assets/js/card-index.js"></script>
   <script src="./assets/js/app.js"></script>
+  <script src="assets/js/version-loader.js"></script>
+  <script src="assets/js/module-registry.js"></script>
+
+  <script src="assets/js/image-lab.js"></script>
+  <script src="assets/js/image-lab-ui.js"></script>
+  <script src="assets/js/image-report.js"></script>
+
+  <script src="assets/js/card-index.js"></script>
+  <script src="assets/js/catalog-image-profile.js"></script>
 </body>
 </html>
