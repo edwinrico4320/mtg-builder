@@ -128,7 +128,10 @@
         <button id="buildChangedCatalogsBtn">Build Changed/New Sets</button>
         <button id="buildAllCatalogsBtn">Build All Discovered Sets</button>
         <button id="buildLibraryIndexBtn">Build Library Index Only</button>
+        <button id="cancelCurrentBatchSetBtn" type="button" disabled>Cancel Current Set</button>
+        <button id="cancelEntireBatchBtn" type="button" disabled>Cancel Entire Batch</button>
       </div>
+      <div id="batchBuildStatus" class="size-report"><p class="hint">No batch build running.</p></div>
 
       <section class="report-panel">
         <div class="batch-heading">
@@ -214,5 +217,6 @@
 
   <script src="assets/js/card-index.js"></script>
   <script src="assets/js/catalog-image-profile.js"></script>
+  <script src="assets/js/catalog-batch-image-profile.js"></script>
 </body>
 </html>
