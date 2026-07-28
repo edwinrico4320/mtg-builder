@@ -1,7 +1,7 @@
 (function () {
   function $(id) { return document.getElementById(id); }
   const encoder = new TextEncoder();
-  const GENERATOR_VERSION = '1.1.2';
+  const GENERATOR_VERSION = '1.2.0';
   const BUILD_MANIFEST_PATH = './data/output/build-manifest.json';
 
   function registerModule() {
@@ -101,7 +101,7 @@
   }
 
   async function profileFingerprint(mode, size) {
-    return sha256(JSON.stringify({generatorVersion: GENERATOR_VERSION, mode, size}));
+    return sha256(JSON.stringify({generatorVersion: GENERATOR_VERSION, mode, size, design: (window.OutputDesigner ? OutputDesigner.getFingerprintData() : null)}));
   }
 
   async function loadBuildManifest() {
@@ -360,10 +360,11 @@
 
   function styles(size) {
     const scale = textScale(size);
+    const designerCss = window.OutputDesigner ? OutputDesigner.getGeneratedCss('rules') : '';
     return `
 html{scroll-behavior:auto;}
 body{font-family:Arial,sans-serif;font-size:${scale.body};line-height:1.45;margin:0;background:#f3f0e8;color:#202020;}
-a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:16px;margin-bottom:14px}.header h1{font-size:${scale.h1};margin:0 0 6px}.meta{color:#555;font-size:.9em}.layout{display:block}.nav{background:#f8f5ed;border:1px solid #c6baa0;padding:12px;margin-bottom:14px;max-height:42vh;overflow:auto}.nav-title{display:block;font-size:1.05em;margin:0 0 8px;font-weight:bold}.nav-list{list-style:none;margin:0;padding:0}.nav-list li{margin:0;padding:0;border-top:1px solid #e1d8c5}.nav-list li:first-child{border-top:0}.nav a{display:block;width:auto;box-sizing:border-box;padding:8px 7px;text-decoration:none;line-height:1.25}.nav a:hover,.nav a:focus{background:#e6edf4;text-decoration:underline}.content{background:#fffdf8;border:1px solid #c8bea8;padding:16px}.chapter-section{margin:0 0 2.2em}.chapter-heading{font-size:${scale.h2};border-bottom:1px solid #cbb999;padding-bottom:5px;scroll-margin-top:12px}.chapter-heading:target{background:#fff2b8;outline:3px solid #c9a93f;outline-offset:3px}.chapter-section:first-child .chapter-heading{margin-top:0}h3{font-size:${scale.h3};margin-top:1.4em;scroll-margin-top:12px}.rule{padding-left:1.2em;text-indent:-1.2em;scroll-margin-top:10px}.rule:target,h3:target{background:#fff2b8;outline:2px solid #c9a93f;outline-offset:2px}.example{background:#f4ecdd;border-left:4px solid #b99a68;padding:9px 11px;margin:8px 0;font-style:italic}.back-top{margin-top:1.2em;padding-top:.6em;border-top:1px solid #ddd}.chapter-links{display:flex;justify-content:space-between;gap:8px;margin:12px 0}.chapter-links a{padding:7px 10px;background:#f5efe3;border:1px solid #c8baa0;text-decoration:none}@media (min-width:901px) and (orientation:landscape){.layout{display:flex;gap:16px;align-items:flex-start}.nav{width:270px;flex:0 0 270px;position:sticky;top:10px;max-height:calc(100vh - 20px);margin:0}.content{flex:1;min-width:0}}@media (max-width:480px){.page{padding:8px}.content{padding:11px}.nav{max-height:none}.chapter-links{display:block}.chapter-links a{display:block;margin:6px 0}}@media print{.nav,.chapter-links,.back-top{display:none}.content{border:0}.page{max-width:none;padding:0}.chapter-heading:target,.rule:target,h3:target{background:transparent;outline:0}}
+a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:16px;margin-bottom:14px}.header h1{font-size:${scale.h1};margin:0 0 6px}.meta{color:#555;font-size:.9em}.layout{display:block}.nav{background:#f8f5ed;border:1px solid #c6baa0;padding:12px;margin-bottom:14px;max-height:42vh;overflow:auto}.nav-title{display:block;font-size:1.05em;margin:0 0 8px;font-weight:bold}.nav-list{list-style:none;margin:0;padding:0}.nav-list li{margin:0;padding:0;border-top:1px solid #e1d8c5}.nav-list li:first-child{border-top:0}.nav a{display:block;width:auto;box-sizing:border-box;padding:8px 7px;text-decoration:none;line-height:1.25}.nav a:hover,.nav a:focus{background:#e6edf4;text-decoration:underline}.content{background:#fffdf8;border:1px solid #c8bea8;padding:16px}.chapter-section{margin:0 0 2.2em}.chapter-heading{font-size:${scale.h2};border-bottom:1px solid #cbb999;padding-bottom:5px;scroll-margin-top:12px}.chapter-heading:target{background:#fff2b8;outline:3px solid #c9a93f;outline-offset:3px}.chapter-section:first-child .chapter-heading{margin-top:0}h3{font-size:${scale.h3};margin-top:1.4em;scroll-margin-top:12px}.rule{padding-left:1.2em;text-indent:-1.2em;scroll-margin-top:10px}.rule:target,h3:target{background:#fff2b8;outline:2px solid #c9a93f;outline-offset:2px}.example{background:#f4ecdd;border-left:4px solid #b99a68;padding:9px 11px;margin:8px 0;font-style:italic}.back-top{margin-top:1.2em;padding-top:.6em;border-top:1px solid #ddd}.chapter-links{display:flex;justify-content:space-between;gap:8px;margin:12px 0}.chapter-links a{padding:7px 10px;background:#f5efe3;border:1px solid #c8baa0;text-decoration:none}@media (min-width:901px) and (orientation:landscape){.layout{display:flex;gap:16px;align-items:flex-start}.nav{width:270px;flex:0 0 270px;position:sticky;top:10px;max-height:calc(100vh - 20px);margin:0}.content{flex:1;min-width:0}}@media (max-width:480px){.page{padding:8px}.content{padding:11px}.nav{max-height:none}.chapter-links{display:block}.chapter-links a{display:block;margin:6px 0}}@media print{.nav,.chapter-links,.back-top{display:none}.content{border:0}.page{max-width:none;padding:0}.chapter-heading:target,.rule:target,h3:target{background:transparent;outline:0}}${designerCss}
 `;
   }
 
@@ -410,7 +411,7 @@ a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-ali
     let changed = true;
     if (previous) {
       if (previous.sourceHash !== sourceHash) reason = 'The rules source or rules manifest changed.';
-      else if (previous.profileFingerprint !== profileHash) reason = 'The output package, text size, or generator version changed.';
+      else if (previous.profileFingerprint !== profileHash) reason = 'The output package, text size, generator version, or design profile changed.';
       else {
         reason = 'The source and output settings match the existing build manifest.';
         changed = false;
