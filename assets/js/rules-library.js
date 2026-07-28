@@ -1,7 +1,7 @@
 (function () {
   function $(id) { return document.getElementById(id); }
   const encoder = new TextEncoder();
-  const GENERATOR_VERSION = '1.1.0';
+  const GENERATOR_VERSION = '1.1.1';
   const BUILD_MANIFEST_PATH = './data/output/build-manifest.json';
 
   function registerModule() {
@@ -111,7 +111,7 @@
       const manifest = await response.json();
       return manifest && typeof manifest === 'object' ? manifest : {};
     } catch (error) {
-      return {builderVersion: '8.3.2'};
+      return {builderVersion: '8.3.2.1'};
     }
   }
 
@@ -210,7 +210,8 @@
       const trimmed = line.trim();
       if (!trimmed) continue;
       if (/^[1-9]\.\s+/.test(trimmed) || trimmed === 'Glossary' || trimmed === 'Credits' || trimmed === 'Introduction') {
-        result.push(`<h2>${escapeHtml(trimmed)}</h2>`);
+        // Chapter headings are emitted by renderChapterSection so they always
+        // receive a stable navigation target and are never duplicated.
         continue;
       }
       const sectionMatch = trimmed.match(/^(\d{3})\.\s+(.+)$/);
@@ -236,39 +237,56 @@
     return result.join('\n');
   }
 
+  function chapterAnchor(chapter) {
+    return `chapter-${chapter.slug}`;
+  }
+
+  function renderChapterSection(chapter, linkMode, includeBackToTop) {
+    const anchor = chapterAnchor(chapter);
+    const body = renderLines(chapter, linkMode);
+    const backToTop = includeBackToTop ? '<p class="back-top"><a href="#top">Back to chapter list</a></p>' : '';
+    return `<section class="chapter-section" aria-labelledby="${anchor}"><h2 class="chapter-heading" id="${anchor}" tabindex="-1">${escapeHtml(chapter.title)}</h2>${body}${backToTop}</section>`;
+  }
+
   function styles(size) {
     const scale = textScale(size);
     return `
+html{scroll-behavior:auto;}
 body{font-family:Arial,sans-serif;font-size:${scale.body};line-height:1.45;margin:0;background:#f3f0e8;color:#202020;}
-a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:16px;margin-bottom:14px}.header h1{font-size:${scale.h1};margin:0 0 6px}.meta{color:#555;font-size:.9em}.layout{display:block}.nav{background:#f8f5ed;border:1px solid #c6baa0;padding:12px;margin-bottom:14px;max-height:38vh;overflow:auto}.nav a{display:inline-block;width:calc(50% - 12px);box-sizing:border-box;padding:5px 7px;vertical-align:top;text-decoration:none}.content{background:#fffdf8;border:1px solid #c8bea8;padding:16px}h2{font-size:${scale.h2};border-bottom:1px solid #cbb999;padding-bottom:5px}h3{font-size:${scale.h3};margin-top:1.4em}.rule{padding-left:1.2em;text-indent:-1.2em;scroll-margin-top:10px}.example{background:#f4ecdd;border-left:4px solid #b99a68;padding:9px 11px;margin:8px 0;font-style:italic}.chapter-links{display:flex;justify-content:space-between;gap:8px;margin:12px 0}.chapter-links a{padding:7px 10px;background:#f5efe3;border:1px solid #c8baa0;text-decoration:none}@media (min-width:901px) and (orientation:landscape){.layout{display:flex;gap:16px;align-items:flex-start}.nav{width:250px;flex:0 0 250px;position:sticky;top:10px;max-height:calc(100vh - 20px);margin:0}.nav a{display:block;width:auto}.content{flex:1;min-width:0}}@media (max-width:480px){.page{padding:8px}.content{padding:11px}.nav a{display:block;width:100%}.chapter-links{display:block}.chapter-links a{display:block;margin:6px 0}}@media print{.nav,.chapter-links{display:none}.content{border:0}.page{max-width:none;padding:0}}
+a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:16px;margin-bottom:14px}.header h1{font-size:${scale.h1};margin:0 0 6px}.meta{color:#555;font-size:.9em}.layout{display:block}.nav{background:#f8f5ed;border:1px solid #c6baa0;padding:12px;margin-bottom:14px;max-height:42vh;overflow:auto}.nav-title{display:block;font-size:1.05em;margin:0 0 8px;font-weight:bold}.nav-list{list-style:none;margin:0;padding:0}.nav-list li{margin:0;padding:0;border-top:1px solid #e1d8c5}.nav-list li:first-child{border-top:0}.nav a{display:block;width:auto;box-sizing:border-box;padding:8px 7px;text-decoration:none;line-height:1.25}.nav a:hover,.nav a:focus{background:#e6edf4;text-decoration:underline}.content{background:#fffdf8;border:1px solid #c8bea8;padding:16px}.chapter-section{margin:0 0 2.2em}.chapter-heading{font-size:${scale.h2};border-bottom:1px solid #cbb999;padding-bottom:5px;scroll-margin-top:12px}.chapter-heading:target{background:#fff2b8;outline:3px solid #c9a93f;outline-offset:3px}.chapter-section:first-child .chapter-heading{margin-top:0}h3{font-size:${scale.h3};margin-top:1.4em;scroll-margin-top:12px}.rule{padding-left:1.2em;text-indent:-1.2em;scroll-margin-top:10px}.rule:target,h3:target{background:#fff2b8;outline:2px solid #c9a93f;outline-offset:2px}.example{background:#f4ecdd;border-left:4px solid #b99a68;padding:9px 11px;margin:8px 0;font-style:italic}.back-top{margin-top:1.2em;padding-top:.6em;border-top:1px solid #ddd}.chapter-links{display:flex;justify-content:space-between;gap:8px;margin:12px 0}.chapter-links a{padding:7px 10px;background:#f5efe3;border:1px solid #c8baa0;text-decoration:none}@media (min-width:901px) and (orientation:landscape){.layout{display:flex;gap:16px;align-items:flex-start}.nav{width:270px;flex:0 0 270px;position:sticky;top:10px;max-height:calc(100vh - 20px);margin:0}.content{flex:1;min-width:0}}@media (max-width:480px){.page{padding:8px}.content{padding:11px}.nav{max-height:none}.chapter-links{display:block}.chapter-links a{display:block;margin:6px 0}}@media print{.nav,.chapter-links,.back-top{display:none}.content{border:0}.page{max-width:none;padding:0}.chapter-heading:target,.rule:target,h3:target{background:transparent;outline:0}}
 `;
   }
 
   function shell(title, effectiveDate, body, nav, size, extraMeta) {
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${styles(size)}</style></head><body><div class="page"><header class="header"><h1>${escapeHtml(title)}</h1><div class="meta">${effectiveDate ? `Effective ${escapeHtml(effectiveDate)} · ` : ''}${escapeHtml(extraMeta || 'Offline Rules Library')}</div></header><div class="layout">${nav ? `<nav class="nav">${nav}</nav>` : ''}<main class="content">${body}</main></div></div></body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)}</title><style>${styles(size)}</style></head><body><div id="top"></div><div class="page"><header class="header"><h1>${escapeHtml(title)}</h1><div class="meta">${effectiveDate ? `Effective ${escapeHtml(effectiveDate)} · ` : ''}${escapeHtml(extraMeta || 'Offline Rules Library')}</div></header><div class="layout">${nav ? `<nav class="nav">${nav}</nav>` : ''}<main class="content">${body}</main></div></div></body></html>`;
+  }
+
+  function navList(chapters, linkBuilder, title) {
+    const items = chapters.map(chapter => `<li><a href="${linkBuilder(chapter)}">${escapeHtml(chapter.title)}</a></li>`).join('');
+    return `<div class="nav-title">${escapeHtml(title)}</div><ol class="nav-list">${items}</ol>`;
   }
 
   function chapterNav(chapters) {
-    return `<strong>Chapters</strong>${chapters.map(chapter => `<a href="${chapter.slug}.html">${escapeHtml(chapter.title)}</a>`).join('')}`;
+    return navList(chapters, chapter => `${chapter.slug}.html#${chapterAnchor(chapter)}`, 'Chapters');
   }
 
   function buildSinglePage(parsed, size) {
-    const nav = `<strong>Sections</strong>${parsed.chapters.map(chapter => `<a href="#chapter-${chapter.slug}">${escapeHtml(chapter.title)}</a>`).join('')}`;
-    const body = parsed.chapters.map(chapter => `<section id="chapter-${chapter.slug}">${renderLines(chapter, 'all')}</section>`).join('\n');
+    const nav = navList(parsed.chapters, chapter => `#${chapterAnchor(chapter)}`, 'Rules chapters');
+    const body = parsed.chapters.map(chapter => renderChapterSection(chapter, 'all', true)).join('\n');
     return shell(parsed.title, parsed.effectiveDate, body, nav, size, 'Complete single-page reference');
   }
 
   function buildIndex(parsed, size, includeSingle) {
-    const list = parsed.chapters.map(chapter => `<li><a href="${chapter.slug}.html">${escapeHtml(chapter.title)}</a></li>`).join('');
-    const allLink = includeSingle ? '<p><a href="all-rules.html"><strong>Open complete single-page reference</strong></a></p>' : '';
-    return shell(parsed.title, parsed.effectiveDate, `<h2>Rules Chapters</h2><p>This package is organized into smaller chapter files for faster loading on restricted devices.</p>${allLink}<ol>${list}</ol>`, '', size, 'Chapter index');
+    const list = parsed.chapters.map(chapter => `<li><a href="${chapter.slug}.html#${chapterAnchor(chapter)}">${escapeHtml(chapter.title)}</a></li>`).join('');
+    const allLink = includeSingle ? '<p><a href="all-rules.html#top"><strong>Open complete single-page reference</strong></a></p>' : '';
+    return shell(parsed.title, parsed.effectiveDate, `<section class="chapter-section"><h2 class="chapter-heading">Rules Chapters</h2><p>This package is organized into smaller chapter files for faster loading on restricted devices.</p>${allLink}<ol>${list}</ol></section>`, '', size, 'Chapter index');
   }
 
   function buildChapterPage(parsed, chapter, index, size) {
     const previous = parsed.chapters[index - 1];
     const next = parsed.chapters[index + 1];
-    const links = `<div class="chapter-links"><span>${previous ? `<a href="${previous.slug}.html">← ${escapeHtml(previous.title)}</a>` : ''}</span><a href="index.html">Chapter Index</a><span>${next ? `<a href="${next.slug}.html">${escapeHtml(next.title)} →</a>` : ''}</span></div>`;
-    return shell(parsed.title, parsed.effectiveDate, `${links}${renderLines(chapter, 'chapters')}${links}`, chapterNav(parsed.chapters), size, chapter.title);
+    const links = `<div class="chapter-links"><span>${previous ? `<a href="${previous.slug}.html#${chapterAnchor(previous)}">← ${escapeHtml(previous.title)}</a>` : ''}</span><a href="index.html">Chapter Index</a><span>${next ? `<a href="${next.slug}.html#${chapterAnchor(next)}">${escapeHtml(next.title)} →</a>` : ''}</span></div>`;
+    return shell(parsed.title, parsed.effectiveDate, `${links}${renderChapterSection(chapter, 'chapters', false)}${links}`, chapterNav(parsed.chapters), size, chapter.title);
   }
 
   async function evaluateChange(sourcePath, mode, size) {
@@ -358,7 +376,7 @@ a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-ali
       }
 
       const manifest = evaluation.manifest;
-      manifest.builderVersion = '8.3.2';
+      manifest.builderVersion = '8.3.2.1';
       manifest.rulesLibrary = {
         sourceHash: evaluation.sourceHash,
         profileFingerprint: evaluation.profileHash,
@@ -396,6 +414,15 @@ a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-ali
     if (analyzeButton) analyzeButton.addEventListener('click', analyzeRulesChanges);
     if (buildButton) buildButton.addEventListener('click', buildRulesLibrary);
   }
+
+  window.RulesLibraryInternals = {
+    parseRules,
+    buildSinglePage,
+    buildIndex,
+    buildChapterPage,
+    chapterAnchor,
+    ruleAnchor
+  };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
