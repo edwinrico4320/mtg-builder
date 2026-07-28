@@ -68,9 +68,22 @@
       return {body: '16px', h1: '30px', h2: '24px'};
     },
 
-    renderRulesText(text) {
-      const safe = escapeHtml(text || '');
+    renderRulesText(text, symbolMode) {
+      const embedded = symbolMode !== 'text';
+      const renderer = window.MTGSymbolRenderer;
+      const safe = renderer ? renderer.manaToHtml(text || '', embedded) : escapeHtml(text || '');
       return safe.replace(/\n/g, '<br>').replace(/(\([^)]*\))/g, '<span class="reminder">$1</span>');
+    },
+
+    renderManaCost(text, symbolMode) {
+      const embedded = symbolMode !== 'text';
+      const renderer = window.MTGSymbolRenderer;
+      return renderer ? renderer.manaToHtml(text || '', embedded) : escapeHtml(text || '');
+    },
+
+    renderRarity(rarity) {
+      const renderer = window.MTGSymbolRenderer;
+      return renderer ? renderer.renderRarityIcon(rarity) : '';
     },
 
     statBadge(card) {
@@ -122,6 +135,7 @@
         fieldMode: (($('fieldModeSelect') || {}).value) || 'essential',
         navMode: (($('navModeSelect') || {}).value) || 'alpha',
         duplicateMode: (($('duplicateModeSelect') || {}).value) || 'collapse',
+        symbolMode: (($('symbolModeSelect') || {}).value) || 'embedded',
         profileLabel: profile === 'card-no-images'
           ? 'Card Profile — No Images'
           : (profile === 'card-embedded-images' ? `Card Profile — Embedded Images (${imageWidth}px @ ${Math.round(imageQuality * 100)}%)` : 'Compact Text Only')
@@ -138,6 +152,7 @@
         fieldMode: options.fieldMode,
         navMode: options.navMode,
         duplicateMode: options.duplicateMode,
+        symbolMode: options.symbolMode,
         design: (window.OutputDesigner ? OutputDesigner.getFingerprintData() : null)
       });
       return sha256(payload);
@@ -163,7 +178,8 @@
             ? `<div class="image-wrap"><img src="${card._processedImage}" alt="${escapeHtml(card.name)}"></div>`
             : '<div class="missing-image">No image available</div>'
         );
-        const mana = card.manaCost ? `<div class="mana-cost">${escapeHtml(card.manaCost)}</div>` : '';
+        const mana = card.manaCost ? `<div class="mana-cost">${this.renderManaCost(card.manaCost, options.symbolMode)}</div>` : '';
+        const rarity = (card.rarity && options.fieldMode === 'full') ? `<div class="rarity-line">${this.renderRarity(card.rarity)}<span class="rarity-label">${escapeHtml(card.rarity)}</span></div>` : '';
         const type = card.type ? `<div class="type-line">${escapeHtml(card.type)}</div>` : '';
         const layout = (options.fieldMode === 'full' && card.layout) ? `<div class="layout-line">Layout: ${escapeHtml(card.layout)}</div>` : '';
         const oracleText = card.text || card.oracleText || '';
@@ -176,7 +192,7 @@
         const footer = footerParts.length ? `<div class="card-footer">${footerParts.join(' · ')}</div>` : '';
         return `<article id="card-${index + 1}" class="card-entry">
           <div class="card-header"><h2>${escapeHtml(card.name)}</h2>${mana}</div>
-          <div class="card-body">${img}<div class="card-copy">${type}${layout}<div class="rules-box"><div class="section-label">Oracle Text</div><div class="oracle-text">${this.renderRulesText(oracleText) || '<span class="muted">No rules text</span>'}</div></div>${flavor}${badge ? `<div class="stats-box"><span class="stats-badge">${badge}</span></div>` : ''}${footer}</div></div>
+          <div class="card-body">${img}<div class="card-copy">${type}${layout}${rarity}<div class="rules-box"><div class="section-label">Oracle Text</div><div class="oracle-text">${this.renderRulesText(oracleText, options.symbolMode) || '<span class="muted">No rules text</span>'}</div></div>${flavor}${badge ? `<div class="stats-box"><span class="stats-badge">${badge}</span></div>` : ''}${footer}</div></div>
           <div class="back-top"><a href="#top">Back to top</a></div>
         </article>`;
       }).join('\n');
@@ -185,7 +201,7 @@
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(setCode)} Catalog</title>
 <style>
-body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f3f0e8;color:#202020;}#top{display:block;}.page{max-width:1200px;margin:0 auto;padding:18px;}.set-header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:18px;margin-bottom:16px;}.set-header h1{margin:0 0 6px 0;font-size:${scale.h1};}.set-sub{font-size:14px;color:#444;}.layout{display:block;}.nav{width:auto;background:#f8f5ed;border:1px solid #c6baa0;padding:12px;box-sizing:border-box;margin-bottom:16px;position:static;max-height:38vh;overflow-y:auto;}.nav h2{margin:0 0 10px 0;font-size:18px;}.nav a{display:inline-block;vertical-align:top;width:calc(50% - 10px);padding:6px 8px;margin:2px 4px 2px 0;text-decoration:none;color:#15314b;border-radius:4px;box-sizing:border-box;}.nav a:hover,.nav a:focus{background:#e3edf7;}.cards{min-width:0;}.card-entry{background:#fbfaf6;border:1px solid #b8ae96;padding:14px;margin-bottom:16px;}.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #ccbfa2;padding-bottom:8px;margin-bottom:10px;}.card-header h2{margin:0;font-size:${scale.h2};line-height:1.1;}.mana-cost{font-weight:bold;white-space:nowrap;font-size:18px;}.card-body{display:block;}.image-wrap,.missing-image{width:100%;max-width:320px;margin:0 auto 12px;background:#ebe8df;border:1px solid #c2b7a1;padding:8px;box-sizing:border-box;text-align:center;}.image-wrap img{width:100%;height:auto;display:block;}.missing-image{padding:24px 8px;color:#666;background:#f1eee7;}.type-line{font-weight:bold;margin:0 0 3px 0;}.layout-line{margin:0 0 8px 0;font-size:0.9em;color:#4c4c4c;}.rules-box{background:#efe6d4;border:1px solid #cbb999;padding:10px;margin-top:4px;}.flavor-box{background:#f5efe6;border:1px solid #d0c3b1;padding:10px;margin-top:8px;}.section-label{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;color:#55452e;}.oracle-text,.flavor-text{line-height:1.35;}.flavor-text{font-style:italic;}.reminder{font-style:italic;color:#666;font-size:0.94em;}.stats-box{margin-top:8px;background:#dde4ea;border:1px solid #b2bcc8;padding:8px;}.stats-badge{display:inline-block;font-weight:bold;font-size:18px;padding:4px 10px;border:1px solid #7c8da0;background:#f7fbff;}.card-footer{margin-top:8px;font-size:12px;color:#555;}.back-top{margin-top:8px;font-size:13px;}.back-top a{color:#15314b;text-decoration:none;}.muted{color:#777;}@media (min-width: 901px) and (orientation: landscape){.layout{display:flex;gap:18px;align-items:flex-start;}.nav{width:240px;flex:0 0 240px;position:sticky;top:12px;max-height:calc(100vh - 24px);margin-bottom:0;}.nav a{display:block;width:auto;margin:2px 0;}.cards{flex:1;min-width:0;}.card-body{display:flex;gap:14px;align-items:flex-start;}.image-wrap,.missing-image{width:220px;max-width:none;flex:0 0 220px;margin:0;}}@media (max-width: 480px){.nav a{display:block;width:100%;margin-right:0;}.page{padding:10px;}.card-entry{padding:10px;}}${designerCss}</style>
+body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f3f0e8;color:#202020;}#top{display:block;}.page{max-width:1200px;margin:0 auto;padding:18px;}.set-header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:18px;margin-bottom:16px;}.set-header h1{margin:0 0 6px 0;font-size:${scale.h1};}.set-sub{font-size:14px;color:#444;}.layout{display:block;}.nav{width:auto;background:#f8f5ed;border:1px solid #c6baa0;padding:12px;box-sizing:border-box;margin-bottom:16px;position:static;max-height:38vh;overflow-y:auto;}.nav h2{margin:0 0 10px 0;font-size:18px;}.nav a{display:inline-block;vertical-align:top;width:calc(50% - 10px);padding:6px 8px;margin:2px 4px 2px 0;text-decoration:none;color:#15314b;border-radius:4px;box-sizing:border-box;}.nav a:hover,.nav a:focus{background:#e3edf7;}.cards{min-width:0;}.card-entry{background:#fbfaf6;border:1px solid #b8ae96;padding:14px;margin-bottom:16px;}.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #ccbfa2;padding-bottom:8px;margin-bottom:10px;}.card-header h2{margin:0;font-size:${scale.h2};line-height:1.1;}.mana-cost{font-weight:bold;white-space:nowrap;font-size:18px;display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:flex-end;}.mana{width:1.35em;height:1.35em;vertical-align:middle;}.mana-fallback{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;border:1px solid #666;border-radius:999px;background:#ece8df;color:#222;font-size:.8em;line-height:1;padding:0 .18em;}.oracle-text .mana{width:1.25em;height:1.25em;}.rarity-line{display:flex;align-items:center;gap:6px;margin:6px 0 4px;}.rarity-icon{width:1.05em;height:1.05em;vertical-align:middle;}.rarity-label{text-transform:capitalize;font-size:.9em;color:#555;}.card-body{display:block;}.image-wrap,.missing-image{width:100%;max-width:320px;margin:0 auto 12px;background:#ebe8df;border:1px solid #c2b7a1;padding:8px;box-sizing:border-box;text-align:center;}.image-wrap img{width:100%;height:auto;display:block;}.missing-image{padding:24px 8px;color:#666;background:#f1eee7;}.type-line{font-weight:bold;margin:0 0 3px 0;}.layout-line{margin:0 0 8px 0;font-size:0.9em;color:#4c4c4c;}.rules-box{background:#efe6d4;border:1px solid #cbb999;padding:10px;margin-top:4px;}.flavor-box{background:#f5efe6;border:1px solid #d0c3b1;padding:10px;margin-top:8px;}.section-label{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;color:#55452e;}.oracle-text,.flavor-text{line-height:1.35;}.flavor-text{font-style:italic;}.reminder{font-style:italic;color:#666;font-size:0.94em;}.stats-box{margin-top:8px;background:#dde4ea;border:1px solid #b2bcc8;padding:8px;}.stats-badge{display:inline-block;font-weight:bold;font-size:18px;padding:4px 10px;border:1px solid #7c8da0;background:#f7fbff;}.card-footer{margin-top:8px;font-size:12px;color:#555;}.back-top{margin-top:8px;font-size:13px;}.back-top a{color:#15314b;text-decoration:none;}.muted{color:#777;}@media (min-width: 901px) and (orientation: landscape){.layout{display:flex;gap:18px;align-items:flex-start;}.nav{width:240px;flex:0 0 240px;position:sticky;top:12px;max-height:calc(100vh - 24px);margin-bottom:0;}.nav a{display:block;width:auto;margin:2px 0;}.cards{flex:1;min-width:0;}.card-body{display:flex;gap:14px;align-items:flex-start;}.image-wrap,.missing-image{width:220px;max-width:none;flex:0 0 220px;margin:0;}}@media (max-width: 480px){.nav a{display:block;width:100%;margin-right:0;}.page{padding:10px;}.card-entry{padding:10px;}}${designerCss}</style>
 </head><body><div id="top"></div><div class="page"><header class="set-header"><h1>${escapeHtml(setName)}</h1><div class="set-sub">Set Code: ${escapeHtml(setCode)} · Generated by MTG Builder v8.4 · ${escapeHtml(options.profileLabel)}${designSummary ? ` · Design: ${escapeHtml(designSummary.name)}` : ''}</div></header><div class="layout"><nav class="nav"><h2>Card Navigator</h2>${navItems}</nav><main class="cards">${blocks}</main></div></div></body></html>`;
     },
 
