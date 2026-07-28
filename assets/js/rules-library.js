@@ -1,7 +1,7 @@
 (function () {
   function $(id) { return document.getElementById(id); }
   const encoder = new TextEncoder();
-  const GENERATOR_VERSION = '1.1.1';
+  const GENERATOR_VERSION = '1.1.2';
   const BUILD_MANIFEST_PATH = './data/output/build-manifest.json';
 
   function registerModule() {
@@ -111,7 +111,7 @@
       const manifest = await response.json();
       return manifest && typeof manifest === 'object' ? manifest : {};
     } catch (error) {
-      return {builderVersion: '8.3.2.1'};
+      return {builderVersion: '8.3.2.2'};
     }
   }
 
@@ -138,43 +138,135 @@
     return `${value.toFixed(value >= 10 || index === 0 ? 0 : 1)} ${units[index]}`;
   }
 
+  const CHAPTER_DEFINITIONS = [
+    {number: '1', title: 'Game Concepts', prefix: '100'},
+    {number: '2', title: 'Parts of a Card', prefix: '200'},
+    {number: '3', title: 'Card Types', prefix: '300'},
+    {number: '4', title: 'Zones', prefix: '400'},
+    {number: '5', title: 'Turn Structure', prefix: '500'},
+    {number: '6', title: 'Spells, Abilities, and Effects', prefix: '600'},
+    {number: '7', title: 'Additional Rules', prefix: '700'},
+    {number: '8', title: 'Multiplayer Rules', prefix: '800'},
+    {number: '9', title: 'Casual Variants', prefix: '900'},
+    {number: '', title: 'Glossary', prefix: '950'},
+    {number: '', title: 'Credits', prefix: '990'}
+  ];
+
+  function normalizedLine(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function nextNonEmptyIndex(lines, start) {
+    for (let index = start; index < lines.length; index++) {
+      if (normalizedLine(lines[index])) return index;
+    }
+    return -1;
+  }
+
+  function matchChapterAt(lines, index, definition) {
+    const current = normalizedLine(lines[index]);
+    if (!current) return null;
+
+    if (!definition.number) {
+      if (current === definition.title) {
+        return {index, contentStart: index + 1, title: definition.title, prefix: definition.prefix};
+      }
+      return null;
+    }
+
+    const fullTitle = `${definition.number}. ${definition.title}`;
+    if (current === fullTitle) {
+      return {index, contentStart: index + 1, title: fullTitle, prefix: definition.prefix};
+    }
+
+    if (current === `${definition.number}.`) {
+      const titleIndex = nextNonEmptyIndex(lines, index + 1);
+      if (titleIndex >= 0 && normalizedLine(lines[titleIndex]) === definition.title) {
+        return {index, contentStart: titleIndex + 1, title: fullTitle, prefix: definition.prefix};
+      }
+    }
+    return null;
+  }
+
+  function findChapterMatches(lines, definition, startIndex) {
+    const matches = [];
+    for (let index = Math.max(0, startIndex || 0); index < lines.length; index++) {
+      const match = matchChapterAt(lines, index, definition);
+      if (match) matches.push(match);
+    }
+    return matches;
+  }
+
+  function chapterContainsRule(chapter, ruleNumber) {
+    const escaped = String(ruleNumber).replace(/\./g, '\\.');
+    const combined = new RegExp(`^${escaped}\\.?\\s+`);
+    const numberOnly = new RegExp(`^${escaped}\\.?$`);
+    return chapter.lines.some(line => combined.test(normalizedLine(line)) || numberOnly.test(normalizedLine(line)));
+  }
+
+  function validateParsedRules(chapters) {
+    const expectedTitles = CHAPTER_DEFINITIONS.map(definition => definition.number ? `${definition.number}. ${definition.title}` : definition.title);
+    const chapterTitles = chapters.slice(1).map(chapter => chapter.title);
+    const missing = expectedTitles.filter(title => !chapterTitles.includes(title));
+    if (missing.length) throw new Error(`Rules parser could not locate these chapters: ${missing.join(', ')}.`);
+
+    const slugs = new Set();
+    for (const chapter of chapters) {
+      if (slugs.has(chapter.slug)) throw new Error(`Duplicate chapter target detected: ${chapter.slug}`);
+      slugs.add(chapter.slug);
+    }
+
+    const gameConcepts = chapters.find(chapter => chapter.title === '1. Game Concepts');
+    if (!gameConcepts || !chapterContainsRule(gameConcepts, '100.1')) {
+      throw new Error('The Game Concepts chapter was found, but rule 100.1 was not inside it. The source may be a table of contents rather than the full rules text.');
+    }
+  }
+
   function parseRules(text, configuredTitle) {
     const clean = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
     const lines = clean.split('\n').map(line => line.trimEnd());
     const title = configuredTitle || (lines[0] || 'Magic: The Gathering Comprehensive Rules').trim();
     const effectiveMatch = clean.match(/These rules are effective as of ([^.]+)\./i);
     const effectiveDate = effectiveMatch ? effectiveMatch[1].trim() : '';
-    const contentsIndex = lines.findIndex(line => line.trim() === 'Contents');
-    const introStart = Math.min(lines.length, 3);
-    const introEnd = contentsIndex >= 0 ? contentsIndex : Math.min(lines.length, 20);
-    const introLines = lines.slice(introStart, introEnd).filter(line => line.trim());
-    let bodyStart = -1;
-    for (let index = lines.length - 1; index >= 0; index--) {
-      if (lines[index].trim() === '1. Game Concepts') {
-        bodyStart = index;
-        break;
+
+    const firstDefinition = CHAPTER_DEFINITIONS[0];
+    const firstMatches = findChapterMatches(lines, firstDefinition, 0);
+    if (!firstMatches.length) throw new Error('Could not find the start of section 1 in the rules text.');
+
+    const bodyStart = firstMatches[firstMatches.length - 1];
+    const contentsIndex = lines.findIndex(line => normalizedLine(line) === 'Contents');
+    const introductionIndex = lines.findIndex((line, index) => index < bodyStart.index && normalizedLine(line) === 'Introduction');
+    const introStart = introductionIndex >= 0 ? introductionIndex + 1 : Math.min(lines.length, 3);
+    const introEndCandidates = [contentsIndex, bodyStart.index].filter(index => index >= introStart);
+    const introEnd = introEndCandidates.length ? Math.min(...introEndCandidates) : bodyStart.index;
+    const introLines = lines.slice(introStart, introEnd).filter(line => normalizedLine(line));
+
+    const starts = [bodyStart];
+    let cursor = bodyStart.contentStart;
+    for (let definitionIndex = 1; definitionIndex < CHAPTER_DEFINITIONS.length; definitionIndex++) {
+      const definition = CHAPTER_DEFINITIONS[definitionIndex];
+      let found = null;
+      for (let index = cursor; index < lines.length; index++) {
+        const match = matchChapterAt(lines, index, definition);
+        if (match) { found = match; break; }
+      }
+      if (found) {
+        starts.push(found);
+        cursor = found.contentStart;
       }
     }
-    if (bodyStart < 0) throw new Error('Could not find the start of section 1 in the rules text.');
-    const body = lines.slice(bodyStart);
-    const starts = [];
-    body.forEach((line, index) => {
-      const trimmed = line.trim();
-      if (/^[1-9]\.\s+.+/.test(trimmed) || trimmed === 'Glossary' || trimmed === 'Credits') {
-        starts.push({index, title: trimmed});
-      }
-    });
+
     const chapters = [{title: 'Introduction', slug: '000-introduction', lines: introLines}];
     starts.forEach((start, index) => {
-      const next = starts[index + 1] ? starts[index + 1].index : body.length;
-      const prefixMatch = start.title.match(/^([1-9])\./);
-      const prefix = prefixMatch ? `${prefixMatch[1]}00` : (start.title === 'Glossary' ? '950' : '990');
+      const next = starts[index + 1] ? starts[index + 1].index : lines.length;
       chapters.push({
         title: start.title,
-        slug: `${prefix}-${slugify(start.title.replace(/^[1-9]\.\s*/, ''))}`,
-        lines: body.slice(start.index, next)
+        slug: `${start.prefix}-${slugify(start.title.replace(/^[1-9]\.\s*/, ''))}`,
+        lines: lines.slice(start.contentStart, next)
       });
     });
+
+    validateParsedRules(chapters);
     return {title, effectiveDate, chapters};
   }
 
@@ -206,32 +298,50 @@
   function renderLines(chapter, linkMode) {
     const isGlossary = chapter.title === 'Glossary';
     const result = [];
-    for (const line of chapter.lines) {
-      const trimmed = line.trim();
+
+    for (let index = 0; index < chapter.lines.length; index++) {
+      const trimmed = normalizedLine(chapter.lines[index]);
       if (!trimmed) continue;
-      if (/^[1-9]\.\s+/.test(trimmed) || trimmed === 'Glossary' || trimmed === 'Credits' || trimmed === 'Introduction') {
-        // Chapter headings are emitted by renderChapterSection so they always
-        // receive a stable navigation target and are never duplicated.
-        continue;
-      }
+
+      const nextIndex = nextNonEmptyIndex(chapter.lines, index + 1);
+      const nextLine = nextIndex >= 0 ? normalizedLine(chapter.lines[nextIndex]) : '';
+
       const sectionMatch = trimmed.match(/^(\d{3})\.\s+(.+)$/);
       if (sectionMatch) {
         result.push(`<h3 id="${ruleAnchor(sectionMatch[1])}">${escapeHtml(trimmed)}</h3>`);
         continue;
       }
+
+      const splitSectionMatch = trimmed.match(/^(\d{3})\.$/);
+      if (splitSectionMatch && nextLine && !/^\d{3}\.\d+/.test(nextLine)) {
+        result.push(`<h3 id="${ruleAnchor(splitSectionMatch[1])}">${escapeHtml(`${splitSectionMatch[1]}. ${nextLine}`)}</h3>`);
+        index = nextIndex;
+        continue;
+      }
+
       const ruleMatch = trimmed.match(/^(\d{3}\.\d+[a-z]?)\.?\s+(.+)$/);
       if (ruleMatch) {
         result.push(`<p class="rule" id="${ruleAnchor(ruleMatch[1])}"><strong>${escapeHtml(ruleMatch[1])}.</strong> ${linkRuleReferences(escapeHtml(ruleMatch[2]), linkMode)}</p>`);
         continue;
       }
+
+      const splitRuleMatch = trimmed.match(/^(\d{3}\.\d+[a-z]?)\.?$/);
+      if (splitRuleMatch && nextLine) {
+        result.push(`<p class="rule" id="${ruleAnchor(splitRuleMatch[1])}"><strong>${escapeHtml(splitRuleMatch[1])}.</strong> ${linkRuleReferences(escapeHtml(nextLine), linkMode)}</p>`);
+        index = nextIndex;
+        continue;
+      }
+
       if (/^Example:/i.test(trimmed)) {
         result.push(`<div class="example">${linkRuleReferences(escapeHtml(trimmed), linkMode)}</div>`);
         continue;
       }
+
       if (isGlossary && trimmed.length <= 80 && !/[.!?;:]$/.test(trimmed)) {
         result.push(`<h3 id="term-${slugify(trimmed)}">${escapeHtml(trimmed)}</h3>`);
         continue;
       }
+
       result.push(`<p>${linkRuleReferences(escapeHtml(trimmed), linkMode)}</p>`);
     }
     return result.join('\n');
@@ -376,7 +486,7 @@ a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-ali
       }
 
       const manifest = evaluation.manifest;
-      manifest.builderVersion = '8.3.2.1';
+      manifest.builderVersion = '8.3.2.2';
       manifest.rulesLibrary = {
         sourceHash: evaluation.sourceHash,
         profileFingerprint: evaluation.profileHash,
@@ -421,7 +531,8 @@ a{color:#163c65}.page{max-width:1200px;margin:auto;padding:16px}.header{text-ali
     buildIndex,
     buildChapterPage,
     chapterAnchor,
-    ruleAnchor
+    ruleAnchor,
+    validateParsedRules
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
