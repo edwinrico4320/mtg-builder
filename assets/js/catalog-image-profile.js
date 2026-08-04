@@ -64,7 +64,7 @@
     updateProfileUi();
     if (buildBtn) buildBtn.addEventListener('click', buildSelectedSet, true);
     if (cancelBtn) cancelBtn.addEventListener('click', cancelBuild);
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.5.0');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.6.0');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

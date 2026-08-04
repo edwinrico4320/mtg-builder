@@ -19,6 +19,6 @@
       if (currentBtn) currentBtn.disabled = true; if (batchBtn) batchBtn.disabled = true; if (window.SharedImageCache) SharedImageCache.refreshStatusSoon();
     }
   }
-  function init(){ const btn=$('buildAllCatalogsBtn'); if(btn) btn.addEventListener('click', buildAll, true); if(typeof BuilderModules!=='undefined') BuilderModules.register('All-Sets Image Profile','8.5.0'); }
+  function init(){ const btn=$('buildAllCatalogsBtn'); if(btn) btn.addEventListener('click', buildAll, true); if(typeof BuilderModules!=='undefined') BuilderModules.register('All-Sets Image Profile','8.6.0'); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

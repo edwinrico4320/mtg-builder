@@ -11,7 +11,11 @@
 
   function setStatus(html) { const el = $('batchBuildStatus'); if (el) el.innerHTML = html; }
 
-  async function runBatch(setCodes, options, manifest, preloaded) {
+  async function runBatch(setCodes, options, manifest, preloaded, config) {
+    config = config || {};
+    const captureOnly = config.downloadOutputs === false;
+    const outputRoot = String(config.outputRoot || 'data/output').replace(/\/$/, '');
+    const capturedFiles = [];
     let totalSetsCompleted = 0, totalSetsFailed = 0, totalCardsProcessed = 0, totalImagesEmbedded = 0, totalMissingImages = 0, totalPriceMatches = 0, totalPriceMissing = 0;
     const perSetSummaries = [];
     for (let s = 0; s < setCodes.length; s++) {
@@ -23,7 +27,8 @@
         const result = await CatalogProfileCore.buildSetFromSource(setCode, source, options, state, prog => {
           setStatus(`<strong>Set ${s + 1} of ${setCodes.length}</strong>: ${setCode} · Card ${prog.current} of ${prog.total} · ${prog.cardName}`);
         });
-        CatalogProfileCore.downloadHtml(`${setCode}.html`, result.html);
+        if (captureOnly) capturedFiles.push({name: `${outputRoot}/${setCode}.html`, content: result.html});
+        else CatalogProfileCore.downloadHtml(`${setCode}.html`, result.html);
         await CatalogProfileCore.updateManifestRecord(manifest, result, options);
         totalSetsCompleted += 1;
         totalCardsProcessed += result.cardsProcessed;
@@ -42,9 +47,10 @@
         await new Promise(r => setTimeout(r, 800));
       }
     }
-    await CatalogProfileCore.saveManifestDownload(manifest);
+    if (config.downloadManifest !== false) await CatalogProfileCore.saveManifestDownload(manifest);
     const finalStatus = state.cancelBatch ? 'Cancelled by user' : 'Complete';
-    setStatus(`<strong>Batch build ${finalStatus}</strong><br><strong>Sets requested:</strong> ${setCodes.length}<br><strong>Sets completed:</strong> ${totalSetsCompleted}<br><strong>Sets failed:</strong> ${totalSetsFailed}<br><strong>Cards processed:</strong> ${totalCardsProcessed}<br>${options.imageMode==='embedded' ? `<strong>Images embedded:</strong> ${totalImagesEmbedded}<br><strong>Missing images:</strong> ${totalMissingImages}<br>` : ''}${options.priceSettings&&options.priceSettings.enabled?`<strong>Cards with prices:</strong> ${totalPriceMatches}<br><strong>Cards missing prices:</strong> ${totalPriceMissing}<br>`:''}<div class="image-lab-warning"><strong>Per-set summary</strong><ul>${perSetSummaries.map(x => `<li>${x}</li>`).join('')}</ul></div><p class="hint">Updated <code>build-manifest.json</code> was downloaded. Upload it to <code>data/output</code>.</p>`);
+    setStatus(`<strong>Batch build ${finalStatus}</strong><br><strong>Sets requested:</strong> ${setCodes.length}<br><strong>Sets completed:</strong> ${totalSetsCompleted}<br><strong>Sets failed:</strong> ${totalSetsFailed}<br><strong>Cards processed:</strong> ${totalCardsProcessed}<br>${options.imageMode==='embedded' ? `<strong>Images embedded:</strong> ${totalImagesEmbedded}<br><strong>Missing images:</strong> ${totalMissingImages}<br>` : ''}${options.priceSettings&&options.priceSettings.enabled?`<strong>Cards with prices:</strong> ${totalPriceMatches}<br><strong>Cards missing prices:</strong> ${totalPriceMissing}<br>`:''}<div class="image-lab-warning"><strong>Per-set summary</strong><ul>${perSetSummaries.map(x => `<li>${x}</li>`).join('')}</ul></div><p class="hint">${captureOnly ? 'Outputs were captured for the deployment pack.' : 'Updated <code>build-manifest.json</code> was downloaded. Upload it to <code>data/output</code>.'}</p>`);
+    return {manifest, files:capturedFiles, stats:{totalSetsCompleted,totalSetsFailed,totalCardsProcessed,totalImagesEmbedded,totalMissingImages,totalPriceMatches,totalPriceMissing}, summaries:perSetSummaries, cancelled:state.cancelBatch};
   }
 
   async function buildChecked(ev) {
@@ -75,7 +81,7 @@
     if (btn) btn.addEventListener('click', buildChecked, true);
     if (cancelCurrentBtn) cancelCurrentBtn.addEventListener('click', cancelCurrent);
     if (cancelBatchBtn) cancelBatchBtn.addEventListener('click', cancelBatch);
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Batch Image Profile', '8.5.0');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Batch Image Profile', '8.6.0');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
