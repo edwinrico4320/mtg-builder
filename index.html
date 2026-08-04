@@ -345,11 +345,19 @@
               <button id="odImportBtn" type="button">Import Design Profile</button>
               <input id="odImportFile" type="file" accept="application/json,.json" hidden>
             </div>
-            <label>GitHub profile path
-              <input id="odGithubPath" type="text" value="./data/design-profiles/restricted-device.json" spellcheck="false">
+            <label>GitHub profile library path
+              <input id="odGithubPath" type="text" value="./data/design-profiles/profiles.json" spellcheck="false">
             </label>
-            <button id="odLoadGithubBtn" type="button">Load Profile from GitHub</button>
-            <p class="hint">Exported profiles can be uploaded to <code>data/design-profiles</code> and loaded on any computer.</p>
+            <div class="actions compact-actions">
+              <button id="odLoadGithubBtn" type="button">Load / Refresh Profile Library</button>
+              <button id="odApplyGithubProfileBtn" type="button" disabled>Apply Selected Profile</button>
+            </div>
+            <label>Profile from library
+              <select id="odGithubProfileSelect" disabled>
+                <option value="">Load the profile library first</option>
+              </select>
+            </label>
+            <p class="hint">One JSON file can contain multiple named profiles. Selecting a profile updates the live preview immediately.</p>
           </section>
         </div>
 
