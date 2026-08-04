@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.4.0';
+  const VERSION = '8.4.0.3';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -105,7 +105,9 @@
     profile: clone(DEFAULT_PROFILE),
     previewMode: 'catalog',
     viewport: 'desktop',
-    renderTimer: null
+    renderTimer: null,
+    profileLibrary: null,
+    selectedLibraryProfileId: null
   };
 
   function $(id) { return document.getElementById(id); }
@@ -312,18 +314,103 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     }
   }
 
+  function profileIdFromName(name, fallback) {
+    const slug = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    return slug || fallback || 'profile';
+  }
+
+  function normalizeProfileLibrary(payload) {
+    const library = {version: VERSION, defaultProfile: null, profiles: {}};
+    if (!payload || typeof payload !== 'object') throw new Error('Profile library is not valid JSON.');
+
+    if (payload.profiles && !Array.isArray(payload.profiles) && typeof payload.profiles === 'object') {
+      Object.entries(payload.profiles).forEach(([id, value], index) => {
+        const raw = value && value.profile ? Object.assign({}, value.profile, {name: value.name || value.profile.name}) : value;
+        if (!raw || typeof raw !== 'object') return;
+        library.profiles[String(id)] = sanitizeProfile(raw);
+      });
+      library.defaultProfile = payload.defaultProfile && library.profiles[payload.defaultProfile]
+        ? payload.defaultProfile
+        : Object.keys(library.profiles)[0] || null;
+      return library;
+    }
+
+    if (Array.isArray(payload.profiles)) {
+      payload.profiles.forEach((value, index) => {
+        const raw = value && value.profile ? Object.assign({}, value.profile, {name: value.name || value.profile.name}) : value;
+        if (!raw || typeof raw !== 'object') return;
+        const id = String(value.id || profileIdFromName(raw.name, `profile-${index + 1}`));
+        library.profiles[id] = sanitizeProfile(raw);
+      });
+      library.defaultProfile = payload.defaultProfile && library.profiles[payload.defaultProfile]
+        ? payload.defaultProfile
+        : Object.keys(library.profiles)[0] || null;
+      return library;
+    }
+
+    // Backward compatibility: a single old-style profile JSON is treated as a one-entry library.
+    const single = sanitizeProfile(payload);
+    const id = profileIdFromName(single.name, 'default');
+    library.profiles[id] = single;
+    library.defaultProfile = id;
+    return library;
+  }
+
+  function populateGithubProfileSelect(library) {
+    const select = $('odGithubProfileSelect');
+    const applyBtn = $('odApplyGithubProfileBtn');
+    if (!select) return;
+    select.innerHTML = '';
+    const entries = Object.entries(library.profiles || {});
+    entries.forEach(([id, profile]) => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = profile.name || id;
+      select.appendChild(option);
+    });
+    select.disabled = entries.length === 0;
+    if (applyBtn) applyBtn.disabled = entries.length === 0;
+    if (entries.length) {
+      const selected = library.defaultProfile && library.profiles[library.defaultProfile]
+        ? library.defaultProfile
+        : entries[0][0];
+      select.value = selected;
+      state.selectedLibraryProfileId = selected;
+    }
+  }
+
+  function applySelectedLibraryProfile(message) {
+    const select = $('odGithubProfileSelect');
+    const id = select ? select.value : state.selectedLibraryProfileId;
+    if (!state.profileLibrary || !id || !state.profileLibrary.profiles[id]) return;
+    state.selectedLibraryProfileId = id;
+    applyProfile(state.profileLibrary.profiles[id], message || 'Profile selected from GitHub library.');
+  }
+
   async function loadFromGithub() {
     const path = (($('odGithubPath') || {}).value || '').trim();
     const status = $('odDesignerStatus');
     if (!path) return;
     try {
-      if (status) status.innerHTML = `Loading <code>${esc(path)}</code>...`;
+      if (status) status.innerHTML = `Loading profile library <code>${esc(path)}</code>...`;
       const response = await fetch(path, {cache:'no-store'});
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const p = sanitizeProfile(await response.json());
-      applyProfile(p, 'GitHub design profile loaded.');
+      const library = normalizeProfileLibrary(await response.json());
+      const count = Object.keys(library.profiles).length;
+      if (!count) throw new Error('The profile library contains no usable profiles.');
+      state.profileLibrary = library;
+      populateGithubProfileSelect(library);
+      applySelectedLibraryProfile(`Profile library loaded: ${count} profile${count === 1 ? '' : 's'}.`);
     } catch (err) {
-      if (status) status.innerHTML = `<strong>Profile load failed:</strong> ${esc(err.message || String(err))}`;
+      state.profileLibrary = null;
+      const select = $('odGithubProfileSelect');
+      const applyBtn = $('odApplyGithubProfileBtn');
+      if (select) {
+        select.innerHTML = '<option value="">Profile library unavailable</option>';
+        select.disabled = true;
+      }
+      if (applyBtn) applyBtn.disabled = true;
+      if (status) status.innerHTML = `<strong>Profile library load failed:</strong> ${esc(err.message || String(err))}`;
     }
   }
 
@@ -355,6 +442,10 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     if (importBtn && importFileInput) importBtn.addEventListener('click', () => importFileInput.click());
     if (importFileInput) importFileInput.addEventListener('change', () => {importFile(importFileInput.files && importFileInput.files[0]); importFileInput.value='';});
     const githubBtn = $('odLoadGithubBtn'); if (githubBtn) githubBtn.addEventListener('click', loadFromGithub);
+    const githubProfileSelect = $('odGithubProfileSelect');
+    if (githubProfileSelect) githubProfileSelect.addEventListener('change', () => applySelectedLibraryProfile('GitHub library profile selected.'));
+    const applyGithubProfileBtn = $('odApplyGithubProfileBtn');
+    if (applyGithubProfileBtn) applyGithubProfileBtn.addEventListener('click', () => applySelectedLibraryProfile('GitHub library profile applied.'));
     renderPreview();
   }
 
@@ -368,7 +459,8 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     getGeneratedCss,
     applyProfile: p => applyProfile(p, 'Design profile applied.'),
     buildPreviewDocument,
-    sanitizeProfile
+    sanitizeProfile,
+    normalizeProfileLibrary
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
