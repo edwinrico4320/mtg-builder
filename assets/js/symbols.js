@@ -48,7 +48,13 @@
   }
 
   function encodeSvg(svg) {
-    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+    // encodeURIComponent intentionally leaves ! ' ( ) * unescaped. Parentheses
+    // can collide with reminder-text parsing if a data URI is ever processed as
+    // text, so encode those remaining characters as well.
+    const encoded = encodeURIComponent(svg).replace(/[!'()*]/g, function (char) {
+      return '%' + char.charCodeAt(0).toString(16).toUpperCase();
+    });
+    return 'data:image/svg+xml;charset=UTF-8,' + encoded;
   }
 
   function colorFor(code) {
@@ -90,7 +96,7 @@
           const rightCode = parts[1] === '2' ? 'TWO' : parts[1];
           const left = colorFor(leftCode);
           const right = colorFor(rightCode);
-          defs = '<defs><linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="0%"><stop offset="0%" stop-color="' + left.hi + '"/><stop offset="49.9%" stop-color="' + left.lo + '"/><stop offset="50.1%" stop-color="' + right.hi + '"/><stop offset="100%" stop-color="' + right.lo + '"/></linearGradient><radialGradient id="shine" cx="30%" cy="28%" r="65%"><stop offset="0%" stop-color="rgba(255,255,255,0.55)"/><stop offset="55%" stop-color="rgba(255,255,255,0.14)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></radialGradient></defs>';
+          defs = '<defs><linearGradient id="g" x1="0%" x2="100%" y1="0%" y2="0%"><stop offset="0%" stop-color="' + left.hi + '"/><stop offset="49.9%" stop-color="' + left.lo + '"/><stop offset="50.1%" stop-color="' + right.hi + '"/><stop offset="100%" stop-color="' + right.lo + '"/></linearGradient></defs>';
           fill = 'url(#g)';
           textColor = '#1f1f1f';
           strokeColor = '#4f4a42';
@@ -126,7 +132,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
 ${defs}
 <circle cx="14" cy="14" r="12.5" fill="${fill}" stroke="${strokeColor}" stroke-width="1.6"/>
-<ellipse cx="10.5" cy="8.5" rx="6.2" ry="4.1" fill="rgba(255,255,255,0.18)"/>
+<ellipse cx="10.5" cy="8.5" rx="6.2" ry="4.1" fill="#ffffff" fill-opacity="0.18"/>
 <text x="14" y="14" text-anchor="middle" dominant-baseline="central" font-family="Arial, Helvetica, sans-serif" font-size="${fontSize}" font-weight="700" fill="${textColor}">${xmlEscape(label)}</text>
 </svg>`;
     return svg;
