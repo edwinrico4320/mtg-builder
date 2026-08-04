@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.5.0.1</title>
+  <title>MTG Builder v8.6.0</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
   <link rel="stylesheet" href="assets/css/v8.css">
   <link rel="stylesheet" href="assets/css/image-lab.css">
   <link rel="stylesheet" href="assets/css/output-designer.css">
+  <link rel="stylesheet" href="assets/css/workspace-admin.css">
 </head>
 <body>
   <header class="app-header">
@@ -17,6 +18,7 @@
 
   <nav class="tabs" aria-label="Builder sections">
     <button class="tab-button active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-button" data-tab="workspace-admin">Workspace</button>
     <button class="tab-button" data-tab="downloader">Set Downloader</button>
     <button class="tab-button" data-tab="catalog">Catalog Builder</button>
     <button class="tab-button" data-tab="prices">Price Snapshot</button>
@@ -33,7 +35,64 @@
         <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
         <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Catalog scan reads the live GitHub <code>data/json</code> folder.</small></article>
         <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
+        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.6 can restore settings and prepare one deployment pack.</small></article>
       </div>
+    </section>
+
+
+    <section id="workspace-admin" class="tab-panel">
+      <h2>Workspace & Smart Deployment</h2>
+      <p>Restore one saved setup, inspect only the selected sets, and package changed outputs into one repository-ready ZIP.</p>
+
+      <div class="workspace-grid">
+        <section class="workspace-panel">
+          <h3>Workspace source</h3>
+          <label>Workspace path
+            <input id="workspacePath" type="text" value="./data/workspace.json" spellcheck="false">
+          </label>
+          <div class="actions workspace-actions">
+            <button id="workspaceLoadBtn" type="button">Load Workspace</button>
+            <button id="workspaceLoadLocalBtn" type="button">Import Workspace / Bundle</button>
+            <input id="workspaceLocalFile" type="file" accept=".json,.zip,application/json,application/zip" hidden>
+            <button id="workspaceSaveBtn" type="button">Save Current Workspace</button>
+          </div>
+          <label class="workspace-check"><input id="workspaceAutoLoad" type="checkbox" checked> Attempt to load <code>data/workspace.json</code> automatically at startup</label>
+          <div id="workspaceLoadStatus" class="summary-box">Workspace not loaded.</div>
+        </section>
+
+        <section class="workspace-panel">
+          <h3>Smart build policy</h3>
+          <label class="workspace-check"><input id="workspaceBuildOnlyChanged" type="checkbox" checked> Build only new or changed catalogs</label>
+          <label class="workspace-check"><input id="workspaceIncludeRules" type="checkbox" checked> Include changed rules output</label>
+          <label class="workspace-check"><input id="workspaceIncludeProfiles" type="checkbox" checked> Include the profile library in deployment packs</label>
+          <label class="workspace-check"><input id="workspaceIncludePrices" type="checkbox" checked> Include the reusable price snapshot in deployment packs</label>
+          <label class="workspace-check"><input id="workspaceIncludeWorkspace" type="checkbox" checked> Include the updated workspace file</label>
+          <p class="hint">Unchanged catalogs are omitted. The existing GitHub files stay in place.</p>
+        </section>
+      </div>
+
+      <div class="workspace-primary-actions">
+        <button id="workspaceCheckBtn" type="button">Check Workspace Changes</button>
+        <button id="workspaceBuildDeployBtn" type="button">Build Changed & Export Deployment Pack</button>
+        <button id="workspaceCancelBtn" type="button" disabled>Cancel Smart Build</button>
+      </div>
+
+      <section class="workspace-panel">
+        <div class="workspace-heading"><div><h3>Administrative status</h3><p class="hint">Source hashes, output fingerprints, pricing, rules, and selected-set coverage are checked together.</p></div><span id="workspaceCheckTime" class="workspace-time"></span></div>
+        <div id="workspaceSummaryCards" class="workspace-summary-cards">
+          <article><strong>Workspace</strong><span>Not loaded</span></article>
+          <article><strong>Catalogs</strong><span>Not checked</span></article>
+          <article><strong>Rules</strong><span>Not checked</span></article>
+          <article><strong>Prices</strong><span>Not checked</span></article>
+        </div>
+        <div id="workspaceChangeList" class="workspace-change-list"><p class="hint">Load a workspace, scan sets, and run a check.</p></div>
+      </section>
+
+      <section class="workspace-panel">
+        <h3>Deployment pack</h3>
+        <div id="workspaceDeploymentStatus" class="summary-box">No deployment pack generated.</div>
+        <p class="hint">The ZIP preserves repository paths such as <code>data/output/TLA.html</code>, <code>data/output/build-manifest.json</code>, and <code>data/workspace.json</code>.</p>
+      </section>
     </section>
 
     <section id="downloader" class="tab-panel">
@@ -573,5 +632,6 @@
   <script src="assets/js/simple-zip.js"></script>
   <script src="assets/js/rules-library.js"></script>
   <script src="assets/js/output-designer.js"></script>
+  <script src="assets/js/workspace-admin.js"></script>
 </body>
 </html>
