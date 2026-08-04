@@ -28,7 +28,7 @@
     manifestPath: './data/output/build-manifest.json',
 
     registerModule() {
-      if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Profile Core', '8.3.0');
+      if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Profile Core', '8.5.0');
     },
 
     extractCards(json) {
@@ -116,6 +116,8 @@
     warnings(report) {
       const list = [];
       if (report.failures > 0) list.push(`${report.failures} card(s) were missing a Scryfall image or ID.`);
+      if (report.priceMissing > 0 && report.priceMatches === 0) list.push('Price display is enabled, but no cards matched the loaded price snapshot.');
+      else if (report.priceMissing > 0) list.push(`${report.priceMissing} card(s) had no selected price data.`);
       if (report.htmlBytes > 10 * 1024 * 1024) list.push('Generated HTML exceeds 10 MB. Test on the restricted viewer.');
       if (report.htmlBytes > 25 * 1024 * 1024) list.push('Generated HTML exceeds 25 MB and may be too heavy for some restricted viewers.');
       return list;
@@ -136,6 +138,7 @@
         navMode: (($('navModeSelect') || {}).value) || 'alpha',
         duplicateMode: (($('duplicateModeSelect') || {}).value) || 'collapse',
         symbolMode: (($('symbolModeSelect') || {}).value) || 'embedded',
+        priceSettings: window.PriceSnapshotManager ? PriceSnapshotManager.getBuildSettings() : {enabled:false},
         profileLabel: profile === 'card-no-images'
           ? 'Card Profile — No Images'
           : (profile === 'card-embedded-images' ? `Card Profile — Embedded Images (${imageWidth}px @ ${Math.round(imageQuality * 100)}%)` : 'Compact Text Only')
@@ -153,7 +156,8 @@
         navMode: options.navMode,
         duplicateMode: options.duplicateMode,
         symbolMode: options.symbolMode,
-        design: (window.OutputDesigner ? OutputDesigner.getFingerprintData() : null)
+        design: (window.OutputDesigner ? OutputDesigner.getFingerprintData() : null),
+        price: (window.PriceSnapshotManager ? PriceSnapshotManager.getFingerprintData() : null)
       });
       return sha256(payload);
     },
@@ -171,6 +175,7 @@
       const scale = this.textScale(options.textSize);
       const designerCss = window.OutputDesigner ? OutputDesigner.getGeneratedCss('catalog') : '';
       const designSummary = window.OutputDesigner ? OutputDesigner.getProfileSummary() : null;
+      const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
       const navItems = cards.map((card, index) => `<a href="#card-${index + 1}">${escapeHtml(card.name || `Card ${index + 1}`)}</a>`).join('\n');
       const blocks = cards.map((card, index) => {
         const img = options.imageMode === 'none' ? '' : (
@@ -190,9 +195,10 @@
         if (card.artist && options.fieldMode === 'full') footerParts.push(`Artist: ${escapeHtml(card.artist)}`);
         if (card._altPrintings) footerParts.push(`${card._altPrintings} alternate printing(s)`);
         const footer = footerParts.length ? `<div class="card-footer">${footerParts.join(' · ')}</div>` : '';
+        const priceBox = window.PriceSnapshotManager ? PriceSnapshotManager.renderCardPriceBox(card._priceData, options.priceSettings) : '';
         return `<article id="card-${index + 1}" class="card-entry">
           <div class="card-header"><h2>${escapeHtml(card.name)}</h2>${mana}</div>
-          <div class="card-body">${img}<div class="card-copy">${type}${layout}${rarity}<div class="rules-box"><div class="section-label">Oracle Text</div><div class="oracle-text">${this.renderRulesText(oracleText, options.symbolMode) || '<span class="muted">No rules text</span>'}</div></div>${flavor}${badge ? `<div class="stats-box"><span class="stats-badge">${badge}</span></div>` : ''}${footer}</div></div>
+          <div class="card-body">${img}<div class="card-copy">${type}${layout}${rarity}<div class="rules-box"><div class="section-label">Oracle Text</div><div class="oracle-text">${this.renderRulesText(oracleText, options.symbolMode) || '<span class="muted">No rules text</span>'}</div></div>${flavor}${badge ? `<div class="stats-box"><span class="stats-badge">${badge}</span></div>` : ''}${priceBox}${footer}</div></div>
           <div class="back-top"><a href="#top">Back to top</a></div>
         </article>`;
       }).join('\n');
@@ -201,8 +207,8 @@
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(setCode)} Catalog</title>
 <style>
-body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f3f0e8;color:#202020;}#top{display:block;}.page{max-width:1200px;margin:0 auto;padding:18px;}.set-header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:18px;margin-bottom:16px;}.set-header h1{margin:0 0 6px 0;font-size:${scale.h1};}.set-sub{font-size:14px;color:#444;}.layout{display:block;}.nav{width:auto;background:#f8f5ed;border:1px solid #c6baa0;padding:12px;box-sizing:border-box;margin-bottom:16px;position:static;max-height:38vh;overflow-y:auto;}.nav h2{margin:0 0 10px 0;font-size:18px;}.nav a{display:inline-block;vertical-align:top;width:calc(50% - 10px);padding:6px 8px;margin:2px 4px 2px 0;text-decoration:none;color:#15314b;border-radius:4px;box-sizing:border-box;}.nav a:hover,.nav a:focus{background:#e3edf7;}.cards{min-width:0;}.card-entry{background:#fbfaf6;border:1px solid #b8ae96;padding:14px;margin-bottom:16px;}.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #ccbfa2;padding-bottom:8px;margin-bottom:10px;}.card-header h2{margin:0;font-size:${scale.h2};line-height:1.1;}.mana-cost{font-weight:bold;white-space:nowrap;font-size:18px;display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:flex-end;}.mana{width:1.35em;height:1.35em;vertical-align:middle;}.mana-fallback{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;border:1px solid #666;border-radius:999px;background:#ece8df;color:#222;font-size:.8em;line-height:1;padding:0 .18em;}.oracle-text .mana{width:1.25em;height:1.25em;}.rarity-line{display:flex;align-items:center;gap:6px;margin:6px 0 4px;}.rarity-icon{width:1.05em;height:1.05em;vertical-align:middle;}.rarity-label{text-transform:capitalize;font-size:.9em;color:#555;}.card-body{display:block;}.image-wrap,.missing-image{width:100%;max-width:320px;margin:0 auto 12px;background:#ebe8df;border:1px solid #c2b7a1;padding:8px;box-sizing:border-box;text-align:center;}.image-wrap img{width:100%;height:auto;display:block;}.missing-image{padding:24px 8px;color:#666;background:#f1eee7;}.type-line{font-weight:bold;margin:0 0 3px 0;}.layout-line{margin:0 0 8px 0;font-size:0.9em;color:#4c4c4c;}.rules-box{background:#efe6d4;border:1px solid #cbb999;padding:10px;margin-top:4px;}.flavor-box{background:#f5efe6;border:1px solid #d0c3b1;padding:10px;margin-top:8px;}.section-label{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;color:#55452e;}.oracle-text,.flavor-text{line-height:1.35;}.flavor-text{font-style:italic;}.reminder{font-style:italic;color:#666;font-size:0.94em;}.stats-box{margin-top:8px;background:#dde4ea;border:1px solid #b2bcc8;padding:8px;}.stats-badge{display:inline-block;font-weight:bold;font-size:18px;padding:4px 10px;border:1px solid #7c8da0;background:#f7fbff;}.card-footer{margin-top:8px;font-size:12px;color:#555;}.back-top{margin-top:8px;font-size:13px;}.back-top a{color:#15314b;text-decoration:none;}.muted{color:#777;}@media (min-width: 901px) and (orientation: landscape){.layout{display:flex;gap:18px;align-items:flex-start;}.nav{width:240px;flex:0 0 240px;position:sticky;top:12px;max-height:calc(100vh - 24px);margin-bottom:0;}.nav a{display:block;width:auto;margin:2px 0;}.cards{flex:1;min-width:0;}.card-body{display:flex;gap:14px;align-items:flex-start;}.image-wrap,.missing-image{width:220px;max-width:none;flex:0 0 220px;margin:0;}}@media (max-width: 480px){.nav a{display:block;width:100%;margin-right:0;}.page{padding:10px;}.card-entry{padding:10px;}}${designerCss}</style>
-</head><body><div id="top"></div><div class="page"><header class="set-header"><h1>${escapeHtml(setName)}</h1><div class="set-sub">Set Code: ${escapeHtml(setCode)} · Generated by MTG Builder v8.4 · ${escapeHtml(options.profileLabel)}${designSummary ? ` · Design: ${escapeHtml(designSummary.name)}` : ''}</div></header><div class="layout"><nav class="nav"><h2>Card Navigator</h2>${navItems}</nav><main class="cards">${blocks}</main></div></div></body></html>`;
+body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f3f0e8;color:#202020;}#top{display:block;}.page{max-width:1200px;margin:0 auto;padding:18px;}.set-header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:18px;margin-bottom:16px;}.set-header h1{margin:0 0 6px 0;font-size:${scale.h1};}.set-sub{font-size:14px;color:#444;}.layout{display:block;}.nav{width:auto;background:#f8f5ed;border:1px solid #c6baa0;padding:12px;box-sizing:border-box;margin-bottom:16px;position:static;max-height:38vh;overflow-y:auto;}.nav h2{margin:0 0 10px 0;font-size:18px;}.nav a{display:inline-block;vertical-align:top;width:calc(50% - 10px);padding:6px 8px;margin:2px 4px 2px 0;text-decoration:none;color:#15314b;border-radius:4px;box-sizing:border-box;}.nav a:hover,.nav a:focus{background:#e3edf7;}.cards{min-width:0;}.card-entry{background:#fbfaf6;border:1px solid #b8ae96;padding:14px;margin-bottom:16px;}.card-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border-bottom:1px solid #ccbfa2;padding-bottom:8px;margin-bottom:10px;}.card-header h2{margin:0;font-size:${scale.h2};line-height:1.1;}.mana-cost{font-weight:bold;white-space:nowrap;font-size:18px;display:flex;align-items:center;gap:3px;flex-wrap:wrap;justify-content:flex-end;}.mana{width:1.35em;height:1.35em;vertical-align:middle;}.mana-fallback{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;border:1px solid #666;border-radius:999px;background:#ece8df;color:#222;font-size:.8em;line-height:1;padding:0 .18em;}.oracle-text .mana{width:1.25em;height:1.25em;}.rarity-line{display:flex;align-items:center;gap:6px;margin:6px 0 4px;}.rarity-icon{width:1.05em;height:1.05em;vertical-align:middle;}.rarity-label{text-transform:capitalize;font-size:.9em;color:#555;}.card-body{display:block;}.image-wrap,.missing-image{width:100%;max-width:320px;margin:0 auto 12px;background:#ebe8df;border:1px solid #c2b7a1;padding:8px;box-sizing:border-box;text-align:center;}.image-wrap img{width:100%;height:auto;display:block;}.missing-image{padding:24px 8px;color:#666;background:#f1eee7;}.type-line{font-weight:bold;margin:0 0 3px 0;}.layout-line{margin:0 0 8px 0;font-size:0.9em;color:#4c4c4c;}.rules-box{background:#efe6d4;border:1px solid #cbb999;padding:10px;margin-top:4px;}.flavor-box{background:#f5efe6;border:1px solid #d0c3b1;padding:10px;margin-top:8px;}.section-label{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;color:#55452e;}.oracle-text,.flavor-text{line-height:1.35;}.flavor-text{font-style:italic;}.reminder{font-style:italic;color:#666;font-size:0.94em;}.stats-box{margin-top:8px;background:#dde4ea;border:1px solid #b2bcc8;padding:8px;}.stats-badge{display:inline-block;font-weight:bold;font-size:18px;padding:4px 10px;border:1px solid #7c8da0;background:#f7fbff;}.card-footer{margin-top:8px;font-size:12px;color:#555;}.back-top{margin-top:8px;font-size:13px;}.back-top a{color:#15314b;text-decoration:none;}.muted{color:#777;}@media (min-width: 901px) and (orientation: landscape){.layout{display:flex;gap:18px;align-items:flex-start;}.nav{width:240px;flex:0 0 240px;position:sticky;top:12px;max-height:calc(100vh - 24px);margin-bottom:0;}.nav a{display:block;width:auto;margin:2px 0;}.cards{flex:1;min-width:0;}.card-body{display:flex;gap:14px;align-items:flex-start;}.image-wrap,.missing-image{width:220px;max-width:none;flex:0 0 220px;margin:0;}}@media (max-width: 480px){.nav a{display:block;width:100%;margin-right:0;}.page{padding:10px;}.card-entry{padding:10px;}}${designerCss}${priceCss}</style>
+</head><body><div id="top"></div><div class="page"><header class="set-header"><h1>${escapeHtml(setName)}</h1><div class="set-sub">Set Code: ${escapeHtml(setCode)} · Generated by MTG Builder v8.5 · ${escapeHtml(options.profileLabel)}${designSummary ? ` · Design: ${escapeHtml(designSummary.name)}` : ''}</div></header><div class="layout"><nav class="nav"><h2>Card Navigator</h2>${navItems}</nav><main class="cards">${blocks}</main></div></div></body></html>`;
     },
 
     async buildSetFromSource(setCode, source, options, controller, progress) {
@@ -212,7 +218,7 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
       cards = this.sortCards(cards, options.navMode);
       if (options.duplicateMode === 'collapse') cards = this.collapseDuplicates(cards);
       const processedCards = [];
-      let idsFound = 0, imagesFound = 0, failures = 0;
+      let idsFound = 0, imagesFound = 0, failures = 0, priceMatches = 0, priceMissing = 0;
       for (let i = 0; i < cards.length; i++) {
         if (controller && (controller.cancelBatch || controller.cancelCurrent)) break;
         const card = Object.assign({}, cards[i]);
@@ -233,12 +239,16 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
             }
           } else failures += 1;
         }
+        if (options.priceSettings && options.priceSettings.enabled && window.PriceSnapshotManager) {
+          card._priceData = PriceSnapshotManager.lookupCard(card, options.priceSettings);
+          if (card._priceData) priceMatches += 1; else priceMissing += 1;
+        }
         processedCards.push(card);
         if ((i + 1) % 5 === 0) await sleep(0);
       }
       const html = this.renderCardProfileHtml(setCode, setName, processedCards, options);
       const htmlBytes = new TextEncoder().encode(html).length;
-      return {setCode, setName, html, htmlBytes, cardsProcessed: processedCards.length, idsFound, imagesFound, failures, sourceHash: source.sourceHash};
+      return {setCode, setName, html, htmlBytes, cardsProcessed: processedCards.length, idsFound, imagesFound, failures, priceMatches, priceMissing, priceSummary:(window.PriceSnapshotManager?PriceSnapshotManager.getSummary():null), sourceHash: source.sourceHash};
     },
 
     downloadTextFile(name, text) {
@@ -263,12 +273,12 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
         if (!manifest.imageProfiles) manifest.imageProfiles = {};
         return manifest;
       } catch (err) {
-        return {builderVersion:'8.3.0', imageProfiles:{}};
+        return {builderVersion:'8.5.0', imageProfiles:{}};
       }
     },
 
     async saveManifestDownload(manifest) {
-      manifest.builderVersion = '8.3.0';
+      manifest.builderVersion = '8.5.0';
       this.downloadTextFile('build-manifest.json', JSON.stringify(manifest, null, 2));
     },
 
@@ -286,7 +296,8 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
           fieldMode: options.fieldMode,
           navMode: options.navMode,
           duplicateMode: options.duplicateMode,
-          designProfile: (window.OutputDesigner ? OutputDesigner.getProfileSummary() : null)
+          designProfile: (window.OutputDesigner ? OutputDesigner.getProfileSummary() : null),
+          priceProfile: (window.PriceSnapshotManager ? PriceSnapshotManager.getFingerprintData() : null)
         },
         outputFile: `${buildResult.setCode}.html`,
         updatedAt: new Date().toISOString()

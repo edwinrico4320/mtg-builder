@@ -28,7 +28,7 @@
       CatalogProfileCore.downloadHtml(`${setCode}.html`, result.html);
       const reportWarnings = CatalogProfileCore.warnings(result);
       if (summary) {
-        summary.innerHTML = `<strong>Built:</strong> ${setCode}.html<br><strong>Cards processed:</strong> ${result.cardsProcessed}<br>${options.imageMode==='embedded' ? `<strong>Images embedded:</strong> ${result.imagesFound}/${result.cardsProcessed}<br>` : ''}<strong>Approx HTML size:</strong> ${CatalogProfileCore.formatBytes(result.htmlBytes)}<br><strong>Compatibility estimate:</strong> ${CatalogProfileCore.compatibility(result.htmlBytes, options.imageMode)}${reportWarnings.length ? `<div class="image-lab-warning"><strong>Warnings</strong><ul>${reportWarnings.map(w => `<li>${w}</li>`).join('')}</ul></div>` : ''}`;
+        summary.innerHTML = `<strong>Built:</strong> ${setCode}.html<br><strong>Cards processed:</strong> ${result.cardsProcessed}<br>${options.imageMode==='embedded' ? `<strong>Images embedded:</strong> ${result.imagesFound}/${result.cardsProcessed}<br>` : ''}${options.priceSettings&&options.priceSettings.enabled?`<strong>Cards with prices:</strong> ${result.priceMatches}/${result.cardsProcessed}<br>`:''}<strong>Approx HTML size:</strong> ${CatalogProfileCore.formatBytes(result.htmlBytes)}<br><strong>Compatibility estimate:</strong> ${CatalogProfileCore.compatibility(result.htmlBytes, options.imageMode)}${reportWarnings.length ? `<div class="image-lab-warning"><strong>Warnings</strong><ul>${reportWarnings.map(w => `<li>${w}</li>`).join('')}</ul></div>` : ''}`;
       }
     } catch (err) {
       if (summary) summary.innerHTML = `Image-profile build failed: ${err && err.message ? err.message : String(err)}`;
@@ -64,7 +64,7 @@
     updateProfileUi();
     if (buildBtn) buildBtn.addEventListener('click', buildSelectedSet, true);
     if (cancelBtn) cancelBtn.addEventListener('click', cancelBuild);
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.3.0');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.5.0');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

@@ -1,12 +1,14 @@
 (function () {
-  const VERSION = '8.4.0.3';
+  const VERSION = '8.5.0';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
     'pageBackground','contentBackground','navigationBackground','headerBackground',
     'textColor','secondaryTextColor','headingColor','linkColor','borderColor',
     'rulesBackground','flavorBackground','targetBackground','density','maxPageWidth',
-    'navigationMode','imagePosition','imageWidth','cardColumns','borderRadius','borderWidth'
+    'navigationMode','imagePosition','imageWidth','cardColumns','borderRadius','borderWidth',
+    'priceLayout','priceShowBadges','priceHighlightLowest','priceShowSnapshotDate','priceCurrencyStyle',
+    'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground'
   ];
 
   const DEFAULT_PROFILE = Object.freeze({
@@ -36,7 +38,17 @@
     imageWidth: 300,
     cardColumns: 1,
     borderRadius: 4,
-    borderWidth: 1
+    borderWidth: 1,
+    priceLayout: 'compact-row',
+    priceShowBadges: true,
+    priceHighlightLowest: true,
+    priceShowSnapshotDate: true,
+    priceCurrencyStyle: 'symbol',
+    priceUnavailable: 'hide',
+    priceFontSize: 13,
+    priceBackground: '#f2eee5',
+    priceBorderColor: '#b9ad94',
+    priceLowestBackground: '#dff2d8'
   });
 
   const PRESETS = {
@@ -98,7 +110,12 @@
     rulesBackground: 'odRulesBackground', flavorBackground: 'odFlavorBackground',
     targetBackground: 'odTargetBackground', density: 'odDensity', maxPageWidth: 'odMaxPageWidth',
     navigationMode: 'odNavigationMode', imagePosition: 'odImagePosition', imageWidth: 'odImageWidth',
-    cardColumns: 'odCardColumns', borderRadius: 'odBorderRadius', borderWidth: 'odBorderWidth'
+    cardColumns: 'odCardColumns', borderRadius: 'odBorderRadius', borderWidth: 'odBorderWidth',
+    priceLayout: 'odPriceLayout', priceShowBadges: 'odPriceShowBadges',
+    priceHighlightLowest: 'odPriceHighlightLowest', priceShowSnapshotDate: 'odPriceShowSnapshotDate',
+    priceCurrencyStyle: 'odPriceCurrencyStyle', priceUnavailable: 'odPriceUnavailable',
+    priceFontSize: 'odPriceFontSize', priceBackground: 'odPriceBackground',
+    priceBorderColor: 'odPriceBorderColor', priceLowestBackground: 'odPriceLowestBackground'
   };
 
   let state = {
@@ -144,6 +161,16 @@
     p.cardColumns = clamp(source.cardColumns, 1, 2, 1);
     p.borderRadius = clamp(source.borderRadius, 0, 20, 4);
     p.borderWidth = clamp(source.borderWidth, 0, 4, 1);
+    p.priceLayout = ['compact-row','provider-boxes','cheapest','table'].includes(source.priceLayout) ? source.priceLayout : 'compact-row';
+    p.priceShowBadges = !(source.priceShowBadges === false || source.priceShowBadges === 'false');
+    p.priceHighlightLowest = !(source.priceHighlightLowest === false || source.priceHighlightLowest === 'false');
+    p.priceShowSnapshotDate = !(source.priceShowSnapshotDate === false || source.priceShowSnapshotDate === 'false');
+    p.priceCurrencyStyle = ['symbol','code'].includes(source.priceCurrencyStyle) ? source.priceCurrencyStyle : 'symbol';
+    p.priceUnavailable = ['hide','dash'].includes(source.priceUnavailable) ? source.priceUnavailable : 'hide';
+    p.priceFontSize = clamp(source.priceFontSize, 10, 18, 13);
+    p.priceBackground = validHex(source.priceBackground, '#f2eee5');
+    p.priceBorderColor = validHex(source.priceBorderColor, '#b9ad94');
+    p.priceLowestBackground = validHex(source.priceLowestBackground, '#dff2d8');
     return p;
   }
 
@@ -169,7 +196,7 @@
     const imageSide = side => `@media(min-width:620px){.card-body{display:flex!important;gap:var(--od-gap)!important;align-items:flex-start!important}.image-wrap,.missing-image{width:var(--od-image-width)!important;max-width:var(--od-image-width)!important;flex:0 0 var(--od-image-width)!important;margin:0!important;order:${side==='right'?2:0}!important}.card-copy{order:1!important;min-width:0!important;flex:1!important}}`;
     const imageRules = p.imagePosition === 'top' ? imageTop : p.imagePosition === 'left' ? imageSide('left') : p.imagePosition === 'right' ? imageSide('right') : '';
     return `
-:root{--od-font:${p.fontFamily};--od-base-size:${p.baseFontSize}px;--od-line-height:${p.lineHeight};--od-page-bg:${p.pageBackground};--od-content-bg:${p.contentBackground};--od-nav-bg:${p.navigationBackground};--od-header-bg:${p.headerBackground};--od-text:${p.textColor};--od-secondary:${p.secondaryTextColor};--od-heading:${p.headingColor};--od-link:${p.linkColor};--od-border:${p.borderColor};--od-rules-bg:${p.rulesBackground};--od-flavor-bg:${p.flavorBackground};--od-target-bg:${p.targetBackground};--od-radius:${p.borderRadius}px;--od-border-width:${p.borderWidth}px;--od-gap:${d.gap}px;--od-image-width:${p.imageWidth}px}
+:root{--od-font:${p.fontFamily};--od-base-size:${p.baseFontSize}px;--od-line-height:${p.lineHeight};--od-page-bg:${p.pageBackground};--od-content-bg:${p.contentBackground};--od-nav-bg:${p.navigationBackground};--od-header-bg:${p.headerBackground};--od-text:${p.textColor};--od-secondary:${p.secondaryTextColor};--od-heading:${p.headingColor};--od-link:${p.linkColor};--od-border:${p.borderColor};--od-rules-bg:${p.rulesBackground};--od-flavor-bg:${p.flavorBackground};--od-target-bg:${p.targetBackground};--od-radius:${p.borderRadius}px;--od-border-width:${p.borderWidth}px;--od-gap:${d.gap}px;--od-image-width:${p.imageWidth}px;--price-bg:${p.priceBackground};--price-border:${p.priceBorderColor};--price-low:${p.priceLowestBackground};--price-size:${p.priceFontSize}px}
 html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font-size:var(--od-base-size)!important;line-height:var(--od-line-height)!important;background:var(--od-page-bg)!important;color:var(--od-text)!important}.page{max-width:${maxWidth}!important;padding:${d.page}px!important}h1,h2,h3,.card-header h2,.chapter-heading{color:var(--od-heading)!important;font-weight:${p.headingWeight}!important}h1,.set-header h1,.header h1{font-size:${h1}px!important}.card-header h2,.chapter-heading{font-size:${h2}px!important}h3{font-size:${h3}px!important}a,.nav a,.back-top a{color:var(--od-link)!important}.meta,.set-sub,.card-footer,.layout-line,.muted{color:var(--od-secondary)!important}.header,.set-header{background:var(--od-header-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important;padding:${d.panel}px!important}.nav{background:var(--od-nav-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important;padding:${d.nav}px!important}.content,.card-entry{background:var(--od-content-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important}.content{padding:${d.panel}px!important}.card-entry{padding:${d.card}px!important;margin-bottom:var(--od-gap)!important}.rules-box{background:var(--od-rules-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important}.flavor-box,.example{background:var(--od-flavor-bg)!important;border-color:var(--od-border)!important;border-radius:var(--od-radius)!important}.image-wrap,.missing-image{border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important}.chapter-heading:target,.rule:target,h3:target,.card-entry:target{background:var(--od-target-bg)!important}.cards{grid-template-columns:repeat(${p.cardColumns},minmax(0,1fr));gap:var(--od-gap)}${p.cardColumns > 1 ? '@media(min-width:1050px){.cards{display:grid!important}.card-entry{margin-bottom:0!important}}@media(max-width:1049px){.cards{display:block!important}}' : ''}${navRules}${imageRules}@media(max-width:480px){.page{padding:${Math.min(d.page,10)}px!important}.content,.card-entry{padding:${Math.min(d.panel,11)}px!important}}
 `;
   }
@@ -236,7 +263,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
 
   function catalogPreview() {
     const nav = navHtml([{id:'card-1',label:'Aether Channeler'},{id:'card-2',label:'Sample Dragon'},{id:'card-3',label:'Sample Land'}]);
-    return `<div id="top"></div><div class="page"><header class="set-header"><h1>Sample Set</h1><div class="set-sub">Set Code: SMP · Live design preview</div></header><div class="layout">${nav}<main class="cards"><article id="card-1" class="card-entry"><div class="card-header"><h2>Aether Channeler</h2><div class="mana-cost">${previewMana('{2}{U}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded card image preview</div></div><div class="card-copy"><div class="type-line">Creature — Human Wizard</div><div class="rarity-line">${previewRarity('uncommon')}<span class="rarity-label">uncommon</span></div><div class="rules-box"><strong>Oracle Text</strong><p>${previewMana('When this creature enters, choose one — create a 1/1 token; return another nonland permanent with mana value {2} or less; or draw a card.')}</p></div><div class="flavor-box">“Every current has a story.”</div><div class="stats-box"><span class="stats-badge">2/1</span></div><p class="back-top"><a href="#top">Back to top</a></p></div></div></article><article id="card-2" class="card-entry"><div class="card-header"><h2>Sample Dragon</h2><div class="mana-cost">${previewMana('{4}{R}{R}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Second image</div></div><div class="card-copy"><div class="type-line">Creature — Dragon</div><div class="rarity-line">${previewRarity('mythic')}<span class="rarity-label">mythic</span></div><div class="rules-box">Flying<br>Whenever this attacks, it deals 2 damage to any target. Activate only by paying ${previewMana('{W/U}{2/B}{G/P}{T}')}.</div><div class="stats-box"><span class="stats-badge">5/5</span></div></div></div></article></main></div></div>`;
+    return `<div id="top"></div><div class="page"><header class="set-header"><h1>Sample Set</h1><div class="set-sub">Set Code: SMP · Live design preview</div></header><div class="layout">${nav}<main class="cards"><article id="card-1" class="card-entry"><div class="card-header"><h2>Aether Channeler</h2><div class="mana-cost">${previewMana('{2}{U}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded card image preview</div></div><div class="card-copy"><div class="type-line">Creature — Human Wizard</div><div class="rarity-line">${previewRarity('uncommon')}<span class="rarity-label">uncommon</span></div><div class="rules-box"><strong>Oracle Text</strong><p>${previewMana('When this creature enters, choose one — create a 1/1 token; return another nonland permanent with mana value {2} or less; or draw a card.')}</p></div><div class="flavor-box">“Every current has a story.”</div><div class="stats-box"><span class="stats-badge">2/1</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}<p class="back-top"><a href="#top">Back to top</a></p></div></div></article><article id="card-2" class="card-entry"><div class="card-header"><h2>Sample Dragon</h2><div class="mana-cost">${previewMana('{4}{R}{R}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Second image</div></div><div class="card-copy"><div class="type-line">Creature — Dragon</div><div class="rarity-line">${previewRarity('mythic')}<span class="rarity-label">mythic</span></div><div class="rules-box">Flying<br>Whenever this attacks, it deals 2 damage to any target. Activate only by paying ${previewMana('{W/U}{2/B}{G/P}{T}')}.</div><div class="stats-box"><span class="stats-badge">5/5</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}</div></div></article></main></div></div>`;
   }
 
   function rulesPreview() {
@@ -246,13 +273,14 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
 
   function portablePreview() {
     const nav = navHtml([{id:'library-rules',label:'Rules Reference'},{id:'library-set-one',label:'Sample Set One'},{id:'library-set-two',label:'Sample Set Two'}]);
-    return `<div id="top"></div><div class="page"><header class="header"><h1>Portable MTG Library</h1><div class="meta">Single self-contained HTML file · internal links only</div></header><div class="layout">${nav}<main class="content"><section id="library-rules" class="chapter-section"><h2 class="chapter-heading">Rules Reference</h2><p>Selected rules chapters would appear directly inside this file.</p><div class="rules-box"><strong>100.1.</strong> These rules apply to a game with two or more players.</div></section><section id="library-set-one" class="portable-set"><h2 class="chapter-heading">Sample Set One</h2><article class="card-entry"><div class="card-header"><h2>Library Card</h2><strong>{1}{G}</strong></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded image</div></div><div class="card-copy"><div class="type-line">Creature — Elf</div><div class="rules-box">When this enters, add one mana of any color.</div><div class="stats-box"><span class="stats-badge">2/2</span></div></div></div></article></section><section id="library-set-two" class="portable-set"><h2 class="chapter-heading">Sample Set Two</h2><p>Additional selected sets would continue below using only internal anchors.</p></section></main></div></div>`;
+    return `<div id="top"></div><div class="page"><header class="header"><h1>Portable MTG Library</h1><div class="meta">Single self-contained HTML file · internal links only</div></header><div class="layout">${nav}<main class="content"><section id="library-rules" class="chapter-section"><h2 class="chapter-heading">Rules Reference</h2><p>Selected rules chapters would appear directly inside this file.</p><div class="rules-box"><strong>100.1.</strong> These rules apply to a game with two or more players.</div></section><section id="library-set-one" class="portable-set"><h2 class="chapter-heading">Sample Set One</h2><article class="card-entry"><div class="card-header"><h2>Library Card</h2><div class="mana-cost">${previewMana('{1}{G}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded image</div></div><div class="card-copy"><div class="type-line">Creature — Elf</div><div class="rules-box">When this enters, add one mana of any color.</div><div class="stats-box"><span class="stats-badge">2/2</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}</div></div></article></section><section id="library-set-two" class="portable-set"><h2 class="chapter-heading">Sample Set Two</h2><p>Additional selected sets would continue below using only internal anchors.</p></section></main></div></div>`;
   }
 
   function buildPreviewDocument() {
     const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : catalogPreview();
     const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : 'Catalog Preview';
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}</style></head><body>${body}</body></html>`;
+    const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${priceCss}</style></head><body>${body}</body></html>`;
   }
 
   function renderPreview() {
@@ -446,6 +474,8 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     if (githubProfileSelect) githubProfileSelect.addEventListener('change', () => applySelectedLibraryProfile('GitHub library profile selected.'));
     const applyGithubProfileBtn = $('odApplyGithubProfileBtn');
     if (applyGithubProfileBtn) applyGithubProfileBtn.addEventListener('click', () => applySelectedLibraryProfile('GitHub library profile applied.'));
+    document.addEventListener('price-settings-change', renderPreview);
+    document.addEventListener('price-data-loaded', renderPreview);
     renderPreview();
   }
 
