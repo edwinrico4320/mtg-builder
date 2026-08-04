@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.4.0</title>
+  <title>MTG Builder v8.5.0</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
   <link rel="stylesheet" href="assets/css/v8.css">
   <link rel="stylesheet" href="assets/css/image-lab.css">
@@ -19,6 +19,7 @@
     <button class="tab-button active" data-tab="dashboard">Dashboard</button>
     <button class="tab-button" data-tab="downloader">Set Downloader</button>
     <button class="tab-button" data-tab="catalog">Catalog Builder</button>
+    <button class="tab-button" data-tab="prices">Price Snapshot</button>
     <button class="tab-button" data-tab="image-lab">Image Lab</button>
     <button class="tab-button" data-tab="rules-library">Rules Library</button>
     <button class="tab-button" data-tab="output-designer">Output Designer</button>
@@ -151,6 +152,56 @@
       <div id="catalogSummary" class="summary-box">Ready.</div>
     </section>
 
+
+    <section id="prices" class="tab-panel">
+      <h2>Price Snapshot</h2>
+      <p>Load MTGJSON price data once during a build, then embed a small static price snapshot beneath each card. Finished catalogs make no price-network requests.</p>
+
+      <div class="builder-options">
+        <label><input id="priceEnabled" type="checkbox" checked> Include price information in Card Profile outputs</label>
+        <label>Reusable snapshot path
+          <input id="priceSourcePath" type="text" value="./data/prices/price-snapshot.json" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="priceLoadPathBtn" type="button">Load Snapshot Path</button>
+        <button id="priceLoadOfficialBtn" type="button">Load Official AllPricesToday ZIP</button>
+        <button id="priceLoadLocalBtn" type="button">Load Local ZIP / JSON</button>
+        <input id="priceLocalFile" type="file" accept=".zip,.json,application/zip,application/json" hidden>
+        <button id="priceClearBtn" type="button">Clear Loaded Prices</button>
+      </div>
+
+      <section class="batch-panel">
+        <div class="batch-heading"><div><h3>Price Data Profile</h3><p class="hint">Choose which providers and price points are copied into generated catalogs.</p></div></div>
+        <div class="price-option-grid">
+          <fieldset><legend>Providers</legend>
+            <label><input type="checkbox" data-price-provider="tcgplayer" checked> TCGplayer</label>
+            <label><input type="checkbox" data-price-provider="cardkingdom" checked> Card Kingdom</label>
+            <label><input type="checkbox" data-price-provider="cardmarket" checked> Cardmarket</label>
+            <label><input type="checkbox" data-price-provider="cardsphere"> Cardsphere</label>
+          </fieldset>
+          <fieldset><legend>Finishes</legend>
+            <label><input type="checkbox" data-price-finish="normal" checked> Normal</label>
+            <label><input type="checkbox" data-price-finish="foil"> Foil</label>
+            <label><input type="checkbox" data-price-finish="etched"> Etched</label>
+          </fieldset>
+          <fieldset><legend>Price types</legend>
+            <label><input type="checkbox" data-price-type="retail" checked> Retail</label>
+            <label><input type="checkbox" data-price-type="buylist"> Buylist</label>
+            <label><input id="priceExternalLinks" type="checkbox"> Marketplace links in desktop output</label>
+          </fieldset>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="priceExportCheckedBtn" type="button" disabled>Export Snapshot for Checked Sets</button>
+        <button id="priceDownloadReportBtn" type="button" disabled>Download Price Report</button>
+      </div>
+      <p class="hint">For the smallest reusable source: scan sets, check the sets you use, load the official ZIP, export the filtered snapshot, and upload it as <code>data/prices/price-snapshot.json</code>.</p>
+      <div id="priceDataStatus" class="summary-box">No price data loaded.</div>
+      <div id="priceDataReport" class="size-report"><p class="hint">Price matching has not run during this session.</p></div>
+    </section>
 
     <section id="rules-library" class="tab-panel">
       <h2>Rules Library Generator</h2>
@@ -338,6 +389,49 @@
             </div>
           </section>
 
+
+          <section class="od-panel">
+            <h3>Price Display</h3>
+            <div class="od-inline-fields">
+              <label>Layout
+                <select id="odPriceLayout">
+                  <option value="compact-row" selected>Compact row</option>
+                  <option value="provider-boxes">Provider boxes</option>
+                  <option value="cheapest">Cheapest-price summary</option>
+                  <option value="table">Full comparison table</option>
+                </select>
+              </label>
+              <label>Price text size
+                <input id="odPriceFontSize" type="number" min="10" max="18" step="1" value="13">
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Provider badges
+                <select id="odPriceShowBadges"><option value="true" selected>Show</option><option value="false">Text labels only</option></select>
+              </label>
+              <label>Highlight lowest
+                <select id="odPriceHighlightLowest"><option value="true" selected>Highlight</option><option value="false">Do not highlight</option></select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Snapshot date
+                <select id="odPriceShowSnapshotDate"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+              <label>Currency display
+                <select id="odPriceCurrencyStyle"><option value="symbol" selected>Symbols ($ / €)</option><option value="code">Codes (USD / EUR)</option></select>
+              </label>
+            </div>
+            <label>Unavailable prices
+              <select id="odPriceUnavailable"><option value="hide" selected>Hide unavailable providers</option><option value="dash">Show an em dash</option></select>
+            </label>
+            <div class="od-color-grid">
+              <label>Price box <input id="odPriceBackground" type="color" value="#f2eee5"></label>
+              <label>Price border <input id="odPriceBorderColor" type="color" value="#b9ad94"></label>
+              <label>Lowest price <input id="odPriceLowestBackground" type="color" value="#dff2d8"></label>
+            </div>
+            <p class="hint">These visual choices are saved inside the design profile and are shown immediately in Card Catalog and Portable Collection previews.</p>
+          </section>
+
           <section class="od-panel">
             <h3>Move profile between computers</h3>
             <div class="actions compact-actions">
@@ -467,6 +561,7 @@
   <script src="assets/js/image-lab.js"></script>
   <script src="assets/js/image-lab-ui.js"></script>
   <script src="assets/js/image-report.js"></script>
+  <script src="assets/js/price-snapshot.js"></script>
   <script src="assets/js/shared-image-cache.js"></script>
   <script src="assets/js/catalog-profile-core.js"></script>
 
