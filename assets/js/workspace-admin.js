@@ -1,11 +1,12 @@
 (function () {
-  const VERSION = '8.6.1';
+  const VERSION = '8.7.0';
   const STORAGE_KEY = 'mtg-builder-workspace-v8_6';
   const $ = id => document.getElementById(id);
   const esc = value => String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
   const clone = value => JSON.parse(JSON.stringify(value));
   const state = {workspace:null,lastCheck:null,running:false,cancel:false,sourcePath:null,loadedCanonical:null,booted:false};
+  const STARTUP_TIMEOUT_MS = 18000;
 
   function setValue(id,value){const el=$(id);if(!el||value==null)return;el.value=String(value);el.dispatchEvent(new Event('change',{bubbles:true}));}
   function setChecked(id,value){const el=$(id);if(!el||value==null)return;el.checked=!!value;el.dispatchEvent(new Event('change',{bubbles:true}));}
@@ -14,7 +15,10 @@
   function downloadBlob(name,blob){const a=document.createElement('a');const url=URL.createObjectURL(blob);a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function downloadText(name,text){downloadBlob(name,new Blob([text],{type:'application/json;charset=utf-8'}));}
   function repoPath(path,fallback){let s=String(path||fallback||'').trim().replace(/^https?:\/\/[^/]+\//,'').replace(/^\.\//,'').replace(/^\//,'');return s||fallback;}
-  async function fetchText(path){const res=await fetch(path,{cache:'no-store'});if(!res.ok)throw new Error(`HTTP ${res.status} for ${path}`);return res.text();}
+  async function withTimeout(promise,ms,label){let timer;try{return await Promise.race([promise,new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(`${label||'Operation'} timed out after ${Math.round(ms/1000)} seconds`)),ms);})]);}finally{clearTimeout(timer);}}
+  async function fetchResponse(path,ms){const controller=typeof AbortController!=='undefined'?new AbortController():null;let timer;if(controller)timer=setTimeout(()=>controller.abort(),ms||STARTUP_TIMEOUT_MS);try{return await fetch(path,{cache:'no-store',signal:controller?controller.signal:undefined});}catch(error){if(error&&error.name==='AbortError')throw new Error(`Timed out loading ${path}`);throw error;}finally{clearTimeout(timer);}}
+  async function fetchText(path){const res=await fetchResponse(path,STARTUP_TIMEOUT_MS);if(!res.ok)throw new Error(`HTTP ${res.status} for ${path}`);return res.text();}
+  async function fetchJson(path){const res=await fetchResponse(path,STARTUP_TIMEOUT_MS);if(!res.ok)throw new Error(`HTTP ${res.status} for ${path}`);return res.json();}
   function summaryCard(index,text,kind){const cards=document.querySelectorAll('#workspaceSummaryCards article span');if(cards[index]){cards[index].textContent=text;cards[index].className=kind?`workspace-state-${kind}`:'';}}
   function status(id,html){const el=$(id);if(el)el.innerHTML=html;}
   function dashboard(text){const el=$('workspaceDashboardStatus');if(el)el.textContent=text;}
@@ -83,8 +87,7 @@
     setValue('odGithubPath',path);
     let applied=false;
     try{
-      const res=await fetch(path,{cache:'no-store'});if(!res.ok)throw new Error(`HTTP ${res.status}`);
-      const payload=await res.json();const lib=OutputDesigner.normalizeProfileLibrary(payload);const select=$('odGithubProfileSelect');
+      const payload=await fetchJson(path);const lib=OutputDesigner.normalizeProfileLibrary(payload);const select=$('odGithubProfileSelect');
       if(select){select.innerHTML='';Object.entries(lib.profiles).forEach(([id,p])=>{const option=document.createElement('option');option.value=id;option.textContent=p.name||id;select.appendChild(option);});select.disabled=false;}
       const id=w.sources.designProfileId||w.design.profileId||lib.defaultProfile||Object.keys(lib.profiles)[0];
       if(select&&lib.profiles[id])select.value=id;
@@ -98,7 +101,7 @@
     const path=w.sources.setIndexPath||'./data/set-index.json';
     setValue('workspaceSetIndexPath',path);
     const samePath=String(MTGSetRegistry.getPath()||'')===String(path);
-    const sets=samePath?await MTGSetRegistry.ensureLoaded():await MTGSetRegistry.load(path,{fallbackScan:true});
+    const sets=await withTimeout(samePath?MTGSetRegistry.ensureLoaded():MTGSetRegistry.load(path,{fallbackScan:true}),30000,'Set registry loading');
     MTGSetRegistry.selectCodes(w.selectedSets);
     return sets.length;
   }
@@ -116,7 +119,7 @@
     const discovered=await ensureRegistry(w);
     await applyDesign(w);
     let priceNote='Price loading skipped.';
-    if(p.enabled!==false&&w.sources.priceSnapshotPath&&window.PriceSnapshotManager){try{await PriceSnapshotManager.loadUrl(w.sources.priceSnapshotPath);priceNote='Price snapshot loaded.';}catch(error){priceNote=`Price snapshot unavailable: ${error.message||error}`;}}
+    if(p.enabled!==false&&w.sources.priceSnapshotPath&&window.PriceSnapshotManager){try{await withTimeout(PriceSnapshotManager.loadUrl(w.sources.priceSnapshotPath),STARTUP_TIMEOUT_MS,'Price snapshot loading');priceNote='Price snapshot loaded.';}catch(error){priceNote=`Price snapshot unavailable: ${error.message||error}`;}}
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(w));}catch(e){}
     const selectedCount=CatalogProfileCore.getCheckedSetCodes().length;
     status('workspaceLoadStatus',`<strong>${esc(w.workspaceName)} loaded.</strong><br><strong>Registry:</strong> ${discovered} available sets<br><strong>Selected:</strong> ${selectedCount} set(s)<br><strong>Design:</strong> ${esc((w.design.inlineProfile&&w.design.inlineProfile.name)||w.sources.designProfileId||'current profile')}<br><strong>Prices:</strong> ${esc(priceNote)}`);
@@ -129,16 +132,21 @@
     const path=(($('workspacePath')||{}).value||'./data/workspace.json').trim();
     try{
       if(!auto)status('workspaceLoadStatus',`Loading <code>${esc(path)}</code>...`);
-      const res=await fetch(path,{cache:'no-store'});if(!res.ok)throw new Error(`HTTP ${res.status}`);
-      return applyWorkspace(await res.json(),path);
+      return applyWorkspace(await fetchJson(path),path);
     }catch(error){
       if(auto&&state.workspace){
         status('workspaceLoadStatus',`Repository workspace unavailable (${esc(error.message||error)}). Restoring the browser-cached workspace instead.`);
         return applyWorkspace(state.workspace,'browser cache');
       }
-      if(!auto)status('workspaceLoadStatus',`<strong>Workspace load failed:</strong> ${esc(error.message||error)}`);
-      else{status('workspaceLoadStatus',`No workspace file was available (${esc(error.message||error)}). Loading registry with current controls.`);dashboard('Current controls');if(window.MTGSetRegistry)await MTGSetRegistry.ensureLoaded();quick('<strong>Registry loaded.</strong><br>Save a workspace once to make station setup automatic.','changed');}
-      throw error;
+      if(!auto){status('workspaceLoadStatus',`<strong>Workspace load failed:</strong> ${esc(error.message||error)}`);throw error;}
+      status('workspaceLoadStatus',`No repository workspace was available (${esc(error.message||error)}). The builder is ready with the current controls.`);
+      dashboard('Current controls');
+      let count=0;
+      try{if(window.MTGSetRegistry){const sets=await withTimeout(MTGSetRegistry.ensureLoaded(),30000,'Set registry loading');count=sets.length||0;}}catch(registryError){summaryCard(0,'Startup issue','error');quick(`<strong>Startup needs attention.</strong><br>${esc(registryError.message||registryError)}`,'error');state.booted=true;return null;}
+      quick(`<strong>Ready with current controls.</strong><br>${count} sets available. Export a workspace once to make station setup automatic.`,'changed');
+      summaryCard(0,'Not configured','changed');
+      state.booted=true;
+      return null;
     }
   }
 
@@ -219,7 +227,10 @@
 
   async function startup(){
     quick('<strong>Starting automatically…</strong><br>Loading the persistent set registry and workspace.','loading');
-    try{await loadWorkspacePath(true);}catch(error){console.warn('Automatic workspace startup incomplete',error);}
+    const cancel=$('workspaceCancelBtn');if(cancel)cancel.disabled=true;
+    try{await withTimeout(loadWorkspacePath(true),45000,'Automatic startup');}
+    catch(error){console.warn('Automatic workspace startup incomplete',error);summaryCard(0,'Startup issue','error');quick(`<strong>Startup needs attention.</strong><br>${esc(error.message||error)}`,'error');status('workspaceLoadStatus',`<strong>Automatic startup did not finish:</strong> ${esc(error.message||error)}<br>You can still use maintenance controls to reload individual sources.`);state.booted=true;}
+    finally{if(cancel)cancel.disabled=true;if(!state.booted){state.booted=true;summaryCard(0,'Ready','current');}}
   }
 
   function init(){

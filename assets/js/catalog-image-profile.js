@@ -25,10 +25,10 @@
       const result = await CatalogProfileCore.buildSetFromSource(setCode, source, options, state, prog => {
         if (summary) summary.innerHTML = `Building ${setCode}: ${prog.current} of ${prog.total} · ${prog.cardName}`;
       });
-      CatalogProfileCore.downloadHtml(`${setCode}.html`, result.html);
+      CatalogProfileCore.downloadHtml(result.outputFileName || `${setCode}.html`, result.html);
       const reportWarnings = CatalogProfileCore.warnings(result);
       if (summary) {
-        summary.innerHTML = `<strong>Built:</strong> ${setCode}.html<br><strong>Cards processed:</strong> ${result.cardsProcessed}<br>${options.imageMode==='embedded' ? `<strong>Images embedded:</strong> ${result.imagesFound}/${result.cardsProcessed}<br>` : ''}${options.priceSettings&&options.priceSettings.enabled?`<strong>Cards with prices:</strong> ${result.priceMatches}/${result.cardsProcessed}<br>`:''}<strong>Approx HTML size:</strong> ${CatalogProfileCore.formatBytes(result.htmlBytes)}<br><strong>Compatibility estimate:</strong> ${CatalogProfileCore.compatibility(result.htmlBytes, options.imageMode)}${reportWarnings.length ? `<div class="image-lab-warning"><strong>Warnings</strong><ul>${reportWarnings.map(w => `<li>${w}</li>`).join('')}</ul></div>` : ''}`;
+        summary.innerHTML = `<strong>Built:</strong> ${result.outputFileName || `${setCode}.html`}<br><strong>Cards processed:</strong> ${result.cardsProcessed}<br>${options.imageMode==='embedded' ? `<strong>Images embedded:</strong> ${result.imagesFound}/${result.cardsProcessed}<br>` : ''}${options.priceSettings&&options.priceSettings.enabled?`<strong>Cards with prices:</strong> ${result.priceMatches}/${result.cardsProcessed}<br>`:''}<strong>Approx HTML size:</strong> ${CatalogProfileCore.formatBytes(result.htmlBytes)}<br><strong>Compatibility estimate:</strong> ${CatalogProfileCore.compatibility(result.htmlBytes, options.imageMode)}${reportWarnings.length ? `<div class="image-lab-warning"><strong>Warnings</strong><ul>${reportWarnings.map(w => `<li>${w}</li>`).join('')}</ul></div>` : ''}`;
       }
     } catch (err) {
       if (summary) summary.innerHTML = `Image-profile build failed: ${err && err.message ? err.message : String(err)}`;
@@ -52,6 +52,8 @@
     const widthLabel = width && width.closest('label');
     const qualityLabel = quality && quality.closest('label');
     const visible = profile === 'card-embedded-images';
+    const printHelp = $('printProfileHelp');
+    if (printHelp) printHelp.hidden = profile !== 'print-dense';
     if (widthLabel) widthLabel.style.display = visible ? '' : 'none';
     if (qualityLabel) qualityLabel.style.display = visible ? '' : 'none';
   }
@@ -64,7 +66,7 @@
     updateProfileUi();
     if (buildBtn) buildBtn.addEventListener('click', buildSelectedSet, true);
     if (cancelBtn) cancelBtn.addEventListener('click', cancelBuild);
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.6.0');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.7.0');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

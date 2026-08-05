@@ -27,8 +27,8 @@
         const result = await CatalogProfileCore.buildSetFromSource(setCode, source, options, state, prog => {
           setStatus(`<strong>Set ${s + 1} of ${setCodes.length}</strong>: ${setCode} · Card ${prog.current} of ${prog.total} · ${prog.cardName}`);
         });
-        if (captureOnly) capturedFiles.push({name: `${outputRoot}/${setCode}.html`, content: result.html});
-        else CatalogProfileCore.downloadHtml(`${setCode}.html`, result.html);
+        if (captureOnly) capturedFiles.push({name: `${outputRoot}/${result.outputFileName || `${setCode}.html`}`, content: result.html});
+        else CatalogProfileCore.downloadHtml(result.outputFileName || `${setCode}.html`, result.html);
         await CatalogProfileCore.updateManifestRecord(manifest, result, options);
         totalSetsCompleted += 1;
         totalCardsProcessed += result.cardsProcessed;
@@ -81,7 +81,7 @@
     if (btn) btn.addEventListener('click', buildChecked, true);
     if (cancelCurrentBtn) cancelCurrentBtn.addEventListener('click', cancelCurrent);
     if (cancelBatchBtn) cancelBatchBtn.addEventListener('click', cancelBatch);
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Batch Image Profile', '8.6.0');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Batch Image Profile', '8.7.0');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

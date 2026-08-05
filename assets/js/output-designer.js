@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.5.0';
+  const VERSION = '8.7.0';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -8,7 +8,8 @@
     'rulesBackground','flavorBackground','targetBackground','density','maxPageWidth',
     'navigationMode','imagePosition','imageWidth','cardColumns','borderRadius','borderWidth',
     'priceLayout','priceShowBadges','priceHighlightLowest','priceShowSnapshotDate','priceCurrencyStyle',
-    'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground'
+    'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground',
+    'printPaper','printCardsPerSide','printFontSize','printFlavorMode','printPriceMode','printShowArtist','printCutGuides'
   ];
 
   const DEFAULT_PROFILE = Object.freeze({
@@ -48,7 +49,14 @@
     priceFontSize: 13,
     priceBackground: '#f2eee5',
     priceBorderColor: '#b9ad94',
-    priceLowestBackground: '#dff2d8'
+    priceLowestBackground: '#dff2d8',
+    printPaper: 'letter',
+    printCardsPerSide: 30,
+    printFontSize: 6.2,
+    printFlavorMode: 'auto',
+    printPriceMode: 'lowest',
+    printShowArtist: false,
+    printCutGuides: true
   });
 
   const PRESETS = {
@@ -97,6 +105,16 @@
       borderColor: '#777777', rulesBackground: '#f5f5f5', flavorBackground: '#fafafa',
       targetBackground: '#eeeeee', density: 'comfortable', maxPageWidth: 1000,
       navigationMode: 'top', imagePosition: 'top', borderRadius: 0
+    },
+    'dense-print': {
+      name: 'Dense Print — 30 per side', fontFamily: 'Arial, sans-serif',
+      pageBackground: '#ffffff', contentBackground: '#ffffff', navigationBackground: '#ffffff',
+      headerBackground: '#ffffff', textColor: '#000000', secondaryTextColor: '#333333',
+      headingColor: '#000000', linkColor: '#000000', borderColor: '#555555',
+      rulesBackground: '#ffffff', flavorBackground: '#ffffff', targetBackground: '#eeeeee',
+      borderRadius: 0, borderWidth: 1, printPaper: 'letter', printCardsPerSide: 30,
+      printFontSize: 6.2, printFlavorMode: 'auto', printPriceMode: 'lowest',
+      printShowArtist: false, printCutGuides: true
     }
   };
 
@@ -115,7 +133,10 @@
     priceHighlightLowest: 'odPriceHighlightLowest', priceShowSnapshotDate: 'odPriceShowSnapshotDate',
     priceCurrencyStyle: 'odPriceCurrencyStyle', priceUnavailable: 'odPriceUnavailable',
     priceFontSize: 'odPriceFontSize', priceBackground: 'odPriceBackground',
-    priceBorderColor: 'odPriceBorderColor', priceLowestBackground: 'odPriceLowestBackground'
+    priceBorderColor: 'odPriceBorderColor', priceLowestBackground: 'odPriceLowestBackground',
+    printPaper: 'odPrintPaper', printCardsPerSide: 'odPrintCardsPerSide', printFontSize: 'odPrintFontSize',
+    printFlavorMode: 'odPrintFlavorMode', printPriceMode: 'odPrintPriceMode', printShowArtist: 'odPrintShowArtist',
+    printCutGuides: 'odPrintCutGuides'
   };
 
   let state = {
@@ -171,6 +192,13 @@
     p.priceBackground = validHex(source.priceBackground, '#f2eee5');
     p.priceBorderColor = validHex(source.priceBorderColor, '#b9ad94');
     p.priceLowestBackground = validHex(source.priceLowestBackground, '#dff2d8');
+    p.printPaper = ['letter','a4','legal'].includes(source.printPaper) ? source.printPaper : 'letter';
+    p.printCardsPerSide = [20,24,30].includes(Number(source.printCardsPerSide)) ? Number(source.printCardsPerSide) : 30;
+    p.printFontSize = clamp(source.printFontSize, 4.8, 9, 6.2);
+    p.printFlavorMode = ['auto','always','hide'].includes(source.printFlavorMode) ? source.printFlavorMode : 'auto';
+    p.printPriceMode = ['lowest','compact','hide'].includes(source.printPriceMode) ? source.printPriceMode : 'lowest';
+    p.printShowArtist = source.printShowArtist === true || source.printShowArtist === 'true';
+    p.printCutGuides = !(source.printCutGuides === false || source.printCutGuides === 'false');
     return p;
   }
 
@@ -210,7 +238,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
 
   function getProfileSummary() {
     const p = sanitizeProfile(state.profile);
-    return {name:p.name, version:VERSION, fontFamily:p.fontFamily, baseFontSize:p.baseFontSize, density:p.density, navigationMode:p.navigationMode, imagePosition:p.imagePosition, imageWidth:p.imageWidth};
+    return {name:p.name, version:VERSION, fontFamily:p.fontFamily, baseFontSize:p.baseFontSize, density:p.density, navigationMode:p.navigationMode, imagePosition:p.imagePosition, imageWidth:p.imageWidth, printPaper:p.printPaper, printCardsPerSide:p.printCardsPerSide};
   }
 
   function readControls() {
@@ -276,11 +304,27 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     return `<div id="top"></div><div class="page"><header class="header"><h1>Portable MTG Library</h1><div class="meta">Single self-contained HTML file · internal links only</div></header><div class="layout">${nav}<main class="content"><section id="library-rules" class="chapter-section"><h2 class="chapter-heading">Rules Reference</h2><p>Selected rules chapters would appear directly inside this file.</p><div class="rules-box"><strong>100.1.</strong> These rules apply to a game with two or more players.</div></section><section id="library-set-one" class="portable-set"><h2 class="chapter-heading">Sample Set One</h2><article class="card-entry"><div class="card-header"><h2>Library Card</h2><div class="mana-cost">${previewMana('{1}{G}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded image</div></div><div class="card-copy"><div class="type-line">Creature — Elf</div><div class="rules-box">When this enters, add one mana of any color.</div><div class="stats-box"><span class="stats-badge">2/2</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}</div></div></article></section><section id="library-set-two" class="portable-set"><h2 class="chapter-heading">Sample Set Two</h2><p>Additional selected sets would continue below using only internal anchors.</p></section></main></div></div>`;
   }
 
+  function printPreviewCss() {
+    const p = sanitizeProfile(state.profile);
+    const count = Number(p.printCardsPerSide || 30);
+    const cols = count === 30 ? 5 : 4;
+    const rows = count === 20 ? 5 : 6;
+    return `.print-preview-shell{padding:10px;background:#444}.print-preview-sheet{background:#fff;color:#000;aspect-ratio:11/8.5;padding:1.5%;display:flex;flex-direction:column;box-shadow:0 2px 12px rgba(0,0,0,.45);font-family:Arial,sans-serif}.print-preview-caption{height:4%;font-size:7px;display:flex;justify-content:space-between}.print-preview-grid{height:96%;display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr);gap:1px}.print-preview-card{border:${p.printCutGuides?'1px solid #555':'1px solid #ddd'};padding:2px;overflow:hidden;font-size:5px;line-height:1.08}.print-preview-card header{display:flex;justify-content:space-between;gap:2px;border-bottom:1px solid #aaa}.print-preview-card h3{font-size:5.8px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-preview-card .mana{width:7px;height:7px}.print-preview-type{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-preview-rules{margin-top:1px}.print-preview-footer{display:flex;justify-content:space-between;font-size:4.5px;margin-top:1px}.print-preview-price{font-weight:700;font-size:4.5px}`;
+  }
+
+  function printPreview() {
+    const p = sanitizeProfile(state.profile);
+    const count = Number(p.printCardsPerSide || 30);
+    const names = ['Aether Channeler','Sample Dragon','Forest Guardian','Arcane Lesson','Silent Departure','Copper Automaton','Sunlit Healer','Night Market','Rising Current','Ancient Map'];
+    const cards = Array.from({length:count},(_,i)=>`<article class="print-preview-card"><header><h3>${esc(names[i%names.length])}</h3><span>${previewMana(i%5===0?'{2}{U}':i%5===1?'{1}{R}':i%5===2?'{G}':'{2}')}</span></header><div class="print-preview-type">${i%3===0?'Creature — Wizard':i%3===1?'Instant':'Enchantment'}</div><div class="print-preview-rules">${i%4===0?'When this enters, draw a card.':i%4===1?'Flying. Whenever this attacks, it deals 2 damage.':i%4===2?'Add one mana of any color.':'Exile target nonland permanent until this leaves.'}</div>${p.printFlavorMode==='always'?'<em>Short flavor line.</em>':''}<div class="print-preview-footer"><span>U #${i+1}</span><span>${i%3===0?'2/2':''}</span></div>${p.printPriceMode!=='hide'?'<div class="print-preview-price">TCG $0.24</div>':''}</article>`).join('');
+    return `<div class="print-preview-shell"><section class="print-preview-sheet"><div class="print-preview-caption"><strong>Sample Set — Print Sheet</strong><span>${count} cards/side · up to ${count*2}/duplex sheet</span></div><div class="print-preview-grid">${cards}</div></section></div>`;
+  }
+
   function buildPreviewDocument() {
-    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : catalogPreview();
-    const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : 'Catalog Preview';
+    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : catalogPreview();
+    const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : state.previewMode === 'print' ? 'Printable Sheet Preview' : 'Catalog Preview';
     const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${priceCss}</style></head><body>${body}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${state.previewMode==='print'?printPreviewCss():''}${priceCss}</style></head><body>${body}</body></html>`;
   }
 
   function renderPreview() {
