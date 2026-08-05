@@ -20,3 +20,16 @@
 .registry-error{border-color:#c66!important;}
 .registry-loading{border-color:#7f9fbd!important;}
 @media(max-width:760px){.workspace-quick-panel{display:block}.workspace-one-action{min-width:0;margin-top:14px}.workspace-one-action #workspaceBuildDeployBtn{width:100%;}}
+
+
+/* v8.6.1.1 startup-state and maintenance visibility patch */
+.workspace-quick-status[data-state="current"] strong{color:#9bd18b;}
+.workspace-quick-status[data-state="changed"] strong{color:#ffd36e;}
+.workspace-quick-status[data-state="error"] strong{color:#ff9b9b;}
+.workspace-maintenance{background:#172131;border-color:#46556b;color:#edf3fa;}
+.workspace-maintenance>summary{background:#202c3c;color:#fff;border-radius:6px;}
+.workspace-maintenance[open]>summary{border-bottom-color:#46556b;border-radius:6px 6px 0 0;}
+.workspace-maintenance-grid{background:#111a28;border-radius:0 0 6px 6px;}
+.catalog-maintenance{background:#172131;border-color:#46556b;color:#edf3fa;}
+.catalog-maintenance>summary{color:#fff;}
+.print-profile-help{margin:12px 0;border-color:#7f9fbd;}
