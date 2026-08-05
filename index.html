@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.6.1</title>
+  <title>MTG Builder v8.7.0</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
   <link rel="stylesheet" href="assets/css/v8.css">
   <link rel="stylesheet" href="assets/css/image-lab.css">
@@ -35,7 +35,7 @@
         <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
         <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Persistent registry loads known sets immediately; full scans are only for repository changes.</small></article>
         <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
-        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.6.1 restores the workspace and set registry automatically.</small></article>
+        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.7.0 restores the workspace, registry, pricing, and print settings automatically.</small></article>
       </div>
     </section>
 
@@ -172,6 +172,7 @@
             <option value="compact-text" selected>Compact Text Only</option>
             <option value="card-no-images">Card Profile — No Images</option>
             <option value="card-embedded-images">Card Profile — Embedded Images</option>
+            <option value="print-dense">Printable Micro Catalog — 30 per side</option>
           </select>
         </label>
         <label>Image width
@@ -188,6 +189,10 @@
             <option value="0.75">75%</option>
           </select>
         </label>
+      </div>
+      <div id="printProfileHelp" class="summary-box print-profile-help" hidden>
+        <strong>Printable Micro Catalog</strong><br>
+        The default layout places 30 card summaries on each printed side—up to 60 cards on one duplex sheet. Paper size, density, flavor text, prices, and cut guides are saved in the active Output Designer profile.
       </div>
 
       <div class="actions">
@@ -344,6 +349,7 @@
                 <option value="warm-paper">Warm Paper</option>
                 <option value="dark-desktop">Dark Desktop</option>
                 <option value="print-friendly">Print Friendly</option>
+                <option value="dense-print">Dense Print — 30 per side</option>
               </select>
             </label>
             <div class="actions compact-actions">
@@ -474,6 +480,61 @@
 
 
           <section class="od-panel">
+            <h3>Printable Catalog</h3>
+            <div class="od-inline-fields">
+              <label>Paper
+                <select id="odPrintPaper">
+                  <option value="letter" selected>US Letter — landscape</option>
+                  <option value="a4">A4 — landscape</option>
+                  <option value="legal">US Legal — landscape</option>
+                </select>
+              </label>
+              <label>Cards per printed side
+                <select id="odPrintCardsPerSide">
+                  <option value="30" selected>30 — micro, 5 × 6</option>
+                  <option value="24">24 — compact, 4 × 6</option>
+                  <option value="20">20 — readable, 4 × 5</option>
+                </select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Base print text
+                <input id="odPrintFontSize" type="number" min="4.8" max="9" step="0.1" value="6.2">
+              </label>
+              <label>Flavor text
+                <select id="odPrintFlavorMode">
+                  <option value="auto" selected>Include only when space allows</option>
+                  <option value="always">Always include</option>
+                  <option value="hide">Hide</option>
+                </select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Price detail
+                <select id="odPrintPriceMode">
+                  <option value="lowest" selected>Lowest price per currency</option>
+                  <option value="compact">Compact provider prices</option>
+                  <option value="hide">Hide prices</option>
+                </select>
+              </label>
+              <label>Artist line
+                <select id="odPrintShowArtist">
+                  <option value="false" selected>Hide to save space</option>
+                  <option value="true">Show</option>
+                </select>
+              </label>
+            </div>
+            <label>Cell borders / cut guides
+              <select id="odPrintCutGuides">
+                <option value="true" selected>Show</option>
+                <option value="false">Hide</option>
+              </select>
+            </label>
+            <p class="hint">Thirty cards means 30 summaries on each printed side. Double-sided printing can place up to 60 summaries on one physical sheet. Very long Oracle text automatically shrinks and may be shortened in the 30-card layout.</p>
+          </section>
+
+
+          <section class="od-panel">
             <h3>Price Display</h3>
             <div class="od-inline-fields">
               <label>Layout
@@ -545,6 +606,7 @@
                 <option value="catalog" selected>Card Catalog</option>
                 <option value="rules">Rules Library</option>
                 <option value="portable">Portable Collection</option>
+                <option value="print">Printable Sheet</option>
               </select>
             </label>
             <div class="od-viewport-buttons" role="group" aria-label="Preview viewport">
