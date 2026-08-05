@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.6.0</title>
+  <title>MTG Builder v8.6.1</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
   <link rel="stylesheet" href="assets/css/v8.css">
   <link rel="stylesheet" href="assets/css/image-lab.css">
@@ -33,66 +33,90 @@
       <h2>Dashboard</h2>
       <div class="cards-grid">
         <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
-        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Catalog scan reads the live GitHub <code>data/json</code> folder.</small></article>
+        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Persistent registry loads known sets immediately; full scans are only for repository changes.</small></article>
         <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
-        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.6 can restore settings and prepare one deployment pack.</small></article>
+        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.6.1 restores the workspace and set registry automatically.</small></article>
       </div>
     </section>
 
 
     <section id="workspace-admin" class="tab-panel">
       <h2>Workspace & Smart Deployment</h2>
-      <p>Restore one saved setup, inspect only the selected sets, and package changed outputs into one repository-ready ZIP.</p>
+      <p>The builder restores the registry, workspace, profile, prices, and selected sets automatically. Normal operation requires one button.</p>
 
-      <div class="workspace-grid">
-        <section class="workspace-panel">
-          <h3>Workspace source</h3>
-          <label>Workspace path
-            <input id="workspacePath" type="text" value="./data/workspace.json" spellcheck="false">
-          </label>
-          <div class="actions workspace-actions">
-            <button id="workspaceLoadBtn" type="button">Load Workspace</button>
-            <button id="workspaceLoadLocalBtn" type="button">Import Workspace / Bundle</button>
-            <input id="workspaceLocalFile" type="file" accept=".json,.zip,application/json,application/zip" hidden>
-            <button id="workspaceSaveBtn" type="button">Save Current Workspace</button>
-          </div>
-          <label class="workspace-check"><input id="workspaceAutoLoad" type="checkbox" checked> Attempt to load <code>data/workspace.json</code> automatically at startup</label>
-          <div id="workspaceLoadStatus" class="summary-box">Workspace not loaded.</div>
-        </section>
-
-        <section class="workspace-panel">
-          <h3>Smart build policy</h3>
-          <label class="workspace-check"><input id="workspaceBuildOnlyChanged" type="checkbox" checked> Build only new or changed catalogs</label>
-          <label class="workspace-check"><input id="workspaceIncludeRules" type="checkbox" checked> Include changed rules output</label>
-          <label class="workspace-check"><input id="workspaceIncludeProfiles" type="checkbox" checked> Include the profile library in deployment packs</label>
-          <label class="workspace-check"><input id="workspaceIncludePrices" type="checkbox" checked> Include the reusable price snapshot in deployment packs</label>
-          <label class="workspace-check"><input id="workspaceIncludeWorkspace" type="checkbox" checked> Include the updated workspace file</label>
-          <p class="hint">Unchanged catalogs are omitted. The existing GitHub files stay in place.</p>
-        </section>
-      </div>
-
-      <div class="workspace-primary-actions">
-        <button id="workspaceCheckBtn" type="button">Check Workspace Changes</button>
-        <button id="workspaceBuildDeployBtn" type="button">Build Changed & Export Deployment Pack</button>
-        <button id="workspaceCancelBtn" type="button" disabled>Cancel Smart Build</button>
-      </div>
+      <section class="workspace-panel workspace-quick-panel">
+        <div>
+          <h3>Automatic startup</h3>
+          <div id="workspaceQuickStatus" class="workspace-quick-status" data-state="loading"><strong>Starting automatically…</strong><br>Loading the persistent set registry and workspace.</div>
+          <div id="workspaceRegistryQuickStatus" class="hint">Set registry has not loaded yet.</div>
+        </div>
+        <div class="workspace-primary-actions workspace-one-action">
+          <button id="workspaceBuildDeployBtn" type="button">Build Changes & Create Deployment Pack</button>
+          <button id="workspaceCancelBtn" type="button" disabled>Cancel</button>
+        </div>
+      </section>
 
       <section class="workspace-panel">
-        <div class="workspace-heading"><div><h3>Administrative status</h3><p class="hint">Source hashes, output fingerprints, pricing, rules, and selected-set coverage are checked together.</p></div><span id="workspaceCheckTime" class="workspace-time"></span></div>
+        <div class="workspace-heading"><div><h3>Administrative status</h3><p class="hint">The smart build performs this check automatically. The table is retained for troubleshooting.</p></div><span id="workspaceCheckTime" class="workspace-time"></span></div>
         <div id="workspaceSummaryCards" class="workspace-summary-cards">
-          <article><strong>Workspace</strong><span>Not loaded</span></article>
+          <article><strong>Workspace</strong><span>Starting</span></article>
           <article><strong>Catalogs</strong><span>Not checked</span></article>
           <article><strong>Rules</strong><span>Not checked</span></article>
           <article><strong>Prices</strong><span>Not checked</span></article>
         </div>
-        <div id="workspaceChangeList" class="workspace-change-list"><p class="hint">Load a workspace, scan sets, and run a check.</p></div>
+        <div id="workspaceChangeList" class="workspace-change-list"><p class="hint">Run the smart build or open maintenance tools to perform a check without building.</p></div>
       </section>
 
       <section class="workspace-panel">
         <h3>Deployment pack</h3>
         <div id="workspaceDeploymentStatus" class="summary-box">No deployment pack generated.</div>
-        <p class="hint">The ZIP preserves repository paths such as <code>data/output/TLA.html</code>, <code>data/output/build-manifest.json</code>, and <code>data/workspace.json</code>.</p>
+        <p class="hint">Only changed files are included, using their repository paths. No ZIP is created when everything is current.</p>
       </section>
+
+      <details class="workspace-maintenance">
+        <summary>Maintenance, import, and advanced settings</summary>
+        <div class="workspace-grid workspace-maintenance-grid">
+          <section class="workspace-panel">
+            <h3>Workspace source</h3>
+            <label>Workspace path<input id="workspacePath" type="text" value="./data/workspace.json" spellcheck="false"></label>
+            <div class="actions workspace-actions">
+              <button id="workspaceLoadBtn" type="button">Reload Workspace</button>
+              <button id="workspaceLoadLocalBtn" type="button">Import Workspace / Bundle</button>
+              <input id="workspaceLocalFile" type="file" accept=".json,.zip,application/json,application/zip" hidden>
+              <button id="workspaceSaveBtn" type="button">Export Current Workspace</button>
+            </div>
+            <label class="workspace-check"><input id="workspaceAutoLoad" type="checkbox" checked> Load the repository workspace automatically</label>
+            <div id="workspaceLoadStatus" class="summary-box">Automatic startup is in progress.</div>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>Persistent set registry</h3>
+            <label>Set-index path<input id="workspaceSetIndexPath" type="text" value="./data/set-index.json" spellcheck="false"></label>
+            <div class="actions workspace-actions">
+              <button id="workspaceRefreshRegistryBtn" type="button">Refresh After Set Changes</button>
+              <button id="workspaceExportRegistryBtn" type="button">Export Registry Only</button>
+            </div>
+            <div id="setRegistryStatus" class="summary-box">Set registry has not loaded yet.</div>
+            <p class="hint">A full scan is only needed after adding, removing, or renaming files in <code>data/json</code>. Updated registry data is included in the next deployment pack.</p>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>Smart build policy</h3>
+            <label class="workspace-check"><input id="workspaceBuildOnlyChanged" type="checkbox" checked> Build only new or changed catalogs</label>
+            <label class="workspace-check"><input id="workspaceIncludeRules" type="checkbox" checked> Include changed rules output</label>
+            <label class="workspace-check"><input id="workspaceIncludeProfiles" type="checkbox" checked> Include profile library</label>
+            <label class="workspace-check"><input id="workspaceIncludePrices" type="checkbox" checked> Include reusable price snapshot</label>
+            <label class="workspace-check"><input id="workspaceIncludeSetIndex" type="checkbox" checked> Include a changed set registry</label>
+            <label class="workspace-check"><input id="workspaceIncludeWorkspace" type="checkbox" checked> Include updated workspace</label>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>Manual diagnostics</h3>
+            <button id="workspaceCheckBtn" type="button">Check Changes Without Building</button>
+            <p class="hint">This is optional. The primary smart-build button always performs the same check before generating anything.</p>
+          </section>
+        </div>
+      </details>
     </section>
 
     <section id="downloader" class="tab-panel">
@@ -167,11 +191,11 @@
       </div>
 
       <div class="actions">
-        <button id="scanCatalogSetsBtn">Scan Available Sets</button>
-        <select id="catalogSetSelect"><option value="">Scan sets first...</option></select>
+        <select id="catalogSetSelect"><option value="">Loading set registry...</option></select>
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
         <button id="cancelCatalogBuildBtn" type="button" disabled>Cancel Image Build</button>
       </div>
+      <details class="catalog-maintenance"><summary>Set registry maintenance</summary><button id="scanCatalogSetsBtn" type="button">Refresh Registry After Set Changes</button><p class="hint">Known sets load automatically. Refresh only after adding, removing, or renaming set JSON files.</p></details>
       <section class="batch-panel">
         <div class="batch-heading">
           <div>
@@ -183,7 +207,7 @@
             <button id="selectNoSetsBtn" type="button">Select None</button>
           </div>
         </div>
-        <div id="batchSetList" class="batch-set-list"><p class="hint">Scan available sets first.</p></div>
+        <div id="batchSetList" class="batch-set-list"><p class="hint">Loading known sets from the persistent registry...</p></div>
       </section>
 
       <div class="actions">
