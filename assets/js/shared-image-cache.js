@@ -355,6 +355,114 @@
       return {dataUrl: processed, source: 'scryfall'};
     },
 
+    /*
+     * v8.7.1.2 — Native Scryfall art-crop resolver.
+     *
+     * Micro catalogs need artwork, not the entire card face. Scryfall exposes
+     * an `art_crop` URI in image_uris. For transforming cards the same field
+     * lives under card_faces[].image_uris, so we inspect both shapes.
+     *
+     * Art crops use their own cache profile (`art-crop`) so they never collide
+     * with the existing processed full-card image cache.
+     */
+    artCropKey(scryfallId) {
+      return `art-crop/${scryfallId}.jpg`;
+    },
+
+    async fetchScryfallArtCrop(scryfallId) {
+      const response = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(scryfallId)}`, {
+        cache: 'no-store',
+        headers: {'Accept': 'application/json'}
+      });
+      if (!response.ok) throw new Error(`Scryfall card lookup failed (${response.status}).`);
+      const card = await response.json();
+      const urls = [];
+      if (card && card.image_uris && card.image_uris.art_crop) urls.push(card.image_uris.art_crop);
+      if (!urls.length && Array.isArray(card && card.card_faces)) {
+        card.card_faces.forEach(face => {
+          if (face && face.image_uris && face.image_uris.art_crop) urls.push(face.image_uris.art_crop);
+        });
+      }
+      if (!urls.length) return [];
+      return urls;
+    },
+
+    async resolveArtCrop(scryfallId) {
+      if (!scryfallId) return {dataUrl: null, source: 'missing', faces: []};
+      const key = this.artCropKey(scryfallId);
+      const config = this.getConfig();
+
+      // Local browser cache is checked first so repeated previews do not hit Scryfall.
+      if (config.useLocal) {
+        try {
+          const local = await this.getLocal(key);
+          if (local) {
+            this.stats.localHits += 1;
+            this.refreshStatusSoon();
+            return {dataUrl: local, source: 'local', faces: [local]};
+          }
+        } catch (error) {
+          console.warn('Local art-crop cache read failed', error);
+        }
+      }
+
+      // Reuse the packed GitHub cache when an art-crop profile has already been uploaded.
+      if (config.useGithub) {
+        try {
+          const reference = await this.resolveRemoteReference('art-crop', scryfallId);
+          if (reference) {
+            const githubData = String(reference).includes('.zip#')
+              ? await this.fetchFromPackedCache(reference)
+              : await this.fetchGithubImage(reference);
+            if (githubData) {
+              this.stats.githubPackHits += String(reference).includes('.zip#') ? 1 : 0;
+              if (config.useLocal) {
+                try { await this.putLocal(key, githubData); } catch (error) {}
+              }
+              this.refreshStatusSoon();
+              return {dataUrl: githubData, source: 'github', faces: [githubData]};
+            }
+          }
+        } catch (error) {
+          console.warn('GitHub art-crop cache fetch failed', error);
+        }
+      }
+
+      // No cached crop exists. Fetch Scryfall's card JSON once and use its native art_crop URI.
+      try {
+        const urls = await this.fetchScryfallArtCrop(scryfallId);
+        if (!urls.length) return {dataUrl: null, source: 'missing', faces: []};
+
+        // The micro format uses the front/first face by default. The lookup still
+        // understands card_faces so double-faced cards do not lose their art source.
+        const imageResponse = await fetch(urls[0], {cache: 'no-store'});
+        if (!imageResponse.ok) throw new Error(`Scryfall art crop failed (${imageResponse.status}).`);
+        const blob = await imageResponse.blob();
+        const dataUrl = await blobToDataUrl(blob);
+        if (config.useLocal) {
+          try { await this.putLocal(key, dataUrl); } catch (error) {}
+        }
+
+        this.pendingUpdates.set(key, {
+          key,
+          scryfallId,
+          width: 0,
+          quality: 1,
+          folder: 'art-crop',
+          fileName: `${scryfallId}.jpg`,
+          dataUrl,
+          byteLength: dataUrlToBytes(dataUrl).length,
+          updatedAt: new Date().toISOString()
+        });
+        this.stats.processedFresh += 1;
+        this.refreshStatusSoon();
+        return {dataUrl, source: 'scryfall-art-crop', faces: [dataUrl], faceCount: urls.length};
+      } catch (error) {
+        console.warn('Scryfall art-crop resolution failed for', scryfallId, error);
+        return {dataUrl: null, source: 'missing', faces: [], error: error.message || String(error)};
+      }
+    },
+
     buildPackPlan() {
       const groups = new Map();
       for (const entry of this.pendingUpdates.values()) {

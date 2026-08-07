@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.7.1';
+  const VERSION = '8.7.1.2';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -149,9 +149,12 @@
 
   let state = {
     profile: clone(DEFAULT_PROFILE),
+    microPreviewCards: null,
+    microPreviewArt: {},
     previewMode: 'catalog',
     viewport: 'desktop',
     renderTimer: null,
+    microPreviewTimer: null,
     profileLibrary: null,
     selectedLibraryProfileId: null
   };
@@ -336,10 +339,35 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function buildPreviewDocument() {
-    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : state.previewMode === 'micro' ? (window.MicroCatalogPreview ? MicroCatalogPreview.render(state.profile) : printPreview()) : catalogPreview();
+    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : state.previewMode === 'micro' ? (window.MicroCatalogPreview ? MicroCatalogPreview.render(state.profile, state.microPreviewCards, state.microPreviewArt) : printPreview()) : catalogPreview();
     const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : state.previewMode === 'print' ? 'Printable Sheet Preview' : state.previewMode === 'micro' ? 'Micro Catalog Preview' : 'Catalog Preview';
     const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
     return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${state.previewMode==='print'?printPreviewCss():''}${state.previewMode==='micro' && window.MicroCatalogPreview ? MicroCatalogPreview.css(state.profile) : ''}${priceCss}</style></head><body>${body}</body></html>`;
+  }
+
+  async function hydrateMicroPreview() {
+    if (state.previewMode !== 'micro' || !window.MicroCatalogPreview) return;
+    const setCode = (($('catalogSetSelect') || {}).value) || '';
+    if (!setCode) return;
+    try {
+      const source = await CatalogProfileCore.fetchSetSource(setCode);
+      const rawCards = CatalogProfileCore.sortCards(CatalogProfileCore.extractCards(source.json), 'alpha').slice(0, 30);
+      const cards = rawCards.map(card => Object.assign({}, card, {
+        mana: card.manaCost || '',
+        oracle: card.text || card.oracleText || '',
+        stats: card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : (card.loyalty != null ? String(card.loyalty) : (card.defense != null ? String(card.defense) : '')),
+        flavor: card.flavorText || ''
+      }));
+      state.microPreviewCards = cards;
+      state.microPreviewArt = await MicroCatalogPreview.hydrate(cards);
+      const frame = $('odPreviewFrame');
+      if (frame) frame.srcdoc = buildPreviewDocument();
+      const status = $('odDesignerStatus');
+      if (status) status.innerHTML += `<br><span class="od-profile-chip">${Object.keys(state.microPreviewArt).length}/${cards.length} art crops loaded</span>`;
+    } catch (error) {
+      const status = $('odDesignerStatus');
+      if (status) status.innerHTML += `<br><span class="od-profile-chip">Micro preview using sample cards</span>`;
+    }
   }
 
   function renderPreview() {
@@ -350,6 +378,10 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     frame.srcdoc = buildPreviewDocument();
     const status = $('odDesignerStatus');
     if (status) status.innerHTML = `<strong>${esc(state.profile.name)}</strong><br><span class="od-profile-chip">${esc(state.previewMode)}</span> · ${esc(state.viewport)} · ${state.profile.baseFontSize}px ${esc(state.profile.fontFamily.split(',')[0])}`;
+    if (state.previewMode === 'micro') {
+      clearTimeout(state.microPreviewTimer);
+      state.microPreviewTimer = setTimeout(() => hydrateMicroPreview(), 180);
+    }
   }
 
   function scheduleUpdate() {
@@ -502,7 +534,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function registerModule() {
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', VERSION);
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', '8.7.1.2');
   }
 
   function init() {

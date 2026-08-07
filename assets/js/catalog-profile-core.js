@@ -28,7 +28,7 @@
     manifestPath: './data/output/build-manifest.json',
 
     registerModule() {
-      if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Profile Core', '8.7.1');
+      if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Profile Core', '8.7.1.2');
     },
 
     extractCards(json) {
@@ -137,7 +137,7 @@
 
     warnings(report) {
       const list = [];
-      if (report.failures > 0) list.push(`${report.failures} card(s) were missing a Scryfall image or ID.`);
+      if (report.failures > 0) list.push(`${report.failures} card(s) were missing a Scryfall image/art crop or ID.`);
       if (report.priceMissing > 0 && report.priceMatches === 0) list.push('Price display is enabled, but no cards matched the loaded price snapshot.');
       else if (report.priceMissing > 0) list.push(`${report.priceMissing} card(s) had no selected price data.`);
       if (report.htmlBytes > 10 * 1024 * 1024) list.push('Generated HTML exceeds 10 MB. Test on the restricted viewer.');
@@ -147,7 +147,8 @@
 
     gatherOptions() {
       const profile = (($('outputProfileSelect') || {}).value) || 'compact-text';
-      const imageMode = (profile === 'card-no-images' || profile === 'print-dense') ? 'none' : 'embedded';
+      const micro = window.OutputDesigner ? OutputDesigner.getProfile() : {};
+      const imageMode = profile === 'card-no-images' ? 'none' : profile === 'print-dense' ? (micro.microArtMode === 'none' ? 'none' : (micro.microArtMode === 'full' ? 'embedded' : 'art-crop')) : 'embedded';
       const imageWidth = Number((($('catalogImageWidthSelect') || {}).value) || 300);
       const imageQuality = Number((($('catalogImageQualitySelect') || {}).value) || 0.65);
       return {
@@ -161,7 +162,7 @@
         duplicateMode: (($('duplicateModeSelect') || {}).value) || 'collapse',
         symbolMode: (($('symbolModeSelect') || {}).value) || 'embedded',
         priceSettings: window.PriceSnapshotManager ? PriceSnapshotManager.getBuildSettings() : {enabled:false},
-        printSettings: window.OutputDesigner ? (()=>{const p=OutputDesigner.getProfile();return {paper:p.printPaper,cardsPerSide:p.printCardsPerSide,fontSize:p.printFontSize,flavorMode:p.printFlavorMode,priceMode:p.printPriceMode,showArtist:p.printShowArtist,cutGuides:p.printCutGuides};})() : {paper:'letter',cardsPerSide:30,fontSize:6.2,flavorMode:'auto',priceMode:'lowest',showArtist:false,cutGuides:true},
+        printSettings: window.OutputDesigner ? (()=>{const p=OutputDesigner.getProfile();return {paper:p.printPaper,cardsPerSide:p.printCardsPerSide,fontSize:p.printFontSize,flavorMode:p.printFlavorMode,priceMode:p.printPriceMode,showArtist:p.printShowArtist,cutGuides:p.printCutGuides,microDensity:p.microDensity,microArtMode:p.microArtMode,microOracleMode:p.microOracleMode,microFlavor:p.microFlavor,microPriceMode:p.microPriceMode,microShowArtist:p.microShowArtist,microShowStats:p.microShowStats};})() : {paper:'letter',cardsPerSide:30,fontSize:6.2,flavorMode:'auto',priceMode:'lowest',showArtist:false,cutGuides:true,microDensity:'reference',microArtMode:'crop',microOracleMode:'compact',microFlavor:false,microPriceMode:'lowest',microShowArtist:false,microShowStats:true},
         profileLabel: profile === 'card-no-images'
           ? 'Card Profile — No Images'
           : (profile === 'card-embedded-images' ? `Card Profile — Embedded Images (${imageWidth}px @ ${Math.round(imageQuality * 100)}%)` : (profile === 'print-dense' ? 'Printable Micro Catalog' : 'Compact Text Only'))
@@ -275,13 +276,18 @@
           const artist=ps.showArtist&&card.artist?`<span class="print-artist">${escapeHtml(card.artist)}</span>`:'';
           const shortened=compact.shortened?'<span class="print-shortened" title="Oracle text shortened for dense print">*</span>':'';
           const price=this.renderPrintPrice(card._priceData,ps.priceMode);
-          return `<article class="print-card"><header><h2>${escapeHtml(card.name||`Card ${pageIndex*count+offset+1}`)}${shortened}</h2>${mana}</header>${type}${rules}${flavor}<footer><span>${rarity}${rarity&&collector?' · ':''}${collector}${artist?` · ${artist}`:''}</span><strong>${stats}</strong></footer>${price}</article>`;
+          const microArt = options.imageMode === 'art-crop' && card._artCropImage
+            ? `<div class="print-art-crop"><img src="${card._artCropImage}" alt="${escapeHtml(card.name || '')} artwork"></div>`
+            : options.imageMode === 'embedded' && card._processedImage
+              ? `<div class="print-art-crop print-art-full"><img src="${card._processedImage}" alt="${escapeHtml(card.name || '')}"></div>`
+              : '';
+          return `<article class="print-card">${microArt}<div class="print-card-copy"><header><h2>${escapeHtml(card.name||`Card ${pageIndex*count+offset+1}`)}${shortened}</h2>${mana}</header>${type}${rules}${flavor}<footer><span>${rarity}${rarity&&collector?' · ':''}${collector}${artist?` · ${artist}`:''}</span><strong>${stats}</strong></footer>${price}</div></article>`;
         }).join('');
         pages.push(`<section class="print-sheet"><div class="print-caption"><strong>${escapeHtml(setName)} (${escapeHtml(setCode)})</strong><span>Side ${pageIndex+1}/${totalPages} · ${count} cards/side · duplex up to ${count*2}/sheet</span></div><div class="print-grid">${cells}</div></section>`);
       }
       const border=ps.cutGuides?'#555':'#d4d4d4';
       return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(setCode)} Printable Catalog</title><style>
-@page{size:${paper.pageRule};margin:.18in}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;background:#444;color:#000}.screen-note{max-width:${paper.width}in;margin:12px auto;padding:10px 14px;background:#fff8cf;border:1px solid #9c8b42;font-size:13px}.print-sheet{width:${paper.width}in;height:${paper.height}in;margin:14px auto;background:#fff;padding:0;display:flex;flex-direction:column;box-shadow:0 3px 18px rgba(0,0,0,.5);break-after:page;page-break-after:always}.print-sheet:last-child{break-after:auto;page-break-after:auto}.print-caption{height:.21in;display:flex;align-items:center;justify-content:space-between;gap:.1in;padding:0 .035in;font-size:6.5pt;line-height:1;border-bottom:.5pt solid #777}.print-grid{height:calc(100% - .21in);display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr);gap:.018in;padding-top:.018in}.print-card{min-width:0;min-height:0;overflow:hidden;border:.55pt solid ${border};padding:.025in .032in;display:flex;flex-direction:column;font-size:${Number(ps.fontSize)||6.2}pt;line-height:1.08;background:#fff}.print-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:.025in;border-bottom:.35pt solid #888;padding-bottom:.012in;margin-bottom:.012in;flex:0 0 auto}.print-card h2{font-size:1.13em;line-height:1.02;margin:0;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-mana{display:flex;gap:.01in;white-space:nowrap;flex:0 0 auto}.mana{width:1.05em;height:1.05em;vertical-align:-.15em}.print-type{font-size:.93em;font-weight:700;line-height:1.04;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.012in}.print-rules{flex:1 1 auto;overflow:hidden}.print-rules-long{font-size:.91em;line-height:1.03}.print-rules-xlong{font-size:.82em;line-height:1.01}.reminder{font-style:italic;color:#444;font-size:.92em}.print-flavor{font-style:italic;color:#444;font-size:.84em;line-height:1.02;border-top:.25pt dotted #aaa;margin-top:.012in;padding-top:.01in;max-height:2.15em;overflow:hidden}.print-card footer{display:flex;justify-content:space-between;gap:.03in;align-items:flex-end;border-top:.35pt solid #999;margin-top:.012in;padding-top:.01in;font-size:.82em;line-height:1;flex:0 0 auto;white-space:nowrap}.print-card footer>span{overflow:hidden;text-overflow:ellipsis}.print-artist{color:#444}.print-price{font-size:.79em;font-weight:700;line-height:1;margin-top:.012in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-shortened{font-size:.7em;vertical-align:top}.print-muted{color:#777;font-style:italic}@media print{body{background:#fff}.screen-note{display:none}.print-sheet{margin:0;box-shadow:none;width:${paper.width}in;height:${paper.height}in}}
+@page{size:${paper.pageRule};margin:.18in}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,Helvetica,sans-serif;background:#444;color:#000}.screen-note{max-width:${paper.width}in;margin:12px auto;padding:10px 14px;background:#fff8cf;border:1px solid #9c8b42;font-size:13px}.print-sheet{width:${paper.width}in;height:${paper.height}in;margin:14px auto;background:#fff;padding:0;display:flex;flex-direction:column;box-shadow:0 3px 18px rgba(0,0,0,.5);break-after:page;page-break-after:always}.print-sheet:last-child{break-after:auto;page-break-after:auto}.print-caption{height:.21in;display:flex;align-items:center;justify-content:space-between;gap:.1in;padding:0 .035in;font-size:6.5pt;line-height:1;border-bottom:.5pt solid #777}.print-grid{height:calc(100% - .21in);display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr);gap:.018in;padding-top:.018in}.print-card{min-width:0;min-height:0;overflow:hidden;border:.55pt solid ${border};padding:.025in .032in;display:flex;flex-direction:column;font-size:${Number(ps.fontSize)||6.2}pt;line-height:1.08;background:#fff}.print-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:.025in;border-bottom:.35pt solid #888;padding-bottom:.012in;margin-bottom:.012in;flex:0 0 auto}.print-card h2{font-size:1.13em;line-height:1.02;margin:0;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-mana{display:flex;gap:.01in;white-space:nowrap;flex:0 0 auto}.mana{width:1.05em;height:1.05em;vertical-align:-.15em}.print-type{font-size:.93em;font-weight:700;line-height:1.04;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:.012in}.print-rules{flex:1 1 auto;overflow:hidden}.print-rules-long{font-size:.91em;line-height:1.03}.print-rules-xlong{font-size:.82em;line-height:1.01}.reminder{font-style:italic;color:#444;font-size:.92em}.print-flavor{font-style:italic;color:#444;font-size:.84em;line-height:1.02;border-top:.25pt dotted #aaa;margin-top:.012in;padding-top:.01in;max-height:2.15em;overflow:hidden}.print-card footer{display:flex;justify-content:space-between;gap:.03in;align-items:flex-end;border-top:.35pt solid #999;margin-top:.012in;padding-top:.01in;font-size:.82em;line-height:1;flex:0 0 auto;white-space:nowrap}.print-card footer>span{overflow:hidden;text-overflow:ellipsis}.print-artist{color:#444}.print-price{font-size:.79em;font-weight:700;line-height:1;margin-top:.012in;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-shortened{font-size:.7em;vertical-align:top}.print-muted{color:#777;font-style:italic}.print-art-crop{width:100%;height:.62in;margin-bottom:.025in;overflow:hidden;border-bottom:.35pt solid #999;background:#eee;flex:0 0 auto}.print-art-crop img{width:100%;height:100%;display:block;object-fit:cover}.print-art-full{height:.52in}.print-card-copy{min-width:0;min-height:0;display:flex;flex-direction:column;flex:1 1 auto}.print-card-copy .print-rules{min-height:0}@media print{body{background:#fff}.screen-note{display:none}.print-sheet{margin:0;box-shadow:none;width:${paper.width}in;height:${paper.height}in}}
 </style></head><body><div class="screen-note"><strong>Print setup:</strong> ${paper.label}, actual size/100%, background graphics on. For up to ${count*2} card summaries per physical sheet, use double-sided printing and flip on the long edge. An asterisk after a card name means unusually long Oracle text was shortened for the dense layout.</div>${pages.join('')}</body></html>`;
     },
 
@@ -337,14 +343,21 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
         if (controller && (controller.cancelBatch || controller.cancelCurrent)) break;
         const card = Object.assign({}, cards[i]);
         if (progress) progress({phase:'card', current:i+1, total:cards.length, cardName: card.name || 'Unknown card'});
-        if (options.imageMode === 'embedded') {
+        if (options.imageMode === 'embedded' || options.imageMode === 'art-crop') {
           const scryfallId = card && card.identifiers && card.identifiers.scryfallId;
           if (scryfallId) idsFound += 1;
           if (scryfallId) {
             try {
-              const resolved = await SharedImageCache.resolveProcessedImage(scryfallId, options.imageWidth, options.imageQuality);
+              const resolved = options.imageMode === 'art-crop'
+                ? await SharedImageCache.resolveArtCrop(scryfallId)
+                : await SharedImageCache.resolveProcessedImage(scryfallId, options.imageWidth, options.imageQuality);
               if (resolved && resolved.dataUrl) {
-                card._processedImage = resolved.dataUrl;
+                if (options.imageMode === 'art-crop') {
+                  card._artCropImage = resolved.dataUrl;
+                  card._artCropFaceCount = resolved.faceCount || 1;
+                } else {
+                  card._processedImage = resolved.dataUrl;
+                }
                 imagesFound += 1;
               } else failures += 1;
             } catch (err) {
@@ -388,12 +401,12 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
         if (!manifest.imageProfiles) manifest.imageProfiles = {};
         return manifest;
       } catch (err) {
-        return {builderVersion:'8.7.1', imageProfiles:{}};
+        return {builderVersion:'8.7.1.2', imageProfiles:{}};
       }
     },
 
     async saveManifestDownload(manifest) {
-      manifest.builderVersion = '8.7.1';
+      manifest.builderVersion = '8.7.1.2';
       this.downloadTextFile('build-manifest.json', JSON.stringify(manifest, null, 2));
     },
 
