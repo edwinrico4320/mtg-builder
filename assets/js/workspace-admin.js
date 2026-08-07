@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.7.0';
+  const VERSION = '8.7.1';
   const STORAGE_KEY = 'mtg-builder-workspace-v8_6';
   const $ = id => document.getElementById(id);
   const esc = value => String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

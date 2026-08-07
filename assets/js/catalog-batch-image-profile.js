@@ -81,7 +81,7 @@
     if (btn) btn.addEventListener('click', buildChecked, true);
     if (cancelCurrentBtn) cancelCurrentBtn.addEventListener('click', cancelCurrent);
     if (cancelBatchBtn) cancelBatchBtn.addEventListener('click', cancelBatch);
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Batch Image Profile', '8.7.0');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Batch Image Profile', '8.7.1');
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();

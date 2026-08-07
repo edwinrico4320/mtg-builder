@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.7.0';
+  const VERSION = '8.7.1';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -9,7 +9,8 @@
     'navigationMode','imagePosition','imageWidth','cardColumns','borderRadius','borderWidth',
     'priceLayout','priceShowBadges','priceHighlightLowest','priceShowSnapshotDate','priceCurrencyStyle',
     'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground',
-    'printPaper','printCardsPerSide','printFontSize','printFlavorMode','printPriceMode','printShowArtist','printCutGuides'
+    'printPaper','printCardsPerSide','printFontSize','printFlavorMode','printPriceMode','printShowArtist','printCutGuides',
+    'microDensity','microArtMode','microOracleMode','microFlavor','microPriceMode','microShowArtist','microShowStats'
   ];
 
   const DEFAULT_PROFILE = Object.freeze({
@@ -56,7 +57,9 @@
     printFlavorMode: 'auto',
     printPriceMode: 'lowest',
     printShowArtist: false,
-    printCutGuides: true
+    printCutGuides: true,
+    microDensity: 'reference', microArtMode: 'crop', microOracleMode: 'compact', microFlavor: false,
+    microPriceMode: 'lowest', microShowArtist: false, microShowStats: true
   });
 
   const PRESETS = {
@@ -114,7 +117,9 @@
       rulesBackground: '#ffffff', flavorBackground: '#ffffff', targetBackground: '#eeeeee',
       borderRadius: 0, borderWidth: 1, printPaper: 'letter', printCardsPerSide: 30,
       printFontSize: 6.2, printFlavorMode: 'auto', printPriceMode: 'lowest',
-      printShowArtist: false, printCutGuides: true
+      printShowArtist: false, printCutGuides: true,
+      microDensity: 'reference', microArtMode: 'crop', microOracleMode: 'compact', microFlavor: false,
+      microPriceMode: 'lowest', microShowArtist: false, microShowStats: true
     }
   };
 
@@ -136,7 +141,10 @@
     priceBorderColor: 'odPriceBorderColor', priceLowestBackground: 'odPriceLowestBackground',
     printPaper: 'odPrintPaper', printCardsPerSide: 'odPrintCardsPerSide', printFontSize: 'odPrintFontSize',
     printFlavorMode: 'odPrintFlavorMode', printPriceMode: 'odPrintPriceMode', printShowArtist: 'odPrintShowArtist',
-    printCutGuides: 'odPrintCutGuides'
+    printCutGuides: 'odPrintCutGuides',
+    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microOracleMode: 'odMicroOracleMode',
+    microFlavor: 'odMicroFlavor', microPriceMode: 'odMicroPriceMode', microShowArtist: 'odMicroShowArtist',
+    microShowStats: 'odMicroShowStats'
   };
 
   let state = {
@@ -199,6 +207,13 @@
     p.printPriceMode = ['lowest','compact','hide'].includes(source.printPriceMode) ? source.printPriceMode : 'lowest';
     p.printShowArtist = source.printShowArtist === true || source.printShowArtist === 'true';
     p.printCutGuides = !(source.printCutGuides === false || source.printCutGuides === 'false');
+    p.microDensity = ['collector','reference','rules'].includes(source.microDensity) ? source.microDensity : 'reference';
+    p.microArtMode = ['crop','full','none'].includes(source.microArtMode) ? source.microArtMode : 'crop';
+    p.microOracleMode = ['full','compact','hide'].includes(source.microOracleMode) ? source.microOracleMode : 'compact';
+    p.microFlavor = source.microFlavor === true || source.microFlavor === 'true';
+    p.microPriceMode = ['lowest','compact','hide'].includes(source.microPriceMode) ? source.microPriceMode : 'lowest';
+    p.microShowArtist = source.microShowArtist === true || source.microShowArtist === 'true';
+    p.microShowStats = !(source.microShowStats === false || source.microShowStats === 'false');
     return p;
   }
 
@@ -321,10 +336,10 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function buildPreviewDocument() {
-    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : catalogPreview();
-    const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : state.previewMode === 'print' ? 'Printable Sheet Preview' : 'Catalog Preview';
+    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : state.previewMode === 'micro' ? (window.MicroCatalogPreview ? MicroCatalogPreview.render(state.profile) : printPreview()) : catalogPreview();
+    const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : state.previewMode === 'print' ? 'Printable Sheet Preview' : state.previewMode === 'micro' ? 'Micro Catalog Preview' : 'Catalog Preview';
     const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${state.previewMode==='print'?printPreviewCss():''}${priceCss}</style></head><body>${body}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${state.previewMode==='print'?printPreviewCss():''}${state.previewMode==='micro' && window.MicroCatalogPreview ? MicroCatalogPreview.css(state.profile) : ''}${priceCss}</style></head><body>${body}</body></html>`;
   }
 
   function renderPreview() {

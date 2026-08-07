@@ -126,7 +126,7 @@
     }
     sets.sort((a,b)=>(a.name||a.code).localeCompare(b.name||b.code));
     return {
-      version: String(raw.version || '8.7.0'),
+      version: String(raw.version || '8.7.1'),
       updatedAt: raw.updatedAt || raw.updated || new Date().toISOString(),
       source: raw.source || {},
       sets
@@ -136,7 +136,7 @@
   function buildRegistry(){
     const repo = getGitHubRepoInfo();
     return {
-      version: '8.7.0',
+      version: '8.7.1',
       updatedAt: new Date().toISOString(),
       source: { owner: repo.owner, repo: repo.repo, branch: repo.branch, folder: 'data/json' },
       sets: discoveredSets.map(s => ({
@@ -680,10 +680,10 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     $('buildAllCatalogsBtn')?.addEventListener('click', buildAll);
     $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
     setRegistryState.pending = loadSetRegistry(SET_INDEX_DEFAULT,{fallbackScan:true}).finally(()=>{setRegistryState.pending=null;});
-    console.log('MTG Builder v8.7.0 persistent registry loaded');
+    console.log('MTG Builder v8.7.1 persistent registry loaded');
   }
   window.MTGSetRegistry = {
-    version:'8.7.0',
+    version:'8.7.1',
     defaultPath:SET_INDEX_DEFAULT,
     load:loadSetRegistry,
     refresh:scanCatalogSets,
