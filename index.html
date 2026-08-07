@@ -3,11 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.7.0</title>
+  <title>MTG Builder v8.7.1</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
   <link rel="stylesheet" href="assets/css/v8.css">
   <link rel="stylesheet" href="assets/css/image-lab.css">
   <link rel="stylesheet" href="assets/css/output-designer.css">
+  <link rel="stylesheet" href="assets/css/micro-catalog.css">
   <link rel="stylesheet" href="assets/css/workspace-admin.css">
 </head>
 <body>
@@ -35,7 +36,7 @@
         <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
         <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Persistent registry loads known sets immediately; full scans are only for repository changes.</small></article>
         <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
-        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.7.0 restores the workspace, registry, pricing, and print settings automatically.</small></article>
+        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.7.1 restores the workspace, registry, pricing, and print settings automatically.</small></article>
       </div>
     </section>
 
@@ -535,6 +536,64 @@
 
 
           <section class="od-panel">
+            <h3>Micro Catalog Preview</h3>
+            <div class="od-inline-fields">
+              <label>Density preset
+                <select id="odMicroDensity">
+                  <option value="collector">Collector — maximum density</option>
+                  <option value="reference" selected>Reference — balanced</option>
+                  <option value="rules">Rules — maximum information</option>
+                </select>
+              </label>
+              <label>Artwork
+                <select id="odMicroArtMode">
+                  <option value="crop" selected>Cropped art</option>
+                  <option value="full">Full card image</option>
+                  <option value="none">No artwork</option>
+                </select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Oracle text
+                <select id="odMicroOracleMode">
+                  <option value="compact" selected>Compact</option>
+                  <option value="full">Full</option>
+                  <option value="hide">Hide</option>
+                </select>
+              </label>
+              <label>Price detail
+                <select id="odMicroPriceMode">
+                  <option value="lowest" selected>Lowest price</option>
+                  <option value="compact">Compact provider prices</option>
+                  <option value="hide">Hide</option>
+                </select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Flavor text
+                <select id="odMicroFlavor">
+                  <option value="false" selected>Hide</option>
+                  <option value="true">Show when space allows</option>
+                </select>
+              </label>
+              <label>Artist
+                <select id="odMicroShowArtist">
+                  <option value="false" selected>Hide</option>
+                  <option value="true">Show</option>
+                </select>
+              </label>
+            </div>
+            <label>Stats / loyalty
+              <select id="odMicroShowStats">
+                <option value="true" selected>Show</option>
+                <option value="false">Hide</option>
+              </select>
+            </label>
+            <p class="hint">Visual tuning preview for the 30-card target. It uses the same card-data concepts as catalog output and does not create a second data pipeline.</p>
+          </section>
+
+
+          <section class="od-panel">
             <h3>Price Display</h3>
             <div class="od-inline-fields">
               <label>Layout
@@ -607,6 +666,7 @@
                 <option value="rules">Rules Library</option>
                 <option value="portable">Portable Collection</option>
                 <option value="print">Printable Sheet</option>
+                <option value="micro">Micro Catalog Sheet</option>
               </select>
             </label>
             <div class="od-viewport-buttons" role="group" aria-label="Preview viewport">
@@ -717,6 +777,7 @@
   <script src="assets/js/catalog-all-image-profile.js"></script>
   <script src="assets/js/simple-zip.js"></script>
   <script src="assets/js/rules-library.js"></script>
+  <script src="assets/js/micro-catalog-preview.js"></script>
   <script src="assets/js/output-designer.js"></script>
   <script src="assets/js/workspace-admin.js"></script>
 </body>
