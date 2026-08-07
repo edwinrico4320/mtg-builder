@@ -162,7 +162,7 @@
         duplicateMode: (($('duplicateModeSelect') || {}).value) || 'collapse',
         symbolMode: (($('symbolModeSelect') || {}).value) || 'embedded',
         priceSettings: window.PriceSnapshotManager ? PriceSnapshotManager.getBuildSettings() : {enabled:false},
-        printSettings: window.OutputDesigner ? (()=>{const p=OutputDesigner.getProfile();return {paper:p.printPaper,cardsPerSide:p.printCardsPerSide,fontSize:p.printFontSize,flavorMode:p.printFlavorMode,priceMode:p.printPriceMode,showArtist:p.printShowArtist,cutGuides:p.printCutGuides,microDensity:p.microDensity,microArtMode:p.microArtMode,microOracleMode:p.microOracleMode,microFlavor:p.microFlavor,microPriceMode:p.microPriceMode,microShowArtist:p.microShowArtist,microShowStats:p.microShowStats};})() : {paper:'letter',cardsPerSide:30,fontSize:6.2,flavorMode:'auto',priceMode:'lowest',showArtist:false,cutGuides:true,microDensity:'reference',microArtMode:'crop',microOracleMode:'compact',microFlavor:false,microPriceMode:'lowest',microShowArtist:false,microShowStats:true},
+        printSettings: window.OutputDesigner ? (()=>{const p=OutputDesigner.getProfile();return {paper:p.printPaper,cardsPerSide:p.printCardsPerSide,fontSize:p.printFontSize,flavorMode:p.printFlavorMode,priceMode:p.printPriceMode,showArtist:p.printShowArtist,cutGuides:p.printCutGuides,microDensity:p.microDensity,microArtMode:p.microArtMode,microOracleMode:p.microOracleMode,microFlavor:p.microFlavor,microPriceMode:p.microPriceMode,microShowArtist:p.microShowArtist,microShowStats:p.microShowStats,microArtZoom:p.microArtZoom,microArtPositionX:p.microArtPositionX,microArtPositionY:p.microArtPositionY};})() : {paper:'letter',cardsPerSide:30,fontSize:6.2,flavorMode:'auto',priceMode:'lowest',showArtist:false,cutGuides:true,microDensity:'reference',microArtMode:'crop',microOracleMode:'compact',microFlavor:false,microPriceMode:'lowest',microShowArtist:false,microShowStats:true,microArtZoom:0,microArtPositionX:50,microArtPositionY:50},
         profileLabel: profile === 'card-no-images'
           ? 'Card Profile — No Images'
           : (profile === 'card-embedded-images' ? `Card Profile — Embedded Images (${imageWidth}px @ ${Math.round(imageQuality * 100)}%)` : (profile === 'print-dense' ? 'Printable Micro Catalog' : 'Compact Text Only'))
@@ -277,7 +277,7 @@
           const shortened=compact.shortened?'<span class="print-shortened" title="Oracle text shortened for dense print">*</span>':'';
           const price=this.renderPrintPrice(card._priceData,ps.priceMode);
           const microArt = options.imageMode === 'art-crop' && card._artCropImage
-            ? `<div class="print-art-crop"><img src="${card._artCropImage}" alt="${escapeHtml(card.name || '')} artwork"></div>`
+            ? (()=>{ const zoom=1+(Number(ps.microArtZoom||0)/100)*1.2; const x=Math.max(0,Math.min(100,Number(ps.microArtPositionX==null?50:ps.microArtPositionX))); const y=Math.max(0,Math.min(100,Number(ps.microArtPositionY==null?50:ps.microArtPositionY))); return `<div class="print-art-crop"><img src="${card._artCropImage}" alt="${escapeHtml(card.name || '')} artwork" style="object-position:${x}% ${y}%;transform:scale(${zoom});transform-origin:center"></div>`; })()
             : options.imageMode === 'embedded' && card._processedImage
               ? `<div class="print-art-crop print-art-full"><img src="${card._processedImage}" alt="${escapeHtml(card.name || '')}"></div>`
               : '';

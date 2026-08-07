@@ -10,7 +10,7 @@
     'priceLayout','priceShowBadges','priceHighlightLowest','priceShowSnapshotDate','priceCurrencyStyle',
     'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground',
     'printPaper','printCardsPerSide','printFontSize','printFlavorMode','printPriceMode','printShowArtist','printCutGuides',
-    'microDensity','microArtMode','microOracleMode','microFlavor','microPriceMode','microShowArtist','microShowStats'
+    'microDensity','microArtMode','microArtZoom','microArtPositionX','microArtPositionY','microOracleMode','microFlavor','microPriceMode','microShowArtist','microShowStats'
   ];
 
   const DEFAULT_PROFILE = Object.freeze({
@@ -58,7 +58,7 @@
     printPriceMode: 'lowest',
     printShowArtist: false,
     printCutGuides: true,
-    microDensity: 'reference', microArtMode: 'crop', microOracleMode: 'compact', microFlavor: false,
+    microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microOracleMode: 'compact', microFlavor: false,
     microPriceMode: 'lowest', microShowArtist: false, microShowStats: true
   });
 
@@ -118,7 +118,7 @@
       borderRadius: 0, borderWidth: 1, printPaper: 'letter', printCardsPerSide: 30,
       printFontSize: 6.2, printFlavorMode: 'auto', printPriceMode: 'lowest',
       printShowArtist: false, printCutGuides: true,
-      microDensity: 'reference', microArtMode: 'crop', microOracleMode: 'compact', microFlavor: false,
+      microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microOracleMode: 'compact', microFlavor: false,
       microPriceMode: 'lowest', microShowArtist: false, microShowStats: true
     }
   };
@@ -212,6 +212,9 @@
     p.printCutGuides = !(source.printCutGuides === false || source.printCutGuides === 'false');
     p.microDensity = ['collector','reference','rules'].includes(source.microDensity) ? source.microDensity : 'reference';
     p.microArtMode = ['crop','full','none'].includes(source.microArtMode) ? source.microArtMode : 'crop';
+    p.microArtZoom = clamp(source.microArtZoom, 0, 100, 0);
+    p.microArtPositionX = clamp(source.microArtPositionX, 0, 100, 50);
+    p.microArtPositionY = clamp(source.microArtPositionY, 0, 100, 50);
     p.microOracleMode = ['full','compact','hide'].includes(source.microOracleMode) ? source.microOracleMode : 'compact';
     p.microFlavor = source.microFlavor === true || source.microFlavor === 'true';
     p.microPriceMode = ['lowest','compact','hide'].includes(source.microPriceMode) ? source.microPriceMode : 'lowest';
@@ -276,6 +279,9 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
       const el = $(id);
       if (el) el.value = p[key];
     }
+    const zoomLabel = $('odMicroArtZoomValue'); if (zoomLabel) zoomLabel.textContent = `${Math.round(p.microArtZoom)}%`;
+    const xLabel = $('odMicroArtPositionXValue'); if (xLabel) xLabel.textContent = `${Math.round(p.microArtPositionX)}%`;
+    const yLabel = $('odMicroArtPositionYValue'); if (yLabel) yLabel.textContent = `${Math.round(p.microArtPositionY)}%`;
   }
 
   function persist() {
