@@ -1,5 +1,5 @@
 /*
- * MTG Builder v8.7.1.2 — Micro Catalog Preview & Native Art Crops
+ * MTG Builder v8.7.1.4 — Micro Catalog Preview & Native Art Crops
  *
  * Purpose: render a dense, print-oriented sheet preview without creating a
  * second card-data pipeline. The preview consumes the active Output Designer
@@ -126,5 +126,5 @@
     return out;
   }
 
-  window.MicroCatalogPreview = {version:'8.7.1.3',render,css,hydrate};
+  window.MicroCatalogPreview = {version:'8.7.1.4',render,css,hydrate};
 })();

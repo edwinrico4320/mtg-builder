@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.7.1.2';
+  const VERSION = '8.7.1.4';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -142,7 +142,7 @@
     printPaper: 'odPrintPaper', printCardsPerSide: 'odPrintCardsPerSide', printFontSize: 'odPrintFontSize',
     printFlavorMode: 'odPrintFlavorMode', printPriceMode: 'odPrintPriceMode', printShowArtist: 'odPrintShowArtist',
     printCutGuides: 'odPrintCutGuides',
-    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microOracleMode: 'odMicroOracleMode',
+    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microArtZoom: 'odMicroArtZoom', microArtPositionX: 'odMicroArtPositionX', microArtPositionY: 'odMicroArtPositionY', microOracleMode: 'odMicroOracleMode',
     microFlavor: 'odMicroFlavor', microPriceMode: 'odMicroPriceMode', microShowArtist: 'odMicroShowArtist',
     microShowStats: 'odMicroShowStats'
   };
@@ -383,7 +383,12 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     shell.dataset.viewport = state.viewport;
     frame.srcdoc = buildPreviewDocument();
     const status = $('odDesignerStatus');
-    if (status) status.innerHTML = `<strong>${esc(state.profile.name)}</strong><br><span class="od-profile-chip">${esc(state.previewMode)}</span> · ${esc(state.viewport)} · ${state.profile.baseFontSize}px ${esc(state.profile.fontFamily.split(',')[0])}`;
+    if (status) {
+      const microInfo = state.previewMode === 'micro'
+        ? `<br><span class="od-profile-chip">Art ${esc(state.profile.microArtMode)} · Zoom ${Math.round(state.profile.microArtZoom)}% · X ${Math.round(state.profile.microArtPositionX)}% · Y ${Math.round(state.profile.microArtPositionY)}%</span>`
+        : '';
+      status.innerHTML = `<strong>${esc(state.profile.name)}</strong><br><span class="od-profile-chip">${esc(state.previewMode)}</span> · ${esc(state.viewport)} · ${state.profile.baseFontSize}px ${esc(state.profile.fontFamily.split(',')[0])}${microInfo}`;
+    }
     if (state.previewMode === 'micro') {
       clearTimeout(state.microPreviewTimer);
       state.microPreviewTimer = setTimeout(() => hydrateMicroPreview(), 180);
@@ -540,12 +545,18 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function registerModule() {
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', '8.7.1.2');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', '8.7.1.4');
   }
 
   function init() {
     registerModule();
     writeControls(loadLocal());
+    // Every designer control, including the micro-art sliders, flows through
+    // the same state -> persist -> preview pipeline.  The v8.7.1.3 sliders
+    // were rendered and labeled correctly, but were accidentally omitted from
+    // CONTROL_MAP, so readControls() never copied their values into state.profile.
+    // Keeping them in CONTROL_MAP makes the live preview and production build
+    // consume the exact same normalized profile.
     Object.values(CONTROL_MAP).forEach(id => {
       const el = $(id);
       if (el) {
