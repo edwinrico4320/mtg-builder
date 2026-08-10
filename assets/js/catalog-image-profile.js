@@ -5,6 +5,11 @@
   async function buildSelectedSet(ev) {
     const options = CatalogProfileCore.gatherOptions();
     if (options.profile === 'compact-text') return;
+    // Show the exact normalized configuration that will be handed to the
+    // production renderer. This is the quickest way to spot preview/build drift.
+    const cfg = CatalogProfileCore.getMicroBuildSummary ? CatalogProfileCore.getMicroBuildSummary(options) : null;
+    const preSummary = $('catalogSummary');
+    if (preSummary && cfg) preSummary.innerHTML = `<strong>Build configuration:</strong> ${cfg.grid} · art ${cfg.artMode} · zoom ${cfg.artZoom}% · oracle ${cfg.oracleMode} · prices ${cfg.priceMode}`;
     ev.preventDefault();
     ev.stopImmediatePropagation();
     if (state.running) return;

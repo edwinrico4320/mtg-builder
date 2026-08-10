@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.7.1.4';
+  const VERSION = '8.7.1.5';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -255,6 +255,38 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     const out = {version: VERSION};
     OUTPUT_FIELDS.forEach(key => { out[key] = profile[key]; });
     return out;
+  }
+
+  // Canonical build configuration: the Catalog Builder and the live preview
+  // must consume the same normalized profile. Keeping this in one place avoids
+  // subtle differences when a preset, slider, or imported profile changes.
+  function getBuildConfig() {
+    const profile = sanitizeProfile(state.profile);
+    return {
+      version: VERSION,
+      profile,
+      micro: {
+        density: profile.microDensity,
+        artMode: profile.microArtMode,
+        artZoom: profile.microArtZoom,
+        artPositionX: profile.microArtPositionX,
+        artPositionY: profile.microArtPositionY,
+        oracleMode: profile.microOracleMode,
+        flavor: profile.microFlavor,
+        priceMode: profile.microPriceMode,
+        showArtist: profile.microShowArtist,
+        showStats: profile.microShowStats
+      },
+      print: {
+        paper: profile.printPaper,
+        cardsPerSide: profile.printCardsPerSide,
+        fontSize: profile.printFontSize,
+        flavorMode: profile.printFlavorMode,
+        priceMode: profile.printPriceMode,
+        showArtist: profile.printShowArtist,
+        cutGuides: profile.printCutGuides
+      }
+    };
   }
 
   function getProfileSummary() {
@@ -594,6 +626,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     getProfile: () => sanitizeProfile(state.profile),
     getFingerprintData,
     getProfileSummary,
+    getBuildConfig,
     getGeneratedCss,
     applyProfile: p => applyProfile(p, 'Design profile applied.'),
     buildPreviewDocument,

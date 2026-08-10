@@ -1,5 +1,5 @@
 /*
- * MTG Builder v8.7.1.4 — Micro Catalog Preview & Native Art Crops
+ * MTG Builder v8.7.1.5 — Micro Catalog Preview & Native Art Crops
  *
  * Purpose: render a dense, print-oriented sheet preview without creating a
  * second card-data pipeline. The preview consumes the active Output Designer
@@ -68,15 +68,36 @@
 
   // Build one compact card cell from the active profile. Keeping this function
   // small makes later print-density changes easier to reason about.
+  // Preview renderer mirrors the production print-card structure: artwork is
+  // horizontal across the top, followed by the compact text block. The previous
+  // preview used a vertical art strip, which made the preview look like a
+  // different product even though the profile settings were identical.
   function renderCard(card, profile, index, artMap) {
     const density = profile.microDensity || 'reference';
-    const oracleMode = profile.microOracleMode || (density === 'rules' ? 'full' : density === 'collector' ? 'hide' : 'compact');
+    const oracleMode = profile.microOracleMode || 'compact';
     const artMode = profile.microArtMode || 'crop';
     const showFlavor = profile.microFlavor === true && density !== 'collector';
-    const showArtist = profile.microShowArtist === true && density === 'rules';
+    const showArtist = profile.microShowArtist === true;
     const showStats = profile.microShowStats !== false && !!card.stats;
     const priceMode = profile.microPriceMode || 'lowest';
-    return `<article class="micro-card mc-density-${density}" data-index="${index}"><div class="mc-top">${art(card, artMode, artMap, profile)}<div class="mc-main"><div class="mc-name-row"><strong>${esc(card.name)}</strong><span class="mc-mana">${mana(card.mana)}</span></div><div class="mc-type">${esc(card.type)}</div>${oracleText(card, oracleMode)}${showFlavor ? `<div class="mc-flavor">${esc(card.flavor)}</div>` : ''}<div class="mc-meta"><span>${esc(card.rarity)} · #${esc(card.number)}</span>${showStats ? `<strong>${esc(card.stats)}</strong>` : ''}</div>${showArtist ? `<div class="mc-artist">${esc(card.artist)}</div>` : ''}<div class="mc-price-row">${price(card, priceMode)}</div></div></div></article>`;
+    const rawOracle = card.oracle || '';
+    let oracle = rawOracle;
+    if (oracleMode === 'hide') oracle = '';
+    else if (oracleMode === 'compact' && oracle.length > 92) oracle = oracle.slice(0,89).trimEnd() + '…';
+    const imageBlock = art(card, artMode, artMap, profile);
+    const rarity = card.rarity ? esc(card.rarity) : '';
+    const collector = card.number ? `#${esc(card.number)}` : '';
+    return `<article class="micro-card mc-density-${esc(density)}" data-index="${index}">
+      ${imageBlock}
+      <div class="mc-copy">
+        <header class="mc-header"><strong>${esc(card.name)}</strong><span class="mc-mana">${mana(card.mana)}</span></header>
+        <div class="mc-type">${esc(card.type)}</div>
+        ${oracle ? `<div class="mc-oracle">${esc(oracle)}</div>` : ''}
+        ${showFlavor ? `<div class="mc-flavor">${esc(card.flavor)}</div>` : ''}
+        <footer class="mc-meta"><span>${rarity}${rarity&&collector?' · ':''}${collector}${showArtist&&card.artist?` · ${esc(card.artist)}`:''}</span><strong>${showStats?esc(card.stats):''}</strong></footer>
+        <div class="mc-price-row">${price(card, priceMode)}</div>
+      </div>
+    </article>`;
   }
 
   function render(profile, cardsInput, artMap) {
@@ -92,7 +113,9 @@
   function css(profile) {
     const p = profile || {};
     const font = Number(p.printFontSize || 6.2);
-    return `.micro-preview-shell{padding:12px;background:#555;min-height:100%;font-family:Arial,sans-serif}.micro-sheet{background:#fff;color:#111;width:100%;aspect-ratio:11/8.5;padding:1.2%;box-shadow:0 2px 12px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}.micro-sheet-header{height:4%;display:flex;align-items:center;justify-content:space-between;font-size:${Math.max(5.5,font)}px;padding:0 2px}.micro-grid{height:96%;display:grid;grid-template-columns:repeat(var(--mc-cols),minmax(0,1fr));grid-template-rows:repeat(var(--mc-rows),minmax(0,1fr));gap:1px}.micro-card{border:${p.printCutGuides === false ? '1px solid #ddd' : '1px solid #555'};overflow:hidden;padding:2px;min-width:0;line-height:1.05;background:#fff}.mc-top{display:flex;gap:2px;height:100%;min-width:0}.mc-art{flex:0 0 16%;height:100%;min-width:0;background:#8795a3;display:flex;align-items:flex-end;justify-content:center;overflow:hidden}.mc-art-real img{width:100%;height:100%;display:block;object-fit:cover;object-position:var(--mc-art-x,50%) var(--mc-art-y,50%);transform:scale(var(--mc-art-zoom,1));transform-origin:center}.mc-art span{font-size:${Math.max(3.8,font-1.5)}px;font-weight:700;background:rgba(255,255,255,.78);padding:1px;text-align:center;width:100%}.mc-art-crop{background:linear-gradient(135deg,#4b7c9e 0 25%,#a96d35 25% 48%,#315d38 48% 72%,#5c3e71 72%)}.mc-art-full{flex-basis:20%;background:linear-gradient(145deg,#193b59,#b47d45 45%,#263f2a)}.mc-name-row{display:flex;justify-content:space-between;align-items:center;gap:2px;font-size:${Math.max(4.5,font)}px;white-space:nowrap}.mc-name-row strong{overflow:hidden;text-overflow:ellipsis}.mc-mana{white-space:nowrap;display:inline-flex;align-items:center}.mc-mana img,.mc-mana .mana-symbol{width:${Math.max(5,font-1)}px;height:${Math.max(5,font-1)}px}.mc-type{font-size:${Math.max(3.8,font-1.2)}px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}.mc-oracle{font-size:${Math.max(3.8,font-1.1)}px;margin-top:1px;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}.mc-density-collector .mc-oracle{display:none}.mc-density-reference .mc-oracle{-webkit-line-clamp:2}.mc-density-rules .mc-oracle{-webkit-line-clamp:5}.mc-flavor{font-size:${Math.max(3.5,font-1.5)}px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}.mc-meta{display:flex;justify-content:space-between;gap:2px;font-size:${Math.max(3.6,font-1.6)}px;margin-top:1px}.mc-artist{font-size:${Math.max(3.4,font-1.7)}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-price-row{font-size:${Math.max(3.6,font-1.6)}px;text-align:right}.mc-price{font-weight:700}@media(max-width:900px){.micro-sheet{aspect-ratio:auto;min-height:700px}.micro-grid{min-height:650px}}`;
+    const border = p.printCutGuides === false ? '#ddd' : '#555';
+    const artHeight = p.microArtMode === 'none' ? '0' : (p.microDensity === 'collector' ? '.46in' : '.62in');
+    return `.micro-preview-shell{padding:12px;background:#555;min-height:100%;font-family:Arial,sans-serif}.micro-sheet{background:#fff;color:#111;width:100%;aspect-ratio:11/8.5;padding:1.2%;box-shadow:0 2px 12px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}.micro-sheet-header{height:4%;display:flex;align-items:center;justify-content:space-between;font-size:${Math.max(5.5,font)}px;padding:0 2px}.micro-grid{height:96%;display:grid;grid-template-columns:repeat(var(--mc-cols),minmax(0,1fr));grid-template-rows:repeat(var(--mc-rows),minmax(0,1fr));gap:1px}.micro-card{min-width:0;min-height:0;overflow:hidden;border:.55pt solid ${border};padding:2px;display:flex;flex-direction:column;font-size:${font}px;line-height:1.08;background:#fff}.mc-art{width:100%;height:${artHeight};margin-bottom:2px;overflow:hidden;border-bottom:.35pt solid #999;background:#eee;flex:0 0 auto}.mc-art-real img{width:100%;height:100%;display:block;object-fit:cover;object-position:var(--mc-art-x,50%) var(--mc-art-y,50%);transform:scale(var(--mc-art-zoom,1));transform-origin:center}.mc-art span{font-size:${Math.max(3.8,font-1.5)}px;font-weight:700;padding:1px;text-align:center}.mc-art-crop{background:linear-gradient(135deg,#4b7c9e 0 25%,#a96d35 25% 48%,#315d38 48% 72%,#5c3e71 72%)}.mc-art-full{background:linear-gradient(145deg,#193b59,#b47d45 45%,#263f2a)}.mc-copy{min-width:0;min-height:0;display:flex;flex-direction:column;flex:1 1 auto}.mc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:2px;border-bottom:.35pt solid #888;padding-bottom:1px;margin-bottom:1px;flex:0 0 auto;font-size:${Math.max(4.5,font)}px;line-height:1.02}.mc-header strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-mana{white-space:nowrap;display:inline-flex;align-items:center}.mc-mana img,.mc-mana .mana-symbol{width:${Math.max(5,font-1)}px;height:${Math.max(5,font-1)}px}.mc-type{font-size:${Math.max(3.8,font-1.2)}px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.mc-oracle{font-size:${Math.max(3.8,font-1.1)}px;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;line-height:1.03;flex:1 1 auto}.mc-density-reference .mc-oracle{-webkit-line-clamp:2}.mc-density-rules .mc-oracle{-webkit-line-clamp:5}.mc-density-collector .mc-oracle{display:none}.mc-flavor{font-size:${Math.max(3.5,font-1.5)}px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;max-height:2.15em}.mc-meta{display:flex;justify-content:space-between;gap:2px;align-items:flex-end;border-top:.35pt solid #999;margin-top:1px;padding-top:1px;font-size:${Math.max(3.6,font-1.6)}px;line-height:1;flex:0 0 auto;white-space:nowrap}.mc-meta span{overflow:hidden;text-overflow:ellipsis}.mc-price-row{font-size:${Math.max(3.6,font-1.6)}px;text-align:right;line-height:1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-price{font-weight:700}@media(max-width:900px){.micro-sheet{aspect-ratio:auto;min-height:700px}.micro-grid{min-height:650px}}`;
   }
 
   const artCache = new Map();
