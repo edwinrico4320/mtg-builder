@@ -1,4 +1,5 @@
-  import { MTGSetRegistry } from './workspace-admin.js'; // Ensure workspace-admin exports this
+  //import { MTGSetRegistry } from './workspace-admin.js'; // Ensure workspace-admin exports this
+  import { MTGSetRegistry } from './app.js';
   import { CatalogProfileCore } from './catalog-profile-core.js';
   import { SimpleZip } from './simple-zip.js';
   import { OutputDesigner } from './output-designer.js';
