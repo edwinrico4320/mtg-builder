@@ -1,5 +1,4 @@
 
-(function () {
   const COLOR_MAP = {
     // Tuned to be closer to recognizable Magic mana-symbol colors and more distinct
     W: { bg: '#F4E7B7', text: '#5B4A16', stroke: '#8C7A3B', hi: '#FFF7DA', lo: '#E1CF93' },
@@ -185,12 +184,12 @@ ${defs}
   const basicMap = {};
   basicKeys.forEach(function (key) { basicMap[key] = symbolDataUri(key); });
 
-  window.MTG_SYMBOLS = basicMap;
-  window.MTGSymbolRenderer = {
+  export const MTG_SYMBOLS = basicMap;
+  export const MTGSymbolRenderer = {
     symbolDataUri,
     rarityDataUri,
     manaToHtml,
     renderRarityIcon,
     htmlEscape
   };
-})();
+  };
