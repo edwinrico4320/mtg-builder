@@ -1,5 +1,5 @@
 /*
- * MTG Builder v8.7.1.5 — Micro Catalog Preview & Native Art Crops
+ * MTG Builder v8.7.1.6 — Micro Catalog Preview & Native Art Crops
  *
  * Purpose: render a dense, print-oriented sheet preview without creating a
  * second card-data pipeline. The preview consumes the active Output Designer
@@ -72,32 +72,40 @@
   // horizontal across the top, followed by the compact text block. The previous
   // preview used a vertical art strip, which made the preview look like a
   // different product even though the profile settings were identical.
-  function renderCard(card, profile, index, artMap) {
+  // Render one micro card from the active profile. Each field has an explicit
+  // switch so the preview can be used as a design tool rather than a fixed mockup.
+  // Keep this function structurally parallel with CatalogProfileCore's printable
+  // renderer: both consume the same profile fields and the same normalized card data.
+  function renderCard(card, profile, index, artMap, setCode) {
     const density = profile.microDensity || 'reference';
     const oracleMode = profile.microOracleMode || 'compact';
     const artMode = profile.microArtMode || 'crop';
+    const imagePosition = profile.microImagePosition || 'left';
+    const imageWidth = Math.max(10, Math.min(45, Number(profile.microImageWidth == null ? 24 : profile.microImageWidth)));
+    const showName = profile.microShowName !== false;
+    const showMana = profile.microShowMana !== false;
+    const showType = profile.microShowType !== false;
     const showFlavor = profile.microFlavor === true && density !== 'collector';
     const showArtist = profile.microShowArtist === true;
     const showStats = profile.microShowStats !== false && !!card.stats;
+    const showRarity = profile.microShowRarity !== false && !!card.rarity;
+    const showCollector = profile.microShowCollector !== false && !!card.number;
+    const showSetCode = profile.microShowSetCode !== false && !!setCode;
     const priceMode = profile.microPriceMode || 'lowest';
     const rawOracle = card.oracle || '';
     let oracle = rawOracle;
     if (oracleMode === 'hide') oracle = '';
     else if (oracleMode === 'compact' && oracle.length > 92) oracle = oracle.slice(0,89).trimEnd() + '…';
     const imageBlock = art(card, artMode, artMap, profile);
-    const rarity = card.rarity ? esc(card.rarity) : '';
-    const collector = card.number ? `#${esc(card.number)}` : '';
-    return `<article class="micro-card mc-density-${esc(density)}" data-index="${index}">
-      ${imageBlock}
-      <div class="mc-copy">
-        <header class="mc-header"><strong>${esc(card.name)}</strong><span class="mc-mana">${mana(card.mana)}</span></header>
-        <div class="mc-type">${esc(card.type)}</div>
-        ${oracle ? `<div class="mc-oracle">${esc(oracle)}</div>` : ''}
-        ${showFlavor ? `<div class="mc-flavor">${esc(card.flavor)}</div>` : ''}
-        <footer class="mc-meta"><span>${rarity}${rarity&&collector?' · ':''}${collector}${showArtist&&card.artist?` · ${esc(card.artist)}`:''}</span><strong>${showStats?esc(card.stats):''}</strong></footer>
-        <div class="mc-price-row">${price(card, priceMode)}</div>
-      </div>
-    </article>`;
+    const metaBits = [];
+    if (showRarity) metaBits.push(esc(card.rarity));
+    if (showCollector) metaBits.push(`#${esc(card.number)}`);
+    if (showSetCode) metaBits.push(esc(setCode));
+    if (showArtist && card.artist) metaBits.push(esc(card.artist));
+    const header = `<header class="mc-header">${showName ? `<strong>${esc(card.name)}</strong>` : '<span></span>'}${showMana ? `<span class="mc-mana">${mana(card.mana)}</span>` : ''}</header>`;
+    const body = `${showType ? `<div class="mc-type">${esc(card.type)}</div>` : ''}${oracle ? `<div class="mc-oracle">${esc(oracle)}</div>` : ''}${showFlavor ? `<div class="mc-flavor">${esc(card.flavor)}</div>` : ''}`;
+    const meta = `<footer class="mc-meta"><span>${metaBits.join(' · ')}</span><strong>${showStats ? esc(card.stats) : ''}</strong></footer>`;
+    return `<article class="micro-card mc-density-${esc(density)} mc-image-${esc(imagePosition)}" data-index="${index}" style="--mc-image-width:${imageWidth}%">${imageBlock}<div class="mc-copy">${header}${body}${meta}<div class="mc-price-row">${price(card, priceMode)}</div></div></article>`;
   }
 
   function render(profile, cardsInput, artMap) {
@@ -107,7 +115,8 @@
     const rows = count === 20 ? 5 : 6;
     const sourceCards = Array.isArray(cardsInput) && cardsInput.length ? cardsInput : SAMPLE_CARDS;
     const cards = Array.from({length:count},(_,i)=>sourceCards[i % sourceCards.length]);
-    return `<div class="micro-preview-shell"><section class="micro-sheet micro-paper-${esc(p.printPaper || 'letter')}"><header class="micro-sheet-header"><strong>Sample Set — Micro Catalog</strong><span>${count} cards / side · ${cols} × ${rows} · ${esc(p.microDensity || 'reference')}</span></header><div class="micro-grid" style="--mc-cols:${cols};--mc-rows:${rows}">${cards.map((c,i)=>renderCard(c,p,i,artMap)).join('')}</div></section></div>`;
+    const setCode = p.microPreviewSetCode || 'SMP';
+    return `<div class="micro-preview-shell"><section class="micro-sheet micro-paper-${esc(p.printPaper || 'letter')}"><header class="micro-sheet-header"><strong>Sample Set — Micro Catalog</strong><span>${count} cards / side · ${cols} × ${rows} · ${esc(p.microDensity || 'reference')}</span></header><div class="micro-grid" style="--mc-cols:${cols};--mc-rows:${rows}">${cards.map((c,i)=>renderCard(c,p,i,artMap,setCode)).join('')}</div></section></div>`;
   }
 
   function css(profile) {
@@ -115,7 +124,9 @@
     const font = Number(p.printFontSize || 6.2);
     const border = p.printCutGuides === false ? '#ddd' : '#555';
     const artHeight = p.microArtMode === 'none' ? '0' : (p.microDensity === 'collector' ? '.46in' : '.62in');
-    return `.micro-preview-shell{padding:12px;background:#555;min-height:100%;font-family:Arial,sans-serif}.micro-sheet{background:#fff;color:#111;width:100%;aspect-ratio:11/8.5;padding:1.2%;box-shadow:0 2px 12px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}.micro-sheet-header{height:4%;display:flex;align-items:center;justify-content:space-between;font-size:${Math.max(5.5,font)}px;padding:0 2px}.micro-grid{height:96%;display:grid;grid-template-columns:repeat(var(--mc-cols),minmax(0,1fr));grid-template-rows:repeat(var(--mc-rows),minmax(0,1fr));gap:1px}.micro-card{min-width:0;min-height:0;overflow:hidden;border:.55pt solid ${border};padding:2px;display:flex;flex-direction:column;font-size:${font}px;line-height:1.08;background:#fff}.mc-art{width:100%;height:${artHeight};margin-bottom:2px;overflow:hidden;border-bottom:.35pt solid #999;background:#eee;flex:0 0 auto}.mc-art-real img{width:100%;height:100%;display:block;object-fit:cover;object-position:var(--mc-art-x,50%) var(--mc-art-y,50%);transform:scale(var(--mc-art-zoom,1));transform-origin:center}.mc-art span{font-size:${Math.max(3.8,font-1.5)}px;font-weight:700;padding:1px;text-align:center}.mc-art-crop{background:linear-gradient(135deg,#4b7c9e 0 25%,#a96d35 25% 48%,#315d38 48% 72%,#5c3e71 72%)}.mc-art-full{background:linear-gradient(145deg,#193b59,#b47d45 45%,#263f2a)}.mc-copy{min-width:0;min-height:0;display:flex;flex-direction:column;flex:1 1 auto}.mc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:2px;border-bottom:.35pt solid #888;padding-bottom:1px;margin-bottom:1px;flex:0 0 auto;font-size:${Math.max(4.5,font)}px;line-height:1.02}.mc-header strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-mana{white-space:nowrap;display:inline-flex;align-items:center}.mc-mana img,.mc-mana .mana-symbol{width:${Math.max(5,font-1)}px;height:${Math.max(5,font-1)}px}.mc-type{font-size:${Math.max(3.8,font-1.2)}px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.mc-oracle{font-size:${Math.max(3.8,font-1.1)}px;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;line-height:1.03;flex:1 1 auto}.mc-density-reference .mc-oracle{-webkit-line-clamp:2}.mc-density-rules .mc-oracle{-webkit-line-clamp:5}.mc-density-collector .mc-oracle{display:none}.mc-flavor{font-size:${Math.max(3.5,font-1.5)}px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;max-height:2.15em}.mc-meta{display:flex;justify-content:space-between;gap:2px;align-items:flex-end;border-top:.35pt solid #999;margin-top:1px;padding-top:1px;font-size:${Math.max(3.6,font-1.6)}px;line-height:1;flex:0 0 auto;white-space:nowrap}.mc-meta span{overflow:hidden;text-overflow:ellipsis}.mc-price-row{font-size:${Math.max(3.6,font-1.6)}px;text-align:right;line-height:1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-price{font-weight:700}@media(max-width:900px){.micro-sheet{aspect-ratio:auto;min-height:700px}.micro-grid{min-height:650px}}`;
+    // The sheet is always the fixed 30-card canvas. Individual cards can change
+    // their internal field mix without changing the 5 x 6 page geometry.
+    return `.micro-preview-shell{padding:12px;background:#555;min-height:100%;font-family:Arial,sans-serif}.micro-sheet{background:#fff;color:#111;width:100%;aspect-ratio:11/8.5;padding:1.2%;box-shadow:0 2px 12px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden}.micro-sheet-header{height:4%;display:flex;align-items:center;justify-content:space-between;font-size:${Math.max(5.5,font)}px;padding:0 2px}.micro-grid{height:96%;display:grid;grid-template-columns:repeat(var(--mc-cols),minmax(0,1fr));grid-template-rows:repeat(var(--mc-rows),minmax(0,1fr));gap:1px}.micro-card{min-width:0;min-height:0;overflow:hidden;border:.55pt solid ${border};padding:2px;display:flex;flex-direction:row;font-size:${font}px;line-height:1.08;background:#fff}.mc-art{overflow:hidden;background:#eee;flex:0 0 var(--mc-image-width,24%);width:var(--mc-image-width,24%);height:auto;min-height:0;margin:0 3px 0 0;border-right:.35pt solid #999;border-bottom:0}.mc-image-right{flex-direction:row-reverse}.mc-image-right .mc-art{margin:0 0 0 3px;border-right:0;border-left:.35pt solid #999}.mc-image-top{display:flex;flex-direction:column}.mc-image-top .mc-art{width:100%;height:${artHeight};flex:0 0 ${artHeight};margin:0 0 2px 0;border-right:0;border-bottom:.35pt solid #999}.mc-image-top .mc-copy{min-height:0}.mc-art-real img{width:100%;height:100%;display:block;object-fit:cover;object-position:var(--mc-art-x,50%) var(--mc-art-y,50%);transform:scale(var(--mc-art-zoom,1));transform-origin:center}.mc-art span{font-size:${Math.max(3.8,font-1.5)}px;font-weight:700;padding:1px;text-align:center}.mc-art-crop{background:linear-gradient(135deg,#4b7c9e 0 25%,#a96d35 25% 48%,#315d38 48% 72%,#5c3e71 72%)}.mc-art-full{background:linear-gradient(145deg,#193b59,#b47d45 45%,#263f2a)}.mc-copy{min-width:0;min-height:0;display:flex;flex-direction:column;flex:1 1 auto}.mc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:2px;border-bottom:.35pt solid #888;padding-bottom:1px;margin-bottom:1px;flex:0 0 auto;font-size:${Math.max(4.5,font)}px;line-height:1.02}.mc-header strong{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-mana{white-space:nowrap;display:inline-flex;align-items:center}.mc-mana img,.mc-mana .mana-symbol{width:${Math.max(5,font-1)}px;height:${Math.max(5,font-1)}px}.mc-type{font-size:${Math.max(3.8,font-1.2)}px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}.mc-oracle{font-size:${Math.max(3.8,font-1.1)}px;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;line-height:1.03;flex:1 1 auto}.mc-density-reference .mc-oracle{-webkit-line-clamp:2}.mc-density-rules .mc-oracle{-webkit-line-clamp:5}.mc-density-collector .mc-oracle{display:none}.mc-flavor{font-size:${Math.max(3.5,font-1.5)}px;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;max-height:2.15em}.mc-meta{display:flex;justify-content:space-between;gap:2px;align-items:flex-end;border-top:.35pt solid #999;margin-top:1px;padding-top:1px;font-size:${Math.max(3.6,font-1.6)}px;line-height:1;flex:0 0 auto;white-space:nowrap}.mc-meta span{overflow:hidden;text-overflow:ellipsis}.mc-price-row{font-size:${Math.max(3.6,font-1.6)}px;text-align:right;line-height:1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mc-price{font-weight:700}@media(max-width:900px){.micro-sheet{aspect-ratio:auto;min-height:700px}.micro-grid{min-height:650px}}`;
   }
 
   const artCache = new Map();

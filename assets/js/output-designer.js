@@ -1,5 +1,5 @@
 (function () {
-  const VERSION = '8.7.1.5';
+  const VERSION = '8.7.1.6';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
     'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
@@ -58,8 +58,8 @@
     printPriceMode: 'lowest',
     printShowArtist: false,
     printCutGuides: true,
-    microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microOracleMode: 'compact', microFlavor: false,
-    microPriceMode: 'lowest', microShowArtist: false, microShowStats: true
+    microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microImagePosition: 'left', microImageWidth: 24, microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
+    microPriceMode: 'lowest', microShowArtist: false
   });
 
   const PRESETS = {
@@ -118,8 +118,8 @@
       borderRadius: 0, borderWidth: 1, printPaper: 'letter', printCardsPerSide: 30,
       printFontSize: 6.2, printFlavorMode: 'auto', printPriceMode: 'lowest',
       printShowArtist: false, printCutGuides: true,
-      microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microOracleMode: 'compact', microFlavor: false,
-      microPriceMode: 'lowest', microShowArtist: false, microShowStats: true
+      microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microImagePosition: 'left', microImageWidth: 24, microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
+      microPriceMode: 'lowest', microShowArtist: false
     }
   };
 
@@ -142,9 +142,9 @@
     printPaper: 'odPrintPaper', printCardsPerSide: 'odPrintCardsPerSide', printFontSize: 'odPrintFontSize',
     printFlavorMode: 'odPrintFlavorMode', printPriceMode: 'odPrintPriceMode', printShowArtist: 'odPrintShowArtist',
     printCutGuides: 'odPrintCutGuides',
-    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microArtZoom: 'odMicroArtZoom', microArtPositionX: 'odMicroArtPositionX', microArtPositionY: 'odMicroArtPositionY', microOracleMode: 'odMicroOracleMode',
-    microFlavor: 'odMicroFlavor', microPriceMode: 'odMicroPriceMode', microShowArtist: 'odMicroShowArtist',
-    microShowStats: 'odMicroShowStats'
+    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microArtZoom: 'odMicroArtZoom', microArtPositionX: 'odMicroArtPositionX', microArtPositionY: 'odMicroArtPositionY', microImagePosition: 'odMicroImagePosition', microImageWidth: 'odMicroImageWidth', microOracleMode: 'odMicroOracleMode',
+    microShowName: 'odMicroShowName', microShowMana: 'odMicroShowMana', microShowType: 'odMicroShowType', microFlavor: 'odMicroFlavor', microShowStats: 'odMicroShowStats', microShowRarity: 'odMicroShowRarity', microShowCollector: 'odMicroShowCollector', microShowSetCode: 'odMicroShowSetCode',
+    microPriceMode: 'odMicroPriceMode', microShowArtist: 'odMicroShowArtist'
   };
 
   let state = {
@@ -215,11 +215,22 @@
     p.microArtZoom = clamp(source.microArtZoom, 0, 100, 0);
     p.microArtPositionX = clamp(source.microArtPositionX, 0, 100, 50);
     p.microArtPositionY = clamp(source.microArtPositionY, 0, 100, 50);
+    // Micro layout controls intentionally live in the same normalized profile as
+    // the preview and production builder. This prevents the designer from
+    // developing a 'preview-only' setting that the generated HTML ignores.
+    p.microImagePosition = ['left','right','top'].includes(source.microImagePosition) ? source.microImagePosition : 'left';
+    p.microImageWidth = clamp(source.microImageWidth, 10, 45, 24);
     p.microOracleMode = ['full','compact','hide'].includes(source.microOracleMode) ? source.microOracleMode : 'compact';
+    p.microShowName = !(source.microShowName === false || source.microShowName === 'false');
+    p.microShowMana = !(source.microShowMana === false || source.microShowMana === 'false');
+    p.microShowType = !(source.microShowType === false || source.microShowType === 'false');
     p.microFlavor = source.microFlavor === true || source.microFlavor === 'true';
     p.microPriceMode = ['lowest','compact','hide'].includes(source.microPriceMode) ? source.microPriceMode : 'lowest';
     p.microShowArtist = source.microShowArtist === true || source.microShowArtist === 'true';
     p.microShowStats = !(source.microShowStats === false || source.microShowStats === 'false');
+    p.microShowRarity = !(source.microShowRarity === false || source.microShowRarity === 'false');
+    p.microShowCollector = !(source.microShowCollector === false || source.microShowCollector === 'false');
+    p.microShowSetCode = !(source.microShowSetCode === false || source.microShowSetCode === 'false');
     return p;
   }
 
@@ -314,6 +325,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     const zoomLabel = $('odMicroArtZoomValue'); if (zoomLabel) zoomLabel.textContent = `${Math.round(p.microArtZoom)}%`;
     const xLabel = $('odMicroArtPositionXValue'); if (xLabel) xLabel.textContent = `${Math.round(p.microArtPositionX)}%`;
     const yLabel = $('odMicroArtPositionYValue'); if (yLabel) yLabel.textContent = `${Math.round(p.microArtPositionY)}%`;
+    const widthLabel = $('odMicroImageWidthValue'); if (widthLabel) widthLabel.textContent = `${Math.round(p.microImageWidth)}%`;
   }
 
   function persist() {
@@ -577,7 +589,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function registerModule() {
-    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', '8.7.1.4');
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', '8.7.1.6');
   }
 
   function init() {
