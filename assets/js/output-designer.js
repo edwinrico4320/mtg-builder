@@ -10,7 +10,10 @@
     'priceLayout','priceShowBadges','priceHighlightLowest','priceShowSnapshotDate','priceCurrencyStyle',
     'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground',
     'printPaper','printCardsPerSide','printFontSize','printFlavorMode','printPriceMode','printShowArtist','printCutGuides',
-    'microDensity','microArtMode','microArtZoom','microArtPositionX','microArtPositionY','microOracleMode','microFlavor','microPriceMode','microShowArtist','microShowStats'
+    'microDensity','microArtMode','microArtZoom','microArtPositionX','microArtPositionY',
+    'microImagePosition','microImageWidth','microArtBoxMode','microArtBoxWidth','microArtBoxHeight','microArtBoxX','microArtBoxY',
+    'microCardPadding','microFlowGap','microFontSize','microLineHeight','microOracleMaxChars',
+    'microOracleMode','microFlavor','microPriceMode','microShowArtist','microShowStats','microShowRarity','microShowCollector','microShowSetCode','microShowName','microShowMana','microShowType'
   ];
 
   const DEFAULT_PROFILE = Object.freeze({
@@ -58,7 +61,15 @@
     printPriceMode: 'lowest',
     printShowArtist: false,
     printCutGuides: true,
-    microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microImagePosition: 'left', microImageWidth: 24, microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
+    microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50,
+    microImagePosition: 'left', microImageWidth: 24,
+    // Custom canvas art box: percentages are relative to the entire micro-card cell.
+    // Flow mode keeps the simple left/right/top layout; Custom mode gives you an
+    // explicit artwork rectangle that can be positioned and sized independently.
+    microArtBoxMode: 'flow', microArtBoxWidth: 24, microArtBoxHeight: 100, microArtBoxX: 0, microArtBoxY: 0,
+    // Fine print controls are deliberately separate from the general catalog font.
+    microCardPadding: 2, microFlowGap: 3, microFontSize: 6.2, microLineHeight: 1.08, microOracleMaxChars: 92,
+    microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
     microPriceMode: 'lowest', microShowArtist: false
   });
 
@@ -118,7 +129,15 @@
       borderRadius: 0, borderWidth: 1, printPaper: 'letter', printCardsPerSide: 30,
       printFontSize: 6.2, printFlavorMode: 'auto', printPriceMode: 'lowest',
       printShowArtist: false, printCutGuides: true,
-      microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50, microImagePosition: 'left', microImageWidth: 24, microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
+      microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50,
+    microImagePosition: 'left', microImageWidth: 24,
+    // Custom canvas art box: percentages are relative to the entire micro-card cell.
+    // Flow mode keeps the simple left/right/top layout; Custom mode gives you an
+    // explicit artwork rectangle that can be positioned and sized independently.
+    microArtBoxMode: 'flow', microArtBoxWidth: 24, microArtBoxHeight: 100, microArtBoxX: 0, microArtBoxY: 0,
+    // Fine print controls are deliberately separate from the general catalog font.
+    microCardPadding: 2, microFlowGap: 3, microFontSize: 6.2, microLineHeight: 1.08, microOracleMaxChars: 92,
+    microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
       microPriceMode: 'lowest', microShowArtist: false
     }
   };
@@ -142,7 +161,11 @@
     printPaper: 'odPrintPaper', printCardsPerSide: 'odPrintCardsPerSide', printFontSize: 'odPrintFontSize',
     printFlavorMode: 'odPrintFlavorMode', printPriceMode: 'odPrintPriceMode', printShowArtist: 'odPrintShowArtist',
     printCutGuides: 'odPrintCutGuides',
-    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microArtZoom: 'odMicroArtZoom', microArtPositionX: 'odMicroArtPositionX', microArtPositionY: 'odMicroArtPositionY', microImagePosition: 'odMicroImagePosition', microImageWidth: 'odMicroImageWidth', microOracleMode: 'odMicroOracleMode',
+    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microArtZoom: 'odMicroArtZoom', microArtPositionX: 'odMicroArtPositionX', microArtPositionY: 'odMicroArtPositionY',
+    microImagePosition: 'odMicroImagePosition', microImageWidth: 'odMicroImageWidth',
+    microArtBoxMode: 'odMicroArtBoxMode', microArtBoxWidth: 'odMicroArtBoxWidth', microArtBoxHeight: 'odMicroArtBoxHeight', microArtBoxX: 'odMicroArtBoxX', microArtBoxY: 'odMicroArtBoxY',
+    microCardPadding: 'odMicroCardPadding', microFlowGap: 'odMicroFlowGap', microFontSize: 'odMicroFontSize', microLineHeight: 'odMicroLineHeight', microOracleMaxChars: 'odMicroOracleMaxChars',
+    microOracleMode: 'odMicroOracleMode',
     microShowName: 'odMicroShowName', microShowMana: 'odMicroShowMana', microShowType: 'odMicroShowType', microFlavor: 'odMicroFlavor', microShowStats: 'odMicroShowStats', microShowRarity: 'odMicroShowRarity', microShowCollector: 'odMicroShowCollector', microShowSetCode: 'odMicroShowSetCode',
     microPriceMode: 'odMicroPriceMode', microShowArtist: 'odMicroShowArtist'
   };
@@ -220,6 +243,19 @@
     // developing a 'preview-only' setting that the generated HTML ignores.
     p.microImagePosition = ['left','right','top'].includes(source.microImagePosition) ? source.microImagePosition : 'left';
     p.microImageWidth = clamp(source.microImageWidth, 10, 45, 24);
+    // Custom canvas art box controls. These are intentionally normalized here so
+    // imported profiles, local storage, preview, and production builds all use
+    // the same geometry. X/Y are percentages from the card's top-left corner.
+    p.microArtBoxMode = ['flow','custom'].includes(source.microArtBoxMode) ? source.microArtBoxMode : 'flow';
+    p.microArtBoxWidth = clamp(source.microArtBoxWidth, 10, 80, 24);
+    p.microArtBoxHeight = clamp(source.microArtBoxHeight, 10, 100, 100);
+    p.microArtBoxX = clamp(source.microArtBoxX, 0, 90, 0);
+    p.microArtBoxY = clamp(source.microArtBoxY, 0, 90, 0);
+    p.microCardPadding = clamp(source.microCardPadding, 0, 4, 2);
+    p.microFlowGap = clamp(source.microFlowGap, 0, 6, 3);
+    p.microFontSize = clamp(source.microFontSize, 4.5, 8, 6.2);
+    p.microLineHeight = clamp(source.microLineHeight, 0.9, 1.3, 1.08);
+    p.microOracleMaxChars = clamp(source.microOracleMaxChars, 40, 220, 92);
     p.microOracleMode = ['full','compact','hide'].includes(source.microOracleMode) ? source.microOracleMode : 'compact';
     p.microShowName = !(source.microShowName === false || source.microShowName === 'false');
     p.microShowMana = !(source.microShowMana === false || source.microShowMana === 'false');
@@ -282,6 +318,18 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
         artZoom: profile.microArtZoom,
         artPositionX: profile.microArtPositionX,
         artPositionY: profile.microArtPositionY,
+        imagePosition: profile.microImagePosition,
+        imageWidth: profile.microImageWidth,
+        artBoxMode: profile.microArtBoxMode,
+        artBoxWidth: profile.microArtBoxWidth,
+        artBoxHeight: profile.microArtBoxHeight,
+        artBoxX: profile.microArtBoxX,
+        artBoxY: profile.microArtBoxY,
+        cardPadding: profile.microCardPadding,
+        flowGap: profile.microFlowGap,
+        fontSize: profile.microFontSize,
+        lineHeight: profile.microLineHeight,
+        oracleMaxChars: profile.microOracleMaxChars,
         oracleMode: profile.microOracleMode,
         flavor: profile.microFlavor,
         priceMode: profile.microPriceMode,
@@ -326,6 +374,15 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     const xLabel = $('odMicroArtPositionXValue'); if (xLabel) xLabel.textContent = `${Math.round(p.microArtPositionX)}%`;
     const yLabel = $('odMicroArtPositionYValue'); if (yLabel) yLabel.textContent = `${Math.round(p.microArtPositionY)}%`;
     const widthLabel = $('odMicroImageWidthValue'); if (widthLabel) widthLabel.textContent = `${Math.round(p.microImageWidth)}%`;
+    const boxWidthLabel = $('odMicroArtBoxWidthValue'); if (boxWidthLabel) boxWidthLabel.textContent = `${Math.round(p.microArtBoxWidth)}%`;
+    const boxHeightLabel = $('odMicroArtBoxHeightValue'); if (boxHeightLabel) boxHeightLabel.textContent = `${Math.round(p.microArtBoxHeight)}%`;
+    const boxXLabel = $('odMicroArtBoxXValue'); if (boxXLabel) boxXLabel.textContent = `${Math.round(p.microArtBoxX)}%`;
+    const boxYLabel = $('odMicroArtBoxYValue'); if (boxYLabel) boxYLabel.textContent = `${Math.round(p.microArtBoxY)}%`;
+    const padLabel = $('odMicroCardPaddingValue'); if (padLabel) padLabel.textContent = `${Number(p.microCardPadding).toFixed(1)}px`;
+    const gapLabel = $('odMicroFlowGapValue'); if (gapLabel) gapLabel.textContent = `${Number(p.microFlowGap).toFixed(1)}px`;
+    const microFontLabel = $('odMicroFontSizeValue'); if (microFontLabel) microFontLabel.textContent = `${Number(p.microFontSize).toFixed(1)}pt`;
+    const microLineLabel = $('odMicroLineHeightValue'); if (microLineLabel) microLineLabel.textContent = Number(p.microLineHeight).toFixed(2);
+    const oracleCharsLabel = $('odMicroOracleMaxCharsValue'); if (oracleCharsLabel) oracleCharsLabel.textContent = `${Math.round(p.microOracleMaxChars)} chars`;
   }
 
   function persist() {
