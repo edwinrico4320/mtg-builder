@@ -839,28 +839,14 @@
 </section>
   </main>
 
-  <script src="./assets/js/recommended-sets.js"></script>
-  <script src="./assets/js/symbols.js"></script>
-  <script src="./assets/js/app.js"></script>
-  <script src="assets/js/version-loader.js"></script>
-  <script src="assets/js/module-registry.js"></script>
+<!-- Load the main workspace and UI controllers as modules -->
+<script type="module" src="assets/js/workspace-admin.js"></script>
+<script type="module" src="assets/js/app.js"></script>
 
-  <script src="assets/js/image-lab.js"></script>
-  <script src="assets/js/image-lab-ui.js"></script>
-  <script src="assets/js/image-report.js"></script>
-  <script src="assets/js/price-snapshot.js"></script>
-  <script src="assets/js/shared-image-cache.js"></script>
-  <script src="assets/js/catalog-profile-core.js"></script>
-
-  <script src="assets/js/card-index.js"></script>
-  <script src="assets/js/catalog-image-profile.js"></script>
-  <script src="assets/js/catalog-batch-image-profile.js"></script>
-  <script src="assets/js/catalog-changed-image-profile.js"></script>
-  <script src="assets/js/catalog-all-image-profile.js"></script>
-  <script src="assets/js/simple-zip.js"></script>
-  <script src="assets/js/rules-library.js"></script>
-  <script src="assets/js/micro-catalog-preview.js"></script>
-  <script src="assets/js/output-designer.js"></script>
-  <script src="assets/js/workspace-admin.js"></script>
+<!-- If your individual catalog buttons are bound in these files, load them here too -->
+<script type="module" src="assets/js/catalog-image-profile.js"></script>
+<script type="module" src="assets/js/catalog-batch-image-profile.js"></script>
+<script type="module" src="assets/js/catalog-all-image-profile.js"></script>
+<script type="module" src="assets/js/catalog-changed-image-profile.js"></script>
 </body>
 </html>
