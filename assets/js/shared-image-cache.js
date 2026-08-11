@@ -1,4 +1,5 @@
-(function () {
+import { SimpleZip } from './simple-zip.js';
+
   function $(id) { return document.getElementById(id); }
 
   function escapeHtml(text) {
@@ -748,12 +749,12 @@
     }
   };
 
-  window.SharedImageCache = SharedImageCache;
-  window.SimpleZipReader = SimpleZipReader;
+export const SharedImageCache = /* ... existing object ... */;
+export const SimpleZipReader = /* ... existing class ... */;
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => SharedImageCache.init());
-  } else {
-    SharedImageCache.init();
-  }
-})();
+// Auto-initialize when the script loads
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => SharedImageCache.init());
+} else {
+  SharedImageCache.init();
+}
