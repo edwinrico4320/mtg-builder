@@ -688,7 +688,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     renderPreview();
   }
 
-  window.OutputDesigner = {
+  export const OutputDesigner = {
     version: VERSION,
     defaults: clone(DEFAULT_PROFILE),
     presets: clone(PRESETS),
