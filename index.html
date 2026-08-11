@@ -563,6 +563,29 @@
               </label>
             </div>
             <div class="od-inline-fields">
+              <label>Artwork position
+                <select id="odMicroImagePosition">
+                  <option value="left" selected>Left — compact card strip</option>
+                  <option value="right">Right — compact card strip</option>
+                  <option value="top">Top — full-width art</option>
+                </select>
+              </label>
+              <label>Artwork width <span id="odMicroImageWidthValue">24%</span>
+                <input id="odMicroImageWidth" type="range" min="10" max="45" step="1" value="24">
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Card name
+                <select id="odMicroShowName"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+              <label>Mana cost
+                <select id="odMicroShowMana"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+              <label>Card type
+                <select id="odMicroShowType"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
               <label>Oracle text
                 <select id="odMicroOracleMode">
                   <option value="compact" selected>Compact</option>
@@ -592,13 +615,23 @@
                 </select>
               </label>
             </div>
-            <label>Stats / loyalty
-              <select id="odMicroShowStats">
-                <option value="true" selected>Show</option>
-                <option value="false">Hide</option>
-              </select>
-            </label>
-            <p class="hint">Visual tuning preview for the 30-card target. It uses the same card-data concepts as catalog output and does not create a second data pipeline.</p>
+            <div class="od-inline-fields">
+              <label>Stats / loyalty
+                <select id="odMicroShowStats"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+              <label>Rarity
+                <select id="odMicroShowRarity"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+              <label>Collector #
+                <select id="odMicroShowCollector"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Set code
+                <select id="odMicroShowSetCode"><option value="true" selected>Show</option><option value="false">Hide</option></select>
+              </label>
+            </div>
+            <p class="hint">Micro cards now expose the individual fields shown in the design mockup: image placement/width, name, mana, type, Oracle, flavor, stats/loyalty, rarity, collector number, set code, artist, and prices. The gray card cell remains the fixed 30-card sheet area.</p>
           </section>
 
 
