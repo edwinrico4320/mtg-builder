@@ -2,7 +2,7 @@ name: Deploy Jekyll site to Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "ES6_Branch"] # Include ES6_Branch if testing on that branch
   workflow_dispatch:
 
 permissions:
@@ -24,13 +24,14 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
         with:
-          token: "" # Prevents Jekyll from making the SSL-failing metadata API call
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./
           destination: ./_site
+          token: "" # Bypasses the SSL certificate failure during metadata lookup
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
