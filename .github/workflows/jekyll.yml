@@ -1,4 +1,4 @@
-name: Deploy Jekyll to GitHub Pages
+name: Deploy Jekyll site to Pages
 
 on:
   push:
@@ -21,19 +21,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true # Caches gems automatically for fast builds
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          token: "" # Prevents Jekyll from making the SSL-failing metadata API call
 
       - name: Build with Jekyll
-        run: bundle exec jekyll build
-        env:
-          JEKYLL_ENV: production
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
