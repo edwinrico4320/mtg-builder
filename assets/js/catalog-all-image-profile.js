@@ -1,4 +1,6 @@
-(function () {
+  import { CatalogProfileCore } from './catalog-profile-core.js';
+  import { BatchImageProfileRunner } from './catalog-batch-image-profile.js';
+  import { SharedImageCache } from './shared-image-cache.js';
   function $(id) { return document.getElementById(id); }
   async function buildAll(ev) {
     const options = CatalogProfileCore.gatherOptions();
@@ -21,4 +23,3 @@
   }
   function init(){ const btn=$('buildAllCatalogsBtn'); if(btn) btn.addEventListener('click', buildAll, true); if(typeof BuilderModules!=='undefined') BuilderModules.register('All-Sets Image Profile','8.7.1'); }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init); else init();
-})();
