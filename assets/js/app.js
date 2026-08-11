@@ -1,3 +1,10 @@
+import { MTGSetRegistry } from './workspace-admin.js'; // Ensure workspace-admin exports this
+import { CatalogProfileCore } from './catalog-profile-core.js';
+import { SimpleZip } from './simple-zip.js';
+import { OutputDesigner } from './output-designer.js';
+import { PriceSnapshotManager } from './price-snapshot.js';
+import { RulesLibraryInternals } from './rules-library.js';
+
 (() => {
   const setCodes = Array.from(new Set((window.RECOMMENDED_SETS || []).map(s => String(s).toUpperCase())));
   let discoveredSets = [];
