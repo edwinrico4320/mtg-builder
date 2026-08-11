@@ -251,5 +251,5 @@
     setTimeout(startup,500);
   }
 
-  window.WorkspaceAdmin={version:VERSION,currentWorkspace,applyWorkspace,checkWorkspace,buildDeploy};
+  export const WorkspaceAdmin={version:VERSION,currentWorkspace,applyWorkspace,checkWorkspace,buildDeploy};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
