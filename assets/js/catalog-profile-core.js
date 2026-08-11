@@ -28,7 +28,7 @@
     return ('00000000' + (hash >>> 0).toString(16)).slice(-8);
   }
 
-  const CatalogProfileCore = {
+  export const CatalogProfileCore = {
     manifestPath: './data/output/build-manifest.json',
 
     registerModule() {
@@ -521,7 +521,7 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
   };
 
   //window.CatalogProfileCore = CatalogProfileCore;
-  export const CatalogProfileCore = {
+  //export const CatalogProfileCore = {
     //import exising methods?
-  };
+  //};
   CatalogProfileCore.registerModule();
