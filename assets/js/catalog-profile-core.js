@@ -1,4 +1,8 @@
-(function () {
+  import { MTGSymbolRenderer } from './symbols.js';
+  import { SharedImageCache } from './shared-image-cache.js';
+  import { OutputDesigner } from './output-designer.js';
+  import { PriceSnapshotManager } from './price-snapshot.js';
+
   function $(id) { return document.getElementById(id); }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -516,6 +520,8 @@ body{font-family:Arial,sans-serif;font-size:${scale.body};margin:0;background:#f
     }
   };
 
-  window.CatalogProfileCore = CatalogProfileCore;
+  //window.CatalogProfileCore = CatalogProfileCore;
+  export const CatalogProfileCore = {
+    //import exising methods?
+  };
   CatalogProfileCore.registerModule();
-})();
