@@ -26,9 +26,9 @@ jobs:
         with:
           ruby-version: '3.3'
 
-      - name: Install Jekyll & Plugins
+      - name: Install Jekyll and Plugins
         run: |
-          gem install jekyll jekyll-theme-primer jekyll-seo-tag jekyll-paginate
+          gem install jekyll jekyll-theme-primer jekyll-seo-tag jekyll-paginate jekyll-titles-from-headings jekyll-relative-links
 
       - name: Build Site
         run: jekyll build --source ./ --destination ./_site
