@@ -575,6 +575,46 @@
               </label>
             </div>
             <div class="od-inline-fields">
+              <label>Art box mode
+                <select id="odMicroArtBoxMode">
+                  <option value="flow" selected>Flow — reserves space for text</option>
+                  <option value="custom">Custom canvas box — exact placement</option>
+                </select>
+              </label>
+              <label>Art box width <span id="odMicroArtBoxWidthValue">24%</span>
+                <input id="odMicroArtBoxWidth" type="range" min="10" max="80" step="1" value="24">
+              </label>
+              <label>Art box height <span id="odMicroArtBoxHeightValue">100%</span>
+                <input id="odMicroArtBoxHeight" type="range" min="10" max="100" step="1" value="100">
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Art box X <span id="odMicroArtBoxXValue">0%</span>
+                <input id="odMicroArtBoxX" type="range" min="0" max="90" step="1" value="0">
+              </label>
+              <label>Art box Y <span id="odMicroArtBoxYValue">0%</span>
+                <input id="odMicroArtBoxY" type="range" min="0" max="90" step="1" value="0">
+              </label>
+              <label>Card padding <span id="odMicroCardPaddingValue">2.0px</span>
+                <input id="odMicroCardPadding" type="range" min="0" max="4" step="0.5" value="2">
+              </label>
+              <label>Flow gap <span id="odMicroFlowGapValue">3.0px</span>
+                <input id="odMicroFlowGap" type="range" min="0" max="6" step="0.5" value="3">
+              </label>
+            </div>
+            <div class="od-inline-fields">
+              <label>Micro font <span id="odMicroFontSizeValue">6.2pt</span>
+                <input id="odMicroFontSize" type="range" min="4.5" max="8" step="0.1" value="6.2">
+              </label>
+              <label>Micro line height <span id="odMicroLineHeightValue">1.08</span>
+                <input id="odMicroLineHeight" type="range" min="0.9" max="1.3" step="0.01" value="1.08">
+              </label>
+              <label>Oracle character limit <span id="odMicroOracleMaxCharsValue">92 chars</span>
+                <input id="odMicroOracleMaxChars" type="range" min="40" max="220" step="1" value="92">
+              </label>
+            </div>
+            <p class="hint">Custom canvas mode treats each micro-card as a coordinate canvas. X/Y locate the artwork rectangle from the card's top-left corner; width/height define its size. This mode can intentionally overlap text, so use it when you want precise personal placement. Flow mode remains the safer automatic layout.</p>
+            <div class="od-inline-fields">
               <label>Card name
                 <select id="odMicroShowName"><option value="true" selected>Show</option><option value="false">Hide</option></select>
               </label>
