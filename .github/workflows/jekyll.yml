@@ -2,7 +2,7 @@ name: Deploy Jekyll site to Pages
 
 on:
   push:
-    branches: ["main", "ES6_Branch"] # Include ES6_Branch if testing on that branch
+    branches: ["main", "ES6_Branch"]
   workflow_dispatch:
 
 permissions:
@@ -21,17 +21,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          ruby-version: '3.3'
 
-      - name: Build with Jekyll
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-          token: "" # Bypasses the SSL certificate failure during metadata lookup
+      - name: Install Jekyll & Plugins
+        run: |
+          gem install jekyll jekyll-theme-primer jekyll-seo-tag jekyll-paginate
+
+      - name: Build Site
+        run: jekyll build --source ./ --destination ./_site
+        env:
+          JEKYLL_ENV: production
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
