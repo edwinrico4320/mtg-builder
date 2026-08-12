@@ -5,7 +5,7 @@ import { OutputDesigner } from './output-designer.js';
 import { PriceSnapshotManager } from './price-snapshot.js';
 import { RulesLibraryInternals } from './rules-library.js';
 
-(() => {
+
   const setCodes = Array.from(new Set((window.RECOMMENDED_SETS || []).map(s => String(s).toUpperCase())));
   let discoveredSets = [];
   let loadedManifest = null;
@@ -689,7 +689,7 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     setRegistryState.pending = loadSetRegistry(SET_INDEX_DEFAULT,{fallbackScan:true}).finally(()=>{setRegistryState.pending=null;});
     console.log('MTG Builder v8.7.1 persistent registry loaded');
   }
-  export const MTGSetRegistry = {
+export const MTGSetRegistry = {
     version:'8.7.1',
     defaultPath:SET_INDEX_DEFAULT,
     load:loadSetRegistry,
@@ -706,4 +706,3 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     buildIndex:buildRegistry
   };
   document.addEventListener('DOMContentLoaded', bind);
-})();

@@ -184,12 +184,11 @@ ${defs}
   const basicMap = {};
   basicKeys.forEach(function (key) { basicMap[key] = symbolDataUri(key); });
 
-  export const MTG_SYMBOLS = basicMap;
-  export const MTGSymbolRenderer = {
+export const MTG_SYMBOLS = basicMap;
+export const MTGSymbolRenderer = {
     symbolDataUri,
     rarityDataUri,
     manaToHtml,
     renderRarityIcon,
     htmlEscape
-  };
   };

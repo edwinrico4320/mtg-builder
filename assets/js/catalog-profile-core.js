@@ -1,7 +1,7 @@
-  import { MTGSymbolRenderer } from './symbols.js';
-  import { SharedImageCache } from './shared-image-cache.js';
-  import { OutputDesigner } from './output-designer.js';
-  import { PriceSnapshotManager } from './price-snapshot.js';
+import { MTGSymbolRenderer } from './symbols.js';
+import { SharedImageCache } from './shared-image-cache.js';
+import { OutputDesigner } from './output-designer.js';
+import { PriceSnapshotManager } from './price-snapshot.js';
 
   function $(id) { return document.getElementById(id); }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -28,7 +28,7 @@
     return ('00000000' + (hash >>> 0).toString(16)).slice(-8);
   }
 
-  export const CatalogProfileCore = {
+export const CatalogProfileCore = {
     manifestPath: './data/output/build-manifest.json',
 
     registerModule() {

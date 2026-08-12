@@ -1,10 +1,10 @@
   //import { MTGSetRegistry } from './workspace-admin.js'; // Ensure workspace-admin exports this
-  import { MTGSetRegistry } from './app.js';
-  import { CatalogProfileCore } from './catalog-profile-core.js';
-  import { SimpleZip } from './simple-zip.js';
-  import { OutputDesigner } from './output-designer.js';
-  import { PriceSnapshotManager } from './price-snapshot.js';
-  import { RulesLibraryInternals } from './rules-library.js';
+import { MTGSetRegistry } from './app.js';
+import { CatalogProfileCore } from './catalog-profile-core.js';
+import { SimpleZip } from './simple-zip.js';
+import { OutputDesigner } from './output-designer.js';
+import { PriceSnapshotManager } from './price-snapshot.js';
+import { RulesLibraryInternals } from './rules-library.js';
   
   const VERSION = '8.7.1';
   const STORAGE_KEY = 'mtg-builder-workspace-v8_6';
@@ -252,5 +252,5 @@
     setTimeout(startup,500);
   }
 
-  export const WorkspaceAdmin={version:VERSION,currentWorkspace,applyWorkspace,checkWorkspace,buildDeploy};
+export const WorkspaceAdmin={version:VERSION,currentWorkspace,applyWorkspace,checkWorkspace,buildDeploy};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

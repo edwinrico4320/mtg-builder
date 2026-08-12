@@ -1,6 +1,6 @@
-  import { CatalogProfileCore } from './catalog-profile-core.js';
-  import { BatchImageProfileRunner } from './catalog-batch-image-profile.js';
-  import { SharedImageCache } from './shared-image-cache.js';
+import { CatalogProfileCore } from './catalog-profile-core.js';
+import { BatchImageProfileRunner } from './catalog-batch-image-profile.js';
+import { SharedImageCache } from './shared-image-cache.js';
   
   function $(id) { return document.getElementById(id); }
   async function buildChanged(ev) {
