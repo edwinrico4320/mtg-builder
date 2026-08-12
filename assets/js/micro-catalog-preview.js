@@ -8,7 +8,7 @@
  * This module deliberately does NOT fetch set JSON, download images, or write
  * price data. Production catalog generation remains responsible for those jobs.
  */
-(function () {
+
   'use strict';
 
   // Representative cards make the preview useful before a real set build.
@@ -174,4 +174,3 @@
   }
 
   window.MicroCatalogPreview = {version:'8.7.1.4',render,css,hydrate};
-})();

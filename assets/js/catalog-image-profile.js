@@ -1,5 +1,5 @@
-  import { CatalogProfileCore } from './catalog-profile-core.js';
-  import { SharedImageCache } from './shared-image-cache.js';
+import { CatalogProfileCore } from './catalog-profile-core.js';
+import { SharedImageCache } from './shared-image-cache.js';
 
   function $(id) { return document.getElementById(id); }
   const state = {running: false, cancelCurrent: false, cancelBatch: false};

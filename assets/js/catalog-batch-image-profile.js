@@ -1,5 +1,5 @@
-  import { CatalogProfileCore } from './catalog-profile-core.js';
-  import { SharedImageCache } from './shared-image-cache.js';
+import { CatalogProfileCore } from './catalog-profile-core.js';
+import { SharedImageCache } from './shared-image-cache.js';
   
   function $(id) { return document.getElementById(id); }
   const state = {running: false, cancelCurrent: false, cancelBatch: false};
@@ -74,7 +74,7 @@
   function cancelCurrent() { state.cancelCurrent = true; setStatus('<strong>Cancellation requested:</strong> current set will stop after the current card.'); }
   function cancelBatch() { state.cancelBatch = true; state.cancelCurrent = true; setStatus('<strong>Cancellation requested:</strong> batch will stop after the current card/set.'); }
 
-  export const BatchImageProfileRunner = { runBatch, state };
+export const BatchImageProfileRunner = { runBatch, state };
 
   function init() {
     const btn = $('buildCheckedCatalogsBtn');

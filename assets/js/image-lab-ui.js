@@ -1,4 +1,4 @@
-(function () {
+
   function $(id) { return document.getElementById(id); }
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -450,4 +450,3 @@
   } else {
     init();
   }
-})();

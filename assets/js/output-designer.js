@@ -1,4 +1,4 @@
-(function () {
+
   const VERSION = '8.7.1.6';
   const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
   const OUTPUT_FIELDS = [
@@ -688,7 +688,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     renderPreview();
   }
 
-  export const OutputDesigner = {
+export const OutputDesigner = {
     version: VERSION,
     defaults: clone(DEFAULT_PROFILE),
     presets: clone(PRESETS),
@@ -705,4 +705,3 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
-})();

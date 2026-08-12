@@ -749,8 +749,8 @@ import { SimpleZip } from './simple-zip.js';
     }
   };
 
-export const SharedImageCache = /* ... existing object ... */;
-export const SimpleZipReader = /* ... existing class ... */;
+export { SharedImageCache };
+export { SimpleZipReader };
 
 // Auto-initialize when the script loads
 if (document.readyState === 'loading') {

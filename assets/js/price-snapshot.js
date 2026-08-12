@@ -1,5 +1,5 @@
-  import { OutputDesigner } from './output-designer.js';
-  import { CatalogProfileCore } from './catalog-profile-core.js';
+import { OutputDesigner } from './output-designer.js';
+import { CatalogProfileCore } from './catalog-profile-core.js';
   
   const VERSION = '8.5.0';
   const STORAGE_KEY = 'mtg-builder-price-settings-v8_5';
@@ -73,13 +73,13 @@
   function init(){register();loadStored();writeControls();updateStatus();['priceEnabled','priceExternalLinks'].forEach(id=>{const e=$(id);if(e)e.addEventListener('change',readControls);});document.querySelectorAll('[data-price-provider],[data-price-finish],[data-price-type]').forEach(e=>e.addEventListener('change',readControls));const pathBtn=$('priceLoadPathBtn');if(pathBtn)pathBtn.addEventListener('click',async()=>{try{await loadUrl(($('priceSourcePath')&&$('priceSourcePath').value.trim())||'./data/prices/price-snapshot.json');}catch(err){if($('priceDataStatus'))$('priceDataStatus').innerHTML=`<strong>Price load failed:</strong> ${esc(err.message||err)}`;}});const officialBtn=$('priceLoadOfficialBtn');if(officialBtn)officialBtn.addEventListener('click',async()=>{try{await loadUrl(OFFICIAL_URL);}catch(err){if($('priceDataStatus'))$('priceDataStatus').innerHTML=`<strong>Official ZIP load failed:</strong> ${esc(err.message||err)}<br>Download the ZIP manually and use Load Local ZIP / JSON.`;}});const localBtn=$('priceLoadLocalBtn'),file=$('priceLocalFile');if(localBtn&&file)localBtn.addEventListener('click',()=>file.click());if(file)file.addEventListener('change',async()=>{try{await loadFile(file.files&&file.files[0]);}catch(err){if($('priceDataStatus'))$('priceDataStatus').innerHTML=`<strong>Local price load failed:</strong> ${esc(err.message||err)}`;}file.value='';});const clear=$('priceClearBtn');if(clear)clear.addEventListener('click',clearData);const exportBtn=$('priceExportCheckedBtn');if(exportBtn)exportBtn.addEventListener('click',async()=>{try{await exportChecked();}catch(err){setReport(`<strong>Snapshot export failed:</strong> ${esc(err.message||err)}`);}});const reportBtn=$('priceDownloadReportBtn');if(reportBtn)reportBtn.addEventListener('click',downloadReport);}
 
   /*window.PriceSnapshotManager={version:VERSION,loadUrl,loadFile,clearData,getBuildSettings,getFingerprintData,getSummary,lookupCard,renderCardPriceBox,renderSampleBox,getOutputCss,getPriceDesign,formatBytes};*/
-  export const PriceSnapshotManager = {
+export const PriceSnapshotManager = {
     version: VERSION,
     loadUrl,
     loadFile,
     clearData,
     getBuildSettings,
-    getFingerPrintData,
+    getFingerprintData,
     getSummary,
     lookupCard,
     renderCardPriceBox,
