@@ -1,0 +1,8 @@
+# Disable automatic GitHub API metadata network calls
+repository: edwinrico4320/mtg-builder
+github:
+  is_project_page: true
+
+# Disable automatic network metadata fetching
+repository: edwinrico4320/mtg-builder
+title: MTG Builder
