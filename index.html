@@ -384,25 +384,261 @@
 
       <div class="designer-layout" style="display: flex; gap: 1rem; height: 60vh;">
         <div class="designer-sidebar" style="flex: 0 0 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 1rem;">
-          <label style="display:flex; flex-direction:column; font-size: 0.9em;">Profile Name <input type="text" id="odProfileName"></label>
-          <label style="display:flex; flex-direction:column; font-size: 0.9em;">Base Font Size <input type="number" id="odBaseFontSize"></label>
-          <label style="display:flex; flex-direction:column; font-size: 0.9em;">Density
-            <select id="odDensity">
-              <option value="compact">Compact</option>
-              <option value="comfortable">Comfortable</option>
-              <option value="spacious">Spacious</option>
-            </select>
-          </label>
-          <label style="display:flex; flex-direction:column; font-size: 0.9em;">Page Background <input type="color" id="odPageBackground"></label>
-          <label style="display:flex; flex-direction:column; font-size: 0.9em;">Text Color <input type="color" id="odTextColor"></label>
-          <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Position
-            <select id="odImagePosition">
-              <option value="responsive">Responsive</option>
-              <option value="top">Top</option>
-              <option value="left">Left</option>
-              <option value="right">Right</option>
-            </select>
-          </label>
+          <details open><summary style="font-weight:bold;cursor:pointer;">General</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Profile Name <input type="text" id="odProfileName"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Max Page Width <input type="text" id="odMaxPageWidth" value="1200px" placeholder="e.g. 1200px or 100%"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Card Columns <input type="number" id="odCardColumns" min="1" max="6" step="1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Radius <input type="number" id="odBorderRadius" min="0" max="20" step="1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Width <input type="number" id="odBorderWidth" min="0" max="10" step="1"></label>
+          </details>
+
+          <details open><summary style="font-weight:bold;cursor:pointer;">Typography</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Font Family <input type="text" id="odFontFamily" value="Arial, sans-serif"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Base Font Size <input type="number" id="odBaseFontSize" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Line Height <input type="number" id="odLineHeight" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Heading Scale <input type="number" id="odHeadingScale" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Heading Weight
+              <select id="odHeadingWeight">
+                <option value="normal">Normal</option>
+                <option value="bold">Bold</option>
+                <option value="bolder">Bolder</option>
+              </select>
+            </label>
+          </details>
+
+          <details open><summary style="font-weight:bold;cursor:pointer;">Colors</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Page Background <input type="color" id="odPageBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Content Background <input type="color" id="odContentBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Nav Background <input type="color" id="odNavigationBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Header Background <input type="color" id="odHeaderBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Text Color <input type="color" id="odTextColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Secondary Text <input type="color" id="odSecondaryTextColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Heading Color <input type="color" id="odHeadingColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Link Color <input type="color" id="odLinkColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Color <input type="color" id="odBorderColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Rules Background <input type="color" id="odRulesBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flavor Background <input type="color" id="odFlavorBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Target Background <input type="color" id="odTargetBackground"></label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Layout Options</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Density
+              <select id="odDensity">
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Navigation Mode
+              <select id="odNavigationMode">
+                <option value="sidebar">Sidebar</option>
+                <option value="top">Top</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Position
+              <select id="odImagePosition">
+                <option value="responsive">Responsive</option>
+                <option value="top">Top</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Width <input type="number" id="odImageWidth" step="1"></label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Prices</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Price Layout
+              <select id="odPriceLayout">
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Badges
+              <select id="odPriceShowBadges">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Highlight Lowest
+              <select id="odPriceHighlightLowest">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Snapshot Date
+              <select id="odPriceShowSnapshotDate">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Currency Style
+              <select id="odPriceCurrencyStyle">
+                <option value="symbol">Symbol</option>
+                <option value="code">Code</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Unavailable Text <input type="text" id="odPriceUnavailable"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Font Size <input type="number" id="odPriceFontSize" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Background <input type="color" id="odPriceBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Color <input type="color" id="odPriceBorderColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Lowest Background <input type="color" id="odPriceLowestBackground"></label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Print Options</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Paper
+              <select id="odPrintPaper">
+                <option value="letter">Letter</option>
+                <option value="a4">A4</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Cards Per Side <input type="number" id="odPrintCardsPerSide" step="1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Font Size <input type="number" id="odPrintFontSize" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flavor Mode
+              <select id="odPrintFlavorMode">
+                <option value="auto">Auto</option>
+                <option value="show">Show</option>
+                <option value="hide">Hide</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Price Mode
+              <select id="odPrintPriceMode">
+                <option value="lowest">Lowest</option>
+                <option value="all">All</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Artist
+              <select id="odPrintShowArtist">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Cut Guides
+              <select id="odPrintCutGuides">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Micro Catalog</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Density
+              <select id="odMicroDensity">
+                <option value="reference">Reference</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Mode
+              <select id="odMicroArtMode">
+                <option value="crop">Crop</option>
+                <option value="fit">Fit</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Zoom: <span id="odMicroArtZoomValue">0%</span>
+              <input type="range" id="odMicroArtZoom" min="0" max="200" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Pos X: <span id="odMicroArtPositionXValue">50%</span>
+              <input type="range" id="odMicroArtPositionX" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Pos Y: <span id="odMicroArtPositionYValue">50%</span>
+              <input type="range" id="odMicroArtPositionY" min="0" max="100" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Pos
+              <select id="odMicroImagePosition">
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Width: <span id="odMicroImageWidthValue">24%</span>
+              <input type="range" id="odMicroImageWidth" min="0" max="100" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Box Mode
+              <select id="odMicroArtBoxMode">
+                <option value="flow">Flow</option>
+                <option value="custom">Custom</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box Width: <span id="odMicroArtBoxWidthValue">24%</span>
+              <input type="range" id="odMicroArtBoxWidth" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box Height: <span id="odMicroArtBoxHeightValue">100%</span>
+              <input type="range" id="odMicroArtBoxHeight" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box X: <span id="odMicroArtBoxXValue">0%</span>
+              <input type="range" id="odMicroArtBoxX" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box Y: <span id="odMicroArtBoxYValue">0%</span>
+              <input type="range" id="odMicroArtBoxY" min="0" max="100" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Card Padding: <span id="odMicroCardPaddingValue">2px</span>
+              <input type="range" id="odMicroCardPadding" min="0" max="10" step="0.5">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flow Gap: <span id="odMicroFlowGapValue">3px</span>
+              <input type="range" id="odMicroFlowGap" min="0" max="15" step="0.5">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Font Size: <span id="odMicroFontSizeValue">6.2pt</span>
+              <input type="range" id="odMicroFontSize" min="4" max="12" step="0.1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Line Height: <span id="odMicroLineHeightValue">1.08</span>
+              <input type="range" id="odMicroLineHeight" min="0.8" max="2.0" step="0.05">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Oracle Max Chars: <span id="odMicroOracleMaxCharsValue">92 chars</span>
+              <input type="range" id="odMicroOracleMaxChars" min="20" max="300" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Oracle Mode
+              <select id="odMicroOracleMode">
+                <option value="compact">Compact</option>
+                <option value="full">Full</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Name
+              <select id="odMicroShowName"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Mana
+              <select id="odMicroShowMana"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Type
+              <select id="odMicroShowType"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flavor Text
+              <select id="odMicroFlavor"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Stats
+              <select id="odMicroShowStats"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Rarity
+              <select id="odMicroShowRarity"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Collector Info
+              <select id="odMicroShowCollector"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Set Code
+              <select id="odMicroShowSetCode"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Price Mode
+              <select id="odMicroPriceMode">
+                <option value="lowest">Lowest</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Artist
+              <select id="odMicroShowArtist"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+          </details>
         </div>
         <div id="odPreviewFrameShell" data-viewport="desktop" style="flex: 1; border: 1px solid var(--border, #ccc); border-radius: 4px; background: #fff;">
           <iframe id="odPreviewFrame" style="width: 100%; height: 100%; border: none;"></iframe>

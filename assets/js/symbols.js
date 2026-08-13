@@ -192,3 +192,6 @@ export const MTGSymbolRenderer = {
     renderRarityIcon,
     htmlEscape
   };
+
+window.MTG_SYMBOLS = MTG_SYMBOLS;
+window.MTGSymbolRenderer = MTGSymbolRenderer;
