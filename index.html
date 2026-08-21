@@ -198,9 +198,13 @@
 
       <div class="actions">
         <select id="catalogSetSelect"><option value="">Loading set registry...</option></select>
-        <button id="buildCatalogBtn">Build Selected Set HTML</button>
-        <button id="previewCatalogBtn" style="margin-left: 10px;">Preview Selected Set</button>
+                <button id="buildCatalogBtn">Build Selected Set HTML</button>
+        <button id="previewCatalogBtn" type="button">Preview Selected Set</button>
         <button id="cancelCatalogBuildBtn" type="button" disabled>Cancel Image Build</button>
+
+      </div>
+      <div id="catalogPreviewFrameShell" style="display: none; border: 1px solid var(--border, #ccc); border-radius: 4px; height: 500px; margin-top: 1rem; width: 100%;">
+        <iframe id="catalogPreviewFrame" style="width: 100%; height: 100%; border: none;"></iframe>
       </div>
 
       <div id="catalogPreviewFrameShell" style="display:none; margin-top:20px; border:1px solid #444; border-radius:4px; padding:10px; background:#1e1e1e;">
