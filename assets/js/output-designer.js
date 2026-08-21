@@ -353,23 +353,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     return {name:p.name, version:VERSION, fontFamily:p.fontFamily, baseFontSize:p.baseFontSize, density:p.density, navigationMode:p.navigationMode, imagePosition:p.imagePosition, imageWidth:p.imageWidth, printPaper:p.printPaper, printCardsPerSide:p.printCardsPerSide};
   }
 
-  function readControls() {
-    const raw = {};
-    for (const [key,id] of Object.entries(CONTROL_MAP)) {
-      const el = $(id);
-      if (el) raw[key] = el.value;
-    }
-    state.profile = sanitizeProfile(raw);
-    return state.profile;
-  }
-
-  function writeControls(profileInput) {
-    const p = sanitizeProfile(profileInput);
-    state.profile = p;
-    for (const [key,id] of Object.entries(CONTROL_MAP)) {
-      const el = $(id);
-      if (el) el.value = p[key];
-    }
+  function updateLabelsAndVisibility(p) {
     const zoomLabel = $('odMicroArtZoomValue'); if (zoomLabel) zoomLabel.textContent = `${Math.round(p.microArtZoom)}%`;
     const xLabel = $('odMicroArtPositionXValue'); if (xLabel) xLabel.textContent = `${Math.round(p.microArtPositionX)}%`;
     const yLabel = $('odMicroArtPositionYValue'); if (yLabel) yLabel.textContent = `${Math.round(p.microArtPositionY)}%`;
@@ -383,6 +367,34 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     const microFontLabel = $('odMicroFontSizeValue'); if (microFontLabel) microFontLabel.textContent = `${Number(p.microFontSize).toFixed(1)}pt`;
     const microLineLabel = $('odMicroLineHeightValue'); if (microLineLabel) microLineLabel.textContent = Number(p.microLineHeight).toFixed(2);
     const oracleCharsLabel = $('odMicroOracleMaxCharsValue'); if (oracleCharsLabel) oracleCharsLabel.textContent = `${Math.round(p.microOracleMaxChars)} chars`;
+
+    const isFlow = p.microArtBoxMode === 'flow';
+    const display = isFlow ? 'none' : 'flex';
+    const widthEl = $('odMicroArtBoxWidth'); if (widthEl && widthEl.parentElement) widthEl.parentElement.style.display = display;
+    const heightEl = $('odMicroArtBoxHeight'); if (heightEl && heightEl.parentElement) heightEl.parentElement.style.display = display;
+    const xEl = $('odMicroArtBoxX'); if (xEl && xEl.parentElement) xEl.parentElement.style.display = display;
+    const yEl = $('odMicroArtBoxY'); if (yEl && yEl.parentElement) yEl.parentElement.style.display = display;
+  }
+
+  function readControls() {
+    const raw = {};
+    for (const [key,id] of Object.entries(CONTROL_MAP)) {
+      const el = $(id);
+      if (el) raw[key] = el.value;
+    }
+    state.profile = sanitizeProfile(raw);
+    updateLabelsAndVisibility(state.profile);
+    return state.profile;
+  }
+
+  function writeControls(profileInput) {
+    const p = sanitizeProfile(profileInput);
+    state.profile = p;
+    for (const [key,id] of Object.entries(CONTROL_MAP)) {
+      const el = $(id);
+      if (el) el.value = p[key];
+    }
+    updateLabelsAndVisibility(p);
   }
 
   function persist() {
