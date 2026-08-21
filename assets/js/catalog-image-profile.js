@@ -46,6 +46,56 @@ import { SharedImageCache } from './shared-image-cache.js';
     }
   }
 
+
+  async function previewSelectedSet(ev) {
+    const options = CatalogProfileCore.gatherOptions();
+    if (options.profile === 'compact-text') return;
+
+    ev.preventDefault();
+    ev.stopImmediatePropagation();
+    if (state.running) return;
+
+    const setCode = (($('catalogSetSelect') || {}).value) || '';
+    const summary = $('catalogSummary');
+    const shell = $('catalogPreviewFrameShell');
+    const frame = $('catalogPreviewFrame');
+
+    if (!setCode) {
+      if (summary) summary.innerHTML = 'Choose a scanned set first.';
+      return;
+    }
+
+    if (shell) shell.style.display = 'block';
+    if (frame) frame.srcdoc = `<!doctype html><html><head></head><body><div style="padding:20px;font-family:sans-serif;">Generating preview for ${setCode}...</div></body></html>`;
+
+    state.running = true; state.cancelCurrent = false; state.cancelBatch = false;
+
+    try {
+      if (summary) summary.innerHTML = `Generating preview for ${setCode}...`;
+      const source = await CatalogProfileCore.fetchSetSource(setCode);
+
+      // Limit to 30 cards for preview to avoid hanging if the set is huge, unless it's a full build?
+      // "should show what would be output by build selected set html but shouldn't actually run it until I give further authorization."
+      // I'll build the whole set HTML.
+
+      const result = await CatalogProfileCore.buildSetFromSource(setCode, source, options, state, prog => {
+        if (summary) summary.innerHTML = `Previewing ${setCode}: ${prog.current} of ${prog.total} · ${prog.cardName}`;
+      });
+
+      if (frame && result.html) {
+        frame.srcdoc = result.html;
+      }
+
+      if (summary) summary.innerHTML = `<strong>Preview generated.</strong> Ready to build.`;
+    } catch (err) {
+      if (summary) summary.innerHTML = `Preview failed: ${err && err.message ? err.message : String(err)}`;
+      if (frame) frame.srcdoc = `<!doctype html><html><head></head><body><div style="padding:20px;font-family:sans-serif;color:red;">Error: ${err && err.message ? err.message : String(err)}</div></body></html>`;
+    } finally {
+      state.running = false;
+      if (window.SharedImageCache) SharedImageCache.refreshStatusSoon();
+    }
+  }
+
   function cancelBuild() {
     state.cancelCurrent = true;
     const summary = $('catalogSummary');
@@ -73,6 +123,8 @@ import { SharedImageCache } from './shared-image-cache.js';
     updateProfileUi();
     if (buildBtn) buildBtn.addEventListener('click', buildSelectedSet, true);
     if (cancelBtn) cancelBtn.addEventListener('click', cancelBuild);
+    const previewBtn = $('previewCatalogBtn');
+    if (previewBtn) previewBtn.addEventListener('click', previewSelectedSet, true);
     if (typeof BuilderModules !== 'undefined') BuilderModules.register('Catalog Image Profile', '8.7.1');
   }
 

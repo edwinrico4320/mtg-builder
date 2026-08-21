@@ -199,7 +199,13 @@
       <div class="actions">
         <select id="catalogSetSelect"><option value="">Loading set registry...</option></select>
         <button id="buildCatalogBtn">Build Selected Set HTML</button>
+        <button id="previewCatalogBtn" style="margin-left: 10px;">Preview Selected Set</button>
         <button id="cancelCatalogBuildBtn" type="button" disabled>Cancel Image Build</button>
+      </div>
+
+      <div id="catalogPreviewFrameShell" style="display:none; margin-top:20px; border:1px solid #444; border-radius:4px; padding:10px; background:#1e1e1e;">
+        <h3 style="margin-top:0; font-size:1.1em; color:#ddd; border-bottom:1px solid #333; padding-bottom:5px;">Preview</h3>
+        <iframe id="catalogPreviewFrame" style="width:100%; height:600px; border:none; background:#fff;"></iframe>
       </div>
       <details class="catalog-maintenance"><summary>Set registry maintenance</summary><button id="scanCatalogSetsBtn" type="button">Refresh Registry After Set Changes</button><p class="hint">Known sets load automatically. Refresh only after adding, removing, or renaming set JSON files.</p></details>
       <section class="batch-panel">
@@ -566,6 +572,7 @@
               <select id="odMicroArtBoxMode">
                 <option value="flow">Flow</option>
                 <option value="custom">Custom</option>
+                <option value="wrap">Movable image with text wrap</option>
               </select>
             </label>
 
