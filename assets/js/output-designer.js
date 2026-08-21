@@ -234,7 +234,7 @@
     p.printShowArtist = source.printShowArtist === true || source.printShowArtist === 'true';
     p.printCutGuides = !(source.printCutGuides === false || source.printCutGuides === 'false');
     p.microDensity = ['collector','reference','rules'].includes(source.microDensity) ? source.microDensity : 'reference';
-    p.microArtMode = ['crop','full','none'].includes(source.microArtMode) ? source.microArtMode : 'crop';
+    p.microArtMode = ['crop','fit','none'].includes(source.microArtMode) ? source.microArtMode : 'crop';
     p.microArtZoom = clamp(source.microArtZoom, 0, 100, 0);
     p.microArtPositionX = clamp(source.microArtPositionX, 0, 100, 50);
     p.microArtPositionY = clamp(source.microArtPositionY, 0, 100, 50);
@@ -246,7 +246,7 @@
     // Custom canvas art box controls. These are intentionally normalized here so
     // imported profiles, local storage, preview, and production builds all use
     // the same geometry. X/Y are percentages from the card's top-left corner.
-    p.microArtBoxMode = ['flow','custom'].includes(source.microArtBoxMode) ? source.microArtBoxMode : 'flow';
+    p.microArtBoxMode = ['flow','custom','wrap'].includes(source.microArtBoxMode) ? source.microArtBoxMode : 'flow';
     p.microArtBoxWidth = clamp(source.microArtBoxWidth, 10, 80, 24);
     p.microArtBoxHeight = clamp(source.microArtBoxHeight, 10, 100, 100);
     p.microArtBoxX = clamp(source.microArtBoxX, 0, 90, 0);
