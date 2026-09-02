@@ -1,0 +1,53 @@
+{
+  "builderVersion": "8.3.0",
+  "imageProfiles": {
+    "BFZ": {
+      "sourceHash": "1a6ec0476442164d71ab96dc42fe1f55f2c7b6b01f7854c667cae9eb4afd9604",
+      "profileFingerprint": "469f8fbcea3f24c9135c47d1ba5536c067de1b92f1977b18d7d95d157deb21b5",
+      "settings": {
+        "profile": "card-embedded-images",
+        "imageMode": "embedded",
+        "imageWidth": 300,
+        "imageQuality": 0.65,
+        "textSize": "comfortable",
+        "fieldMode": "essential",
+        "navMode": "alpha",
+        "duplicateMode": "collapse"
+      },
+      "outputFile": "BFZ.html",
+      "updatedAt": "2026-07-28T21:13:30.584Z"
+    },
+    "BLB": {
+      "sourceHash": "01f65319d774ffd97f4aa70650ac12de1f9a79880761249609d3750857918f9b",
+      "profileFingerprint": "469f8fbcea3f24c9135c47d1ba5536c067de1b92f1977b18d7d95d157deb21b5",
+      "settings": {
+        "profile": "card-embedded-images",
+        "imageMode": "embedded",
+        "imageWidth": 300,
+        "imageQuality": 0.65,
+        "textSize": "comfortable",
+        "fieldMode": "essential",
+        "navMode": "alpha",
+        "duplicateMode": "collapse"
+      },
+      "outputFile": "BLB.html",
+      "updatedAt": "2026-07-28T21:13:32.509Z"
+    },
+    "CON": {
+      "sourceHash": "7fbab7ae5e310b267df775f1baac8922e9081254a219b48b593f00bee400fc85",
+      "profileFingerprint": "469f8fbcea3f24c9135c47d1ba5536c067de1b92f1977b18d7d95d157deb21b5",
+      "settings": {
+        "profile": "card-embedded-images",
+        "imageMode": "embedded",
+        "imageWidth": 300,
+        "imageQuality": 0.65,
+        "textSize": "comfortable",
+        "fieldMode": "essential",
+        "navMode": "alpha",
+        "duplicateMode": "collapse"
+      },
+      "outputFile": "CON.html",
+      "updatedAt": "2026-07-28T21:13:34.069Z"
+    }
+  }
+}

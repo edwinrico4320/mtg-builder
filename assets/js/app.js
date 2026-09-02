@@ -1,7 +1,17 @@
-(() => {
+//import { MTGSetRegistry } from './workspace-admin.js'; // Ensure workspace-admin exports this
+import { CatalogProfileCore } from './catalog-profile-core.js';
+import { SimpleZip } from './simple-zip.js';
+import { OutputDesigner } from './output-designer.js';
+import { PriceSnapshotManager } from './price-snapshot.js';
+import { RulesLibraryInternals } from './rules-library.js';
+
+
   const setCodes = Array.from(new Set((window.RECOMMENDED_SETS || []).map(s => String(s).toUpperCase())));
   let discoveredSets = [];
   let loadedManifest = null;
+  const SET_INDEX_DEFAULT = './data/set-index.json';
+  const SET_INDEX_STORAGE = 'mtg-builder-set-index-v8_6_1';
+  const setRegistryState = { path: SET_INDEX_DEFAULT, index: null, dirty: false, source: 'none', pending: null, error: null };
 
   const $ = id => document.getElementById(id);
   const log = (id, msg) => { const el = $(id); if (el) el.textContent = msg; };
@@ -98,6 +108,137 @@
     return { owner: 'edwinrico4320', repo: 'mtg-builder', branch: 'main' };
   }
 
+  function currentBatchSelection(){
+    return new Set(Array.from(document.querySelectorAll('.batch-set-checkbox:checked')).map(cb => String(cb.value || '').toUpperCase()));
+  }
+
+  function normalizeRegistry(raw){
+    if(!raw || typeof raw !== 'object') throw new Error('Set registry must be a JSON object.');
+    const list = Array.isArray(raw.sets) ? raw.sets : [];
+    const seen = new Set();
+    const sets = [];
+    for(const entry of list){
+      const code = String((entry && entry.code) || '').trim().toUpperCase();
+      if(!code || seen.has(code)) continue;
+      seen.add(code);
+      sets.push({
+        code,
+        name: String(entry.name || code),
+        releaseDate: String(entry.releaseDate || ''),
+        cardCount: Number(entry.cardCount || 0),
+        sourceSha: String(entry.sourceSha || entry.sha || ''),
+        sourceBytes: Number(entry.sourceBytes || entry.size || 0),
+        path: String(entry.path || `./data/json/${code}.json`)
+      });
+    }
+    sets.sort((a,b)=>(a.name||a.code).localeCompare(b.name||b.code));
+    return {
+      version: String(raw.version || '8.7.1'),
+      updatedAt: raw.updatedAt || raw.updated || new Date().toISOString(),
+      source: raw.source || {},
+      sets
+    };
+  }
+
+  function buildRegistry(){
+    const repo = getGitHubRepoInfo();
+    return {
+      version: '8.7.1',
+      updatedAt: new Date().toISOString(),
+      source: { owner: repo.owner, repo: repo.repo, branch: repo.branch, folder: 'data/json' },
+      sets: discoveredSets.map(s => ({
+        code:s.code,
+        name:s.name || s.code,
+        releaseDate:s.releaseDate || '',
+        cardCount:Number(s.cardCount || 0),
+        sourceSha:s.sourceSha || '',
+        sourceBytes:Number(s.sourceBytes || 0),
+        path:s.path || `./data/json/${s.code}.json`
+      }))
+    };
+  }
+
+  function registryStatus(message, kind){
+    const el = $('setRegistryStatus');
+    if(el){ el.textContent = message; el.className = `summary-box${kind ? ` registry-${kind}` : ''}`; }
+    const quick = $('workspaceRegistryQuickStatus');
+    if(quick) quick.textContent = message;
+  }
+
+  function cacheRegistry(index){
+    try{ localStorage.setItem(SET_INDEX_STORAGE, JSON.stringify(index)); }catch(e){}
+  }
+
+  function applyRegistry(raw, options={}){
+    const index = normalizeRegistry(raw);
+    const selected = options.selectedCodes instanceof Set ? options.selectedCodes : null;
+    discoveredSets = index.sets.slice();
+    setRegistryState.index = index;
+    setRegistryState.path = options.path || setRegistryState.path || SET_INDEX_DEFAULT;
+    setRegistryState.source = options.source || 'repository';
+    setRegistryState.dirty = !!options.dirty;
+    setRegistryState.error = null;
+    const select = $('catalogSetSelect');
+    if(select){
+      select.innerHTML = '';
+      if(!discoveredSets.length){
+        select.innerHTML = '<option value="">No indexed sets found</option>';
+      }else{
+        for(const s of discoveredSets){
+          const opt=document.createElement('option'); opt.value=s.code; opt.textContent=`${s.name} (${s.code})`; select.appendChild(opt);
+        }
+      }
+    }
+    renderBatchSetList(selected);
+    const msg = `${discoveredSets.length} set${discoveredSets.length===1?'':'s'} loaded from ${setRegistryState.source}${setRegistryState.dirty?' · registry update pending':''}`;
+    log('jsonStatus', `${discoveredSets.length} indexed sets`);
+    log('catalogSummary', msg);
+    registryStatus(msg, setRegistryState.dirty ? 'changed' : 'current');
+    cacheRegistry(index);
+    document.dispatchEvent(new CustomEvent('mtg-set-registry-ready',{detail:{index,dirty:setRegistryState.dirty,source:setRegistryState.source}}));
+    return discoveredSets;
+  }
+
+  async function loadSetRegistry(path=SET_INDEX_DEFAULT, options={}){
+    const requested = String(path || SET_INDEX_DEFAULT).trim();
+    setRegistryState.path = requested;
+    registryStatus(`Loading set registry from ${requested}...`, 'loading');
+    try{
+      const res = await fetch(requested,{cache:'no-store'});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const index = await res.json();
+      return applyRegistry(index,{path:requested,source:'repository index',dirty:false,selectedCodes:options.selectedCodes});
+    }catch(error){
+      setRegistryState.error = error;
+      if(options.useCache !== false){
+        try{
+          const cached = localStorage.getItem(SET_INDEX_STORAGE);
+          if(cached){
+            return applyRegistry(JSON.parse(cached),{path:requested,source:'browser cache',dirty:false,selectedCodes:options.selectedCodes});
+          }
+        }catch(cacheError){ console.warn('Set registry cache failed', cacheError); }
+      }
+      if(options.fallbackScan !== false){
+        registryStatus(`Registry unavailable (${error.message||error}); performing one discovery scan...`, 'changed');
+        return scanCatalogSets({startupFallback:true,selectedCodes:options.selectedCodes});
+      }
+      throw error;
+    }
+  }
+
+  function exportSetRegistry(){
+    const index = setRegistryState.index || buildRegistry();
+    saveTextFile('set-index.json', JSON.stringify(index,null,2), 'application/json');
+    registryStatus(`${index.sets.length} sets exported to set-index.json.`, setRegistryState.dirty ? 'changed' : 'current');
+  }
+
+  async function ensureRegistry(){
+    if(discoveredSets.length) return discoveredSets;
+    if(setRegistryState.pending) return setRegistryState.pending;
+    setRegistryState.pending = loadSetRegistry(setRegistryState.path || SET_INDEX_DEFAULT,{fallbackScan:true}).finally(()=>{setRegistryState.pending=null;});
+    return setRegistryState.pending;
+  }
+
   async function listRepoJsonCodes(){
     const {owner, repo, branch} = getGitHubRepoInfo();
     const url = `https://api.github.com/repos/${owner}/${repo}/contents/data/json?ref=${encodeURIComponent(branch)}`;
@@ -115,23 +256,28 @@
       .sort((a,b) => a.code.localeCompare(b.code));
   }
 
-  async function scanCatalogSets(){
+  async function scanCatalogSets(options={}){
+    if(options && options.type) options = {}; // click Event
+    const existingBoxes = document.querySelectorAll('.batch-set-checkbox');
+    const selectedBefore = options.selectedCodes instanceof Set ? options.selectedCodes : (existingBoxes.length ? currentBatchSelection() : null);
     const select = $('catalogSetSelect');
-    select.innerHTML = '<option value="">Scanning GitHub data/json...</option>';
+    if(select) select.innerHTML = '<option value="">Refreshing repository set registry...</option>';
     discoveredSets = [];
-    log('catalogSummary','Reading the current data/json folder from GitHub...');
+    log('catalogSummary','Refreshing data/json from GitHub. This full scan is only needed after sets are added, removed, or renamed.');
+    registryStatus('Refreshing set registry from GitHub...', 'loading');
     let codes;
     try{
       codes = await listRepoJsonCodes();
     }catch(err){
       console.warn(err);
       codes = setCodes.map(code => ({code, sha:'', sourceBytes:0}));
-      log('catalogSummary', `Automatic GitHub scan failed; checking the fallback list instead. ${err.message}`);
+      log('catalogSummary', `GitHub folder scan failed; checking the fallback list instead. ${err.message}`);
     }
     if(!codes.length){
-      select.innerHTML = '<option value="">No JSON files found</option>';
+      if(select) select.innerHTML = '<option value="">No JSON files found</option>';
       log('catalogSummary','No .json files were found in data/json.');
-      return;
+      registryStatus('No JSON files were found.', 'error');
+      return [];
     }
     let checked=0;
     for(const entry of codes){
@@ -139,32 +285,30 @@
       try{
         const data = await fetchSet(code);
         const cards = getCards(data);
-        discoveredSets.push({ code, name: data.name || code, releaseDate: data.releaseDate || '', cardCount: cards.length, sourceSha: entry.sha || '', sourceBytes: entry.sourceBytes || 0 });
+        discoveredSets.push({ code, name: data.name || code, releaseDate: data.releaseDate || '', cardCount: cards.length, sourceSha: entry.sha || '', sourceBytes: entry.sourceBytes || 0, path:`./data/json/${code}.json` });
       }catch(err){ console.warn(`Skipped ${code}`, err); }
       checked++;
       log('catalogSummary', `Reading set metadata ${checked}/${codes.length}...`);
     }
-    select.innerHTML = '';
-    if(!discoveredSets.length){
-      select.innerHTML = '<option value="">No readable sets found</option>';
-      log('catalogSummary','JSON filenames were found, but none could be read as MTGJSON set files.');
-      return;
-    }
-    discoveredSets.sort((a,b)=> (a.name||a.code).localeCompare(b.name||b.code));
-    for(const s of discoveredSets){
-      const opt = document.createElement('option'); opt.value = s.code; opt.textContent = `${s.name} (${s.code})`; select.appendChild(opt);
-    }
-    log('jsonStatus', `${discoveredSets.length} sets discovered automatically`);
-    renderBatchSetList();
+    const index = buildRegistry();
+    applyRegistry(index,{path:setRegistryState.path||SET_INDEX_DEFAULT,source:'fresh GitHub scan',dirty:true,selectedCodes:selectedBefore});
     await loadBuildManifest();
-    log('catalogSummary', `Discovered ${discoveredSets.length} sets from the live GitHub data/json folder.`);
+    log('catalogSummary', `Refreshed ${discoveredSets.length} sets. The updated set-index.json will be included in the next smart deployment pack.`);
+    return discoveredSets;
   }
 
-  function renderBatchSetList(){
+  function renderBatchSetList(preferredSelection){
     const box = $('batchSetList');
     if(!box) return;
-    if(!discoveredSets.length){ box.innerHTML = '<p class="hint">No sets discovered.</p>'; return; }
-    box.innerHTML = discoveredSets.map(s => `<label class="batch-set-item"><input class="batch-set-checkbox" type="checkbox" value="${esc(s.code)}" checked><span><strong>${esc(s.name)}</strong><small>${esc(s.code)} · ${esc(s.cardCount)} cards</small></span></label>`).join('');
+    if(!discoveredSets.length){ box.innerHTML = '<p class="hint">No sets are available in the registry.</p>'; return; }
+    const existingBoxes = Array.from(box.querySelectorAll('.batch-set-checkbox'));
+    const existing = new Set(existingBoxes.filter(cb=>cb.checked).map(cb=>String(cb.value||'').toUpperCase()));
+    const selected = preferredSelection instanceof Set ? preferredSelection : existing;
+    const defaultAll = !existingBoxes.length && !(preferredSelection instanceof Set);
+    box.innerHTML = discoveredSets.map(s => {
+      const checked = defaultAll || selected.has(s.code);
+      return `<label class="batch-set-item"><input class="batch-set-checkbox" type="checkbox" value="${esc(s.code)}" ${checked?'checked':''}><span><strong>${esc(s.name)}</strong><small>${esc(s.code)} · ${esc(s.cardCount)} cards</small></span></label>`;
+    }).join('');
   }
 
   function setAllBatchChecks(checked){
@@ -432,7 +576,7 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     log('catalogSummary', `Built ${data.name || code}. Upload ${code}.html, ${code}.index.json, and build-manifest.json to data/output.`);
   }
 
-  async function ensureDiscovered(){ if(!discoveredSets.length) await scanCatalogSets(); return discoveredSets.length; }
+  async function ensureDiscovered(){ await ensureRegistry(); return discoveredSets.length; }
 
   function manifestEntryFor(set, data, cards, html){
     return {
@@ -527,11 +671,49 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     log('catalogSummary', `Built library-index files for ${sets.length} discovered sets.`);
   }
 
+  async function discoverNewLegalSets() {
+    log('catalogSummary', 'Fetching MTGJSON SetList...');
+    try {
+      const resp = await fetch('https://mtgjson.com/api/v5/SetList.json');
+      if (!resp.ok) throw new Error('Network response was not ok');
+      const data = await resp.json();
+      const sets = data.data;
+
+      const legalTypes = ['expansion', 'core'];
+      const currentCodes = new Set(discoveredSets.map(s => s.code.toUpperCase()));
+
+      const missingSets = sets.filter(s => {
+        if (!s.setCode) return false;
+        if (currentCodes.has(s.setCode.toUpperCase())) return false;
+        if (!s.type || !legalTypes.includes(s.type)) return false;
+        return true;
+      });
+
+      if (!missingSets.length) {
+        log('catalogSummary', 'No new standard/modern legal sets found on MTGJSON.');
+        return;
+      }
+
+      log('catalogSummary', `Found ${missingSets.length} missing legal sets. Adding to registry...`);
+      for (const s of missingSets) {
+        discoveredSets.push({ code: s.setCode.toUpperCase(), name: s.name, releaseDate: s.releaseDate || '', cardCount: s.totalSetSize || 0, sourceSha: '', sourceBytes: 0, path: `./data/json/${s.setCode.toUpperCase()}.json` });
+      }
+
+      const index = buildRegistry();
+      applyRegistry(index, {path: setRegistryState.path||SET_INDEX_DEFAULT, source: 'mtgjson discovery', dirty: true, selectedCodes: currentBatchSelection()});
+      log('catalogSummary', `Added ${missingSets.length} sets. You can now build these changed/new sets and download them via 'Build Changes'.`);
+    } catch (error) {
+      log('catalogSummary', `Error discovering new sets: ${error.message}`);
+    }
+  }
+
   function bind(){
     initTabs();
     $('checkSetsBtn')?.addEventListener('click', checkInstalledSets);
     $('downloadMissingBtn')?.addEventListener('click', downloadMissingSets);
-    $('scanCatalogSetsBtn')?.addEventListener('click', scanCatalogSets);
+    $('scanCatalogSetsBtn')?.addEventListener('click', ()=>scanCatalogSets({manual:true}));
+    $('workspaceRefreshRegistryBtn')?.addEventListener('click', ()=>scanCatalogSets({manual:true}));
+    $('workspaceExportRegistryBtn')?.addEventListener('click', exportSetRegistry);
     $('buildCatalogBtn')?.addEventListener('click', buildSelected);
     $('selectAllSetsBtn')?.addEventListener('click', ()=>setAllBatchChecks(true));
     $('selectNoSetsBtn')?.addEventListener('click', ()=>setAllBatchChecks(false));
@@ -540,7 +722,25 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     $('analyzeCheckedSetsBtn')?.addEventListener('click', async()=>{ await ensureDiscovered(); await analyzeSets(getCheckedSets()); });
     $('buildAllCatalogsBtn')?.addEventListener('click', buildAll);
     $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
-    console.log('MTG Builder v6 loaded');
+    $('discoverNewSetsBtn')?.addEventListener('click', discoverNewLegalSets);
+    setRegistryState.pending = loadSetRegistry(SET_INDEX_DEFAULT,{fallbackScan:true}).finally(()=>{setRegistryState.pending=null;});
+    console.log('MTG Builder v8.7.1 persistent registry loaded');
   }
+export const MTGSetRegistry = {
+    version:'8.7.1',
+    defaultPath:SET_INDEX_DEFAULT,
+    load:loadSetRegistry,
+    refresh:scanCatalogSets,
+    ensureLoaded:ensureRegistry,
+    exportIndex:exportSetRegistry,
+    getSets:()=>discoveredSets.slice(),
+    getIndex:()=>setRegistryState.index || buildRegistry(),
+    getPath:()=>setRegistryState.path || SET_INDEX_DEFAULT,
+    isDirty:()=>!!setRegistryState.dirty,
+    getState:()=>Object.assign({},setRegistryState,{sets:discoveredSets.slice()}),
+    markClean:()=>{setRegistryState.dirty=false;registryStatus(`${discoveredSets.length} sets loaded from repository index`,'current');},
+    selectCodes:(codes)=>{const wanted=new Set((codes||[]).map(x=>String(x).toUpperCase()));document.querySelectorAll('.batch-set-checkbox').forEach(cb=>{cb.checked=wanted.has(String(cb.value||'').toUpperCase());});},
+    buildIndex:buildRegistry
+  };
+  window.MTGSetRegistry = MTGSetRegistry;
   document.addEventListener('DOMContentLoaded', bind);
-})();

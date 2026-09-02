@@ -3,10 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>MTG Builder v8.2.1</title>
+  <title>MTG Builder v8.7.1.2</title>
   <link rel="stylesheet" href="./assets/css/builder.css">
-  <link rel="stylesheet" href="assets/css/v8.css">
-  <link rel="stylesheet" href="assets/css/image-lab.css">
+  <link rel="stylesheet" href="./assets/css/v8.css">
+  <link rel="stylesheet" href="./assets/css/output-designer.css">
+  <link rel="stylesheet" href="./assets/css/micro-catalog.css">
+  <link rel="stylesheet" href="./assets/css/workspace-admin.css">
 </head>
 <body>
   <header class="app-header">
@@ -16,10 +18,12 @@
 
   <nav class="tabs" aria-label="Builder sections">
     <button class="tab-button active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-button" data-tab="downloader">Set Downloader</button>
+    <button class="tab-button" data-tab="workspace-admin">Workspace</button>
+    <!-- <button class="tab-button" data-tab="downloader">Set Downloader</button> -->
     <button class="tab-button" data-tab="catalog">Catalog Builder</button>
-    <button class="tab-button" data-tab="image-lab">Image Lab</button>
+    <button class="tab-button" data-tab="prices">Price Snapshot</button>
     <button class="tab-button" data-tab="rules-library">Rules Library</button>
+    <button class="tab-button" data-tab="output-designer">Output Designer</button>
     <button class="tab-button" data-tab="settings">Settings</button>
   </nav>
 
@@ -28,11 +32,93 @@
       <h2>Dashboard</h2>
       <div class="cards-grid">
         <article class="status-card"><h3>Project</h3><p>GitHub Pages</p><small>Hosted browser app is live.</small></article>
-        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Catalog scan reads the live GitHub <code>data/json</code> folder.</small></article>
+        <article class="status-card"><h3>JSON Folder</h3><p id="jsonStatus">Unknown</p><small>Persistent registry loads known sets immediately; full scans are only for repository changes.</small></article>
         <article class="status-card"><h3>Output Profile</h3><p>Compact</p><small>No-JavaScript, basic HTML viewer friendly.</small></article>
+        <article class="status-card"><h3>Workspace</h3><p id="workspaceDashboardStatus">Not loaded</p><small>v8.7.1 restores the workspace, registry, pricing, and print settings automatically.</small></article>
       </div>
     </section>
 
+
+    <section id="workspace-admin" class="tab-panel">
+      <h2>Workspace & Smart Deployment</h2>
+      <p>The builder restores the registry, workspace, profile, prices, and selected sets automatically. Normal operation requires one button.</p>
+
+      <section class="workspace-panel workspace-quick-panel">
+        <div>
+          <h3>Automatic startup</h3>
+          <div id="workspaceQuickStatus" class="workspace-quick-status" data-state="loading"><strong>Starting automatically…</strong><br>Loading the persistent set registry and workspace.</div>
+          <div id="workspaceRegistryQuickStatus" class="hint">Set registry has not loaded yet.</div>
+        </div>
+        <div class="workspace-primary-actions workspace-one-action">
+          <button id="workspaceBuildDeployBtn" type="button">Build Changes & Create Deployment Pack</button>
+          <button id="workspaceCancelBtn" type="button" disabled>Cancel</button>
+        </div>
+      </section>
+
+      <section class="workspace-panel">
+        <div class="workspace-heading"><div><h3>Administrative status</h3><p class="hint">The smart build performs this check automatically. The table is retained for troubleshooting.</p></div><span id="workspaceCheckTime" class="workspace-time"></span></div>
+        <div id="workspaceSummaryCards" class="workspace-summary-cards">
+          <article><strong>Workspace</strong><span>Starting</span></article>
+          <article><strong>Catalogs</strong><span>Not checked</span></article>
+          <article><strong>Rules</strong><span>Not checked</span></article>
+          <article><strong>Prices</strong><span>Not checked</span></article>
+        </div>
+        <div id="workspaceChangeList" class="workspace-change-list"><p class="hint">Run the smart build or open maintenance tools to perform a check without building.</p></div>
+      </section>
+
+      <section class="workspace-panel">
+        <h3>Deployment pack</h3>
+        <div id="workspaceDeploymentStatus" class="summary-box">No deployment pack generated.</div>
+        <p class="hint">Only changed files are included, using their repository paths. No ZIP is created when everything is current.</p>
+      </section>
+
+      <details class="workspace-maintenance">
+        <summary>Maintenance, import, and advanced settings</summary>
+        <div class="workspace-grid workspace-maintenance-grid">
+          <section class="workspace-panel">
+            <h3>Workspace source</h3>
+            <label>Workspace path<input id="workspacePath" type="text" value="./data/workspace.json" spellcheck="false"></label>
+            <div class="actions workspace-actions">
+              <button id="workspaceLoadBtn" type="button">Reload Workspace</button>
+              <button id="workspaceLoadLocalBtn" type="button">Import Workspace / Bundle</button>
+              <input id="workspaceLocalFile" type="file" accept=".json,.zip,application/json,application/zip" hidden>
+              <button id="workspaceSaveBtn" type="button">Export Current Workspace</button>
+            </div>
+            <label class="workspace-check"><input id="workspaceAutoLoad" type="checkbox" checked> Load the repository workspace automatically</label>
+            <div id="workspaceLoadStatus" class="summary-box">Automatic startup is in progress.</div>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>Persistent set registry</h3>
+            <label>Set-index path<input id="workspaceSetIndexPath" type="text" value="./data/set-index.json" spellcheck="false"></label>
+            <div class="actions workspace-actions">
+              <button id="workspaceRefreshRegistryBtn" type="button">Refresh After Set Changes</button>
+              <button id="workspaceExportRegistryBtn" type="button">Export Registry Only</button>
+            </div>
+            <div id="setRegistryStatus" class="summary-box">Set registry has not loaded yet.</div>
+            <p class="hint">A full scan is only needed after adding, removing, or renaming files in <code>data/json</code>. Updated registry data is included in the next deployment pack.</p>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>Smart build policy</h3>
+            <label class="workspace-check"><input id="workspaceBuildOnlyChanged" type="checkbox" checked> Build only new or changed catalogs</label>
+            <label class="workspace-check"><input id="workspaceIncludeRules" type="checkbox" checked> Include changed rules output</label>
+            <label class="workspace-check"><input id="workspaceIncludeProfiles" type="checkbox" checked> Include profile library</label>
+            <label class="workspace-check"><input id="workspaceIncludePrices" type="checkbox" checked> Include reusable price snapshot</label>
+            <label class="workspace-check"><input id="workspaceIncludeSetIndex" type="checkbox" checked> Include a changed set registry</label>
+            <label class="workspace-check"><input id="workspaceIncludeWorkspace" type="checkbox" checked> Include updated workspace</label>
+          </section>
+
+          <section class="workspace-panel">
+            <h3>Manual diagnostics</h3>
+            <button id="workspaceCheckBtn" type="button">Check Changes Without Building</button>
+            <p class="hint">This is optional. The primary smart-build button always performs the same check before generating anything.</p>
+          </section>
+        </div>
+      </details>
+    </section>
+
+    <!--
     <section id="downloader" class="tab-panel">
       <h2>Set Downloader</h2>
       <p>Checks your repo for recommended MTGJSON set files and downloads missing files from MTGJSON.</p>
@@ -44,6 +130,7 @@
       <div id="downloadSummary" class="summary-box">Ready.</div>
       <div id="setList" class="set-list"></div>
     </section>
+    -->
 
     <section id="catalog" class="tab-panel">
       <h2>Catalog Builder</h2>
@@ -86,6 +173,7 @@
             <option value="compact-text" selected>Compact Text Only</option>
             <option value="card-no-images">Card Profile — No Images</option>
             <option value="card-embedded-images">Card Profile — Embedded Images</option>
+            <option value="print-dense">Printable Micro Catalog — 30 per side</option>
           </select>
         </label>
         <label>Image width
@@ -103,13 +191,27 @@
           </select>
         </label>
       </div>
+      <div id="printProfileHelp" class="summary-box print-profile-help" hidden>
+        <strong>Printable Micro Catalog</strong><br>
+        The default layout places 30 card summaries on each printed side—up to 60 cards on one duplex sheet. Paper size, density, flavor text, prices, and cut guides are saved in the active Output Designer profile.
+      </div>
 
       <div class="actions">
-        <button id="scanCatalogSetsBtn">Scan Available Sets</button>
-        <select id="catalogSetSelect"><option value="">Scan sets first...</option></select>
-        <button id="buildCatalogBtn">Build Selected Set HTML</button>
+        <select id="catalogSetSelect"><option value="">Loading set registry...</option></select>
+                <button id="buildCatalogBtn">Build Selected Set HTML</button>
+        <button id="previewCatalogBtn" type="button">Preview Selected Set</button>
         <button id="cancelCatalogBuildBtn" type="button" disabled>Cancel Image Build</button>
+
       </div>
+      <div id="catalogPreviewFrameShell" style="display: none; border: 1px solid var(--border, #ccc); border-radius: 4px; height: 500px; margin-top: 1rem; width: 100%;">
+        <iframe id="catalogPreviewFrame" style="width: 100%; height: 100%; border: none;"></iframe>
+      </div>
+
+      <div id="catalogPreviewFrameShell" style="display:none; margin-top:20px; border:1px solid #444; border-radius:4px; padding:10px; background:#1e1e1e;">
+        <h3 style="margin-top:0; font-size:1.1em; color:#ddd; border-bottom:1px solid #333; padding-bottom:5px;">Preview</h3>
+        <iframe id="catalogPreviewFrame" style="width:100%; height:600px; border:none; background:#fff;"></iframe>
+      </div>
+      <details class="catalog-maintenance"><summary>Set registry maintenance</summary><button id="scanCatalogSetsBtn" type="button">Refresh Registry After Set Changes</button><p class="hint">Known sets load automatically. Refresh only after adding, removing, or renaming set JSON files.</p></details>
       <section class="batch-panel">
         <div class="batch-heading">
           <div>
@@ -121,7 +223,7 @@
             <button id="selectNoSetsBtn" type="button">Select None</button>
           </div>
         </div>
-        <div id="batchSetList" class="batch-set-list"><p class="hint">Scan available sets first.</p></div>
+        <div id="batchSetList" class="batch-set-list"><p class="hint">Loading known sets from the persistent registry...</p></div>
       </section>
 
       <div class="actions">
@@ -129,6 +231,7 @@
         <button id="buildChangedCatalogsBtn">Build Changed/New Sets</button>
         <button id="buildAllCatalogsBtn">Build All Discovered Sets</button>
         <button id="buildLibraryIndexBtn">Build Library Index Only</button>
+        <button id="discoverNewSetsBtn">Discover New Legal Sets (MTGJSON)</button>
         <button id="cancelCurrentBatchSetBtn" type="button" disabled>Cancel Current Set</button>
         <button id="cancelEntireBatchBtn" type="button" disabled>Cancel Entire Batch</button>
       </div>
@@ -149,6 +252,56 @@
       <div id="catalogSummary" class="summary-box">Ready.</div>
     </section>
 
+
+    <section id="prices" class="tab-panel">
+      <h2>Price Snapshot</h2>
+      <p>Load MTGJSON price data once during a build, then embed a small static price snapshot beneath each card. Finished catalogs make no price-network requests.</p>
+
+      <div class="builder-options">
+        <label><input id="priceEnabled" type="checkbox" checked> Include price information in Card Profile outputs</label>
+        <label>Reusable snapshot path
+          <input id="priceSourcePath" type="text" value="./data/prices/price-snapshot.json" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="priceLoadPathBtn" type="button">Load Snapshot Path</button>
+        <button id="priceLoadOfficialBtn" type="button">Load Official AllPricesToday ZIP</button>
+        <button id="priceLoadLocalBtn" type="button">Load Local ZIP / JSON</button>
+        <input id="priceLocalFile" type="file" accept=".zip,.json,application/zip,application/json" hidden>
+        <button id="priceClearBtn" type="button">Clear Loaded Prices</button>
+      </div>
+
+      <section class="batch-panel">
+        <div class="batch-heading"><div><h3>Price Data Profile</h3><p class="hint">Choose which providers and price points are copied into generated catalogs.</p></div></div>
+        <div class="price-option-grid">
+          <fieldset><legend>Providers</legend>
+            <label><input type="checkbox" data-price-provider="tcgplayer" checked> TCGplayer</label>
+            <label><input type="checkbox" data-price-provider="cardkingdom" checked> Card Kingdom</label>
+            <label><input type="checkbox" data-price-provider="cardmarket" checked> Cardmarket</label>
+            <label><input type="checkbox" data-price-provider="cardsphere"> Cardsphere</label>
+          </fieldset>
+          <fieldset><legend>Finishes</legend>
+            <label><input type="checkbox" data-price-finish="normal" checked> Normal</label>
+            <label><input type="checkbox" data-price-finish="foil"> Foil</label>
+            <label><input type="checkbox" data-price-finish="etched"> Etched</label>
+          </fieldset>
+          <fieldset><legend>Price types</legend>
+            <label><input type="checkbox" data-price-type="retail" checked> Retail</label>
+            <label><input type="checkbox" data-price-type="buylist"> Buylist</label>
+            <label><input id="priceExternalLinks" type="checkbox"> Marketplace links in desktop output</label>
+          </fieldset>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="priceExportCheckedBtn" type="button" disabled>Export Snapshot for Checked Sets</button>
+        <button id="priceDownloadReportBtn" type="button" disabled>Download Price Report</button>
+      </div>
+      <p class="hint">For the smallest reusable source: scan sets, check the sets you use, load the official ZIP, export the filtered snapshot, and upload it as <code>data/prices/price-snapshot.json</code>.</p>
+      <div id="priceDataStatus" class="summary-box">No price data loaded.</div>
+      <div id="priceDataReport" class="size-report"><p class="hint">Price matching has not run during this session.</p></div>
+    </section>
 
     <section id="rules-library" class="tab-panel">
       <h2>Rules Library Generator</h2>
@@ -194,82 +347,345 @@
       </div>
       <div class="actions">
         <button id="refreshImageCacheStatusBtn" type="button">Refresh Cache Status</button>
+        <button id="verifyPackedCacheBtn" type="button">Verify Packed Cache</button>
+        <button id="downloadCacheVerificationReportBtn" type="button" disabled>Download Verification Report</button>
         <button id="downloadImageCacheUpdateBtn" type="button">Download Packed Cache Update ZIP</button>
         <button id="clearLocalImageCacheBtn" type="button">Clear Local Cache</button>
       </div>
       <div id="imageCacheStatus" class="summary-box">Packed cache status not loaded yet.</div>
+      <div id="cacheVerificationStatus" class="size-report"><p class="hint">Packed cache has not been verified during this session.</p></div>
     </section>
 
-<section id="image-lab" class="tab-panel">
-    <h2>Image Lab v8.0.2</h2>
+    <section id="output-designer" class="tab-panel">
+      <h2>Output Designer</h2>
+      <p>Design your catalog layout, then preview changes live.</p>
 
-    <div class="image-lab-panel">
+      <div class="builder-options" style="margin-bottom: 1rem;">
+        <label>Preset
+          <select id="odPresetSelect">
+            <option value="restricted-comfortable">Restricted Device — Comfortable</option>
+            <option value="restricted-large">Restricted Device — Large Text</option>
+            <option value="compact-library">Compact Library</option>
+            <option value="high-contrast">High Contrast</option>
+            <option value="warm-paper">Warm Paper</option>
+            <option value="dark-desktop">Dark Desktop</option>
+            <option value="print-friendly">Print Friendly</option>
+            <option value="dense-print">Dense Print — 30 per side</option>
+          </select>
+        </label>
+        <button id="odApplyPresetBtn" type="button">Apply Preset</button>
+        <button id="odResetBtn" type="button">Reset</button>
+      </div>
 
-        <div class="image-lab-control">
-            <label>Test Size:</label>
-            <select id="image-test-size">
-                <option value="10">10 cards</option>
-                <option value="50">50 cards</option>
-                <option value="all">Entire set</option>
-            </select>
+      <div class="builder-options" style="margin-bottom: 1rem;">
+        <label>Preview Mode
+          <select id="odPreviewMode">
+            <option value="catalog">Catalog</option>
+            <option value="micro">Micro Catalog</option>
+            <option value="rules">Rules</option>
+            <option value="portable">Portable</option>
+            <option value="print">Print</option>
+          </select>
+        </label>
+        <div class="viewport-toggles" style="display:inline-block; margin-left: 1rem;">
+          <button type="button" data-od-viewport="desktop" class="active">Desktop</button>
+          <button type="button" data-od-viewport="mobile">Mobile</button>
         </div>
+      </div>
 
-        <div class="image-lab-control">
-            <label>Image Mode:</label>
-            <select id="image-mode">
-                <option value="embedded">Embedded</option>
-                <option value="external">External URL</option>
-            </select>
+      <div class="designer-layout" style="display: flex; gap: 1rem; height: 60vh;">
+        <div class="designer-sidebar" style="flex: 0 0 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 1rem;">
+          <details open><summary style="font-weight:bold;cursor:pointer;">General</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Profile Name <input type="text" id="odProfileName"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Max Page Width <input type="text" id="odMaxPageWidth" value="1200px" placeholder="e.g. 1200px or 100%"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Card Columns <input type="number" id="odCardColumns" min="1" max="6" step="1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Radius <input type="number" id="odBorderRadius" min="0" max="20" step="1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Width <input type="number" id="odBorderWidth" min="0" max="10" step="1"></label>
+          </details>
+
+          <details open><summary style="font-weight:bold;cursor:pointer;">Typography</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Font Family <input type="text" id="odFontFamily" value="Arial, sans-serif"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Base Font Size <input type="number" id="odBaseFontSize" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Line Height <input type="number" id="odLineHeight" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Heading Scale <input type="number" id="odHeadingScale" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Heading Weight
+              <select id="odHeadingWeight">
+                <option value="normal">Normal</option>
+                <option value="bold">Bold</option>
+                <option value="bolder">Bolder</option>
+              </select>
+            </label>
+          </details>
+
+          <details open><summary style="font-weight:bold;cursor:pointer;">Colors</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Page Background <input type="color" id="odPageBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Content Background <input type="color" id="odContentBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Nav Background <input type="color" id="odNavigationBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Header Background <input type="color" id="odHeaderBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Text Color <input type="color" id="odTextColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Secondary Text <input type="color" id="odSecondaryTextColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Heading Color <input type="color" id="odHeadingColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Link Color <input type="color" id="odLinkColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Color <input type="color" id="odBorderColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Rules Background <input type="color" id="odRulesBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flavor Background <input type="color" id="odFlavorBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Target Background <input type="color" id="odTargetBackground"></label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Layout Options</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Density
+              <select id="odDensity">
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Navigation Mode
+              <select id="odNavigationMode">
+                <option value="sidebar">Sidebar</option>
+                <option value="top">Top</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Position
+              <select id="odImagePosition">
+                <option value="responsive">Responsive</option>
+                <option value="top">Top</option>
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Width <input type="number" id="odImageWidth" step="1"></label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Prices</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Price Layout
+              <select id="odPriceLayout">
+                <option value="compact">Compact</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="spacious">Spacious</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Badges
+              <select id="odPriceShowBadges">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Highlight Lowest
+              <select id="odPriceHighlightLowest">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Snapshot Date
+              <select id="odPriceShowSnapshotDate">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Currency Style
+              <select id="odPriceCurrencyStyle">
+                <option value="symbol">Symbol</option>
+                <option value="code">Code</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Unavailable Text <input type="text" id="odPriceUnavailable"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Font Size <input type="number" id="odPriceFontSize" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Background <input type="color" id="odPriceBackground"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Border Color <input type="color" id="odPriceBorderColor"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Lowest Background <input type="color" id="odPriceLowestBackground"></label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Print Options</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Paper
+              <select id="odPrintPaper">
+                <option value="letter">Letter</option>
+                <option value="a4">A4</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Cards Per Side <input type="number" id="odPrintCardsPerSide" step="1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Font Size <input type="number" id="odPrintFontSize" step="0.1"></label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flavor Mode
+              <select id="odPrintFlavorMode">
+                <option value="auto">Auto</option>
+                <option value="show">Show</option>
+                <option value="hide">Hide</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Price Mode
+              <select id="odPrintPriceMode">
+                <option value="lowest">Lowest</option>
+                <option value="all">All</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Artist
+              <select id="odPrintShowArtist">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Cut Guides
+              <select id="odPrintCutGuides">
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+            </label>
+          </details>
+
+          <details><summary style="font-weight:bold;cursor:pointer;">Micro Catalog</summary>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em; margin-top:5px;">Density
+              <select id="odMicroDensity">
+                <option value="reference">Reference</option>
+                <option value="compact">Compact</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Mode
+              <select id="odMicroArtMode">
+                <option value="crop">Crop</option>
+                <option value="fit">Fit</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Zoom: <span id="odMicroArtZoomValue">0%</span>
+              <input type="range" id="odMicroArtZoom" min="0" max="200" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Pos X: <span id="odMicroArtPositionXValue">50%</span>
+              <input type="range" id="odMicroArtPositionX" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Pos Y: <span id="odMicroArtPositionYValue">50%</span>
+              <input type="range" id="odMicroArtPositionY" min="0" max="100" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Pos
+              <select id="odMicroImagePosition">
+                <option value="left">Left</option>
+                <option value="right">Right</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Image Width: <span id="odMicroImageWidthValue">24%</span>
+              <input type="range" id="odMicroImageWidth" min="0" max="100" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Art Box Mode
+              <select id="odMicroArtBoxMode">
+                <option value="flow">Flow</option>
+                <option value="custom">Custom</option>
+                <option value="wrap">Movable image with text wrap</option>
+              </select>
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box Width: <span id="odMicroArtBoxWidthValue">24%</span>
+              <input type="range" id="odMicroArtBoxWidth" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box Height: <span id="odMicroArtBoxHeightValue">100%</span>
+              <input type="range" id="odMicroArtBoxHeight" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box X: <span id="odMicroArtBoxXValue">0%</span>
+              <input type="range" id="odMicroArtBoxX" min="0" max="100" step="1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Box Y: <span id="odMicroArtBoxYValue">0%</span>
+              <input type="range" id="odMicroArtBoxY" min="0" max="100" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Card Padding: <span id="odMicroCardPaddingValue">2px</span>
+              <input type="range" id="odMicroCardPadding" min="0" max="10" step="0.5">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flow Gap: <span id="odMicroFlowGapValue">3px</span>
+              <input type="range" id="odMicroFlowGap" min="0" max="15" step="0.5">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Font Size: <span id="odMicroFontSizeValue">6.2pt</span>
+              <input type="range" id="odMicroFontSize" min="4" max="12" step="0.1">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Line Height: <span id="odMicroLineHeightValue">1.08</span>
+              <input type="range" id="odMicroLineHeight" min="0.8" max="2.0" step="0.05">
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Oracle Max Chars: <span id="odMicroOracleMaxCharsValue">92 chars</span>
+              <input type="range" id="odMicroOracleMaxChars" min="20" max="300" step="1">
+            </label>
+
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Oracle Mode
+              <select id="odMicroOracleMode">
+                <option value="compact">Compact</option>
+                <option value="full">Full</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Name
+              <select id="odMicroShowName"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Mana
+              <select id="odMicroShowMana"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Type
+              <select id="odMicroShowType"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Flavor Text
+              <select id="odMicroFlavor"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Stats
+              <select id="odMicroShowStats"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Rarity
+              <select id="odMicroShowRarity"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Collector Info
+              <select id="odMicroShowCollector"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Set Code
+              <select id="odMicroShowSetCode"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Price Mode
+              <select id="odMicroPriceMode">
+                <option value="lowest">Lowest</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label style="display:flex; flex-direction:column; font-size: 0.9em;">Show Artist
+              <select id="odMicroShowArtist"><option value="true">Yes</option><option value="false">No</option></select>
+            </label>
+          </details>
         </div>
-
-        <div class="image-lab-control">
-            <label>Width:</label>
-            <select id="image-width">
-                <option>180</option>
-                <option selected>300</option>
-                <option>488</option>
-            </select>
+        <div id="odPreviewFrameShell" data-viewport="desktop" style="flex: 1; border: 1px solid var(--border, #ccc); border-radius: 4px; background: #fff;">
+          <iframe id="odPreviewFrame" style="width: 100%; height: 100%; border: none;"></iframe>
         </div>
+      </div>
 
-        <div class="image-lab-control">
-            <label>Quality:</label>
-            <select id="image-quality">
-                <option value=".55">55%</option>
-                <option selected value=".65">65%</option>
-                <option value=".75">75%</option>
-            </select>
-        </div>
-
-        <button id="run-image-test">
-            Run Image Test
-        </button>
-
-        <div id="image-report">
-            Waiting for test...
-        </div>
-
-    </div>
-</section>
+      <div id="odDesignerStatus" class="summary-box" style="margin-top: 1rem;">Designer ready.</div>
+      <div class="actions" style="margin-top: 1rem;">
+        <button id="odExportBtn" type="button">Export Profile</button>
+        <button id="odImportBtn" type="button">Import Profile</button>
+        <input type="file" id="odImportFile" accept=".json,application/json" hidden>
+      </div>
+    </section>
   </main>
 
-  <script src="./assets/js/recommended-sets.js"></script>
-  <script src="./assets/js/symbols.js"></script>
-  <script src="./assets/js/app.js"></script>
-  <script src="assets/js/version-loader.js"></script>
-  <script src="assets/js/module-registry.js"></script>
+  <script type="module" src="./assets/js/recommended-sets.js"></script>
+  <script type="module" src="./assets/js/symbols.js"></script>
+  <script type="module" src="./assets/js/app.js"></script>
+  <script type="module" src="./assets/js/version-loader.js"></script>
+  <script type="module" src="./assets/js/module-registry.js"></script>
 
-  <script src="assets/js/image-lab.js"></script>
-  <script src="assets/js/image-lab-ui.js"></script>
-  <script src="assets/js/image-report.js"></script>
-  <script src="assets/js/shared-image-cache.js"></script>
-  <script src="assets/js/catalog-profile-core.js"></script>
+  <script type="module" src="./assets/js/image-manager.js"></script>
+  <script type="module" src="./assets/js/micro-catalog-preview.js"></script>
+  <script type="module" src="./assets/js/output-designer.js"></script>
+  <script type="module" src="./assets/js/price-snapshot.js"></script>
+  <script type="module" src="./assets/js/workspace-admin.js"></script>
+  <script type="module" src="./assets/js/shared-image-cache.js"></script>
+  <script type="module" src="./assets/js/catalog-profile-core.js"></script>
 
-  <script src="assets/js/card-index.js"></script>
-  <script src="assets/js/catalog-image-profile.js"></script>
-  <script src="assets/js/catalog-batch-image-profile.js"></script>
-  <script src="assets/js/catalog-changed-image-profile.js"></script>
-  <script src="assets/js/catalog-all-image-profile.js"></script>
-  <script src="assets/js/simple-zip.js"></script>
-  <script src="assets/js/rules-library.js"></script>
+  <script type="module" src="./assets/js/card-index.js"></script>
+  <script type="module" src="./assets/js/catalog-image-profile.js"></script>
+  <script type="module" src="./assets/js/catalog-batch-image-profile.js"></script>
+  <script type="module" src="./assets/js/catalog-changed-image-profile.js"></script>
+  <script type="module" src="./assets/js/catalog-all-image-profile.js"></script>
+  <script type="module" src="./assets/js/simple-zip.js"></script>
+  <script type="module" src="./assets/js/rules-library.js"></script>
 </body>
 </html>

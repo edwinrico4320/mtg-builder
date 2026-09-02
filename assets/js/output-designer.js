@@ -1,0 +1,720 @@
+
+  const VERSION = '8.7.1.6';
+  const STORAGE_KEY = 'mtg-builder-output-design-v8_4';
+  const OUTPUT_FIELDS = [
+    'name','fontFamily','baseFontSize','lineHeight','headingScale','headingWeight',
+    'pageBackground','contentBackground','navigationBackground','headerBackground',
+    'textColor','secondaryTextColor','headingColor','linkColor','borderColor',
+    'rulesBackground','flavorBackground','targetBackground','density','maxPageWidth',
+    'navigationMode','imagePosition','imageWidth','cardColumns','borderRadius','borderWidth',
+    'priceLayout','priceShowBadges','priceHighlightLowest','priceShowSnapshotDate','priceCurrencyStyle',
+    'priceUnavailable','priceFontSize','priceBackground','priceBorderColor','priceLowestBackground',
+    'printPaper','printCardsPerSide','printFontSize','printFlavorMode','printPriceMode','printShowArtist','printCutGuides',
+    'microDensity','microArtMode','microArtZoom','microArtPositionX','microArtPositionY',
+    'microImagePosition','microImageWidth','microArtBoxMode','microArtBoxWidth','microArtBoxHeight','microArtBoxX','microArtBoxY',
+    'microCardPadding','microFlowGap','microFontSize','microLineHeight','microOracleMaxChars',
+    'microOracleMode','microFlavor','microPriceMode','microShowArtist','microShowStats','microShowRarity','microShowCollector','microShowSetCode','microShowName','microShowMana','microShowType'
+  ];
+
+  const DEFAULT_PROFILE = Object.freeze({
+    version: VERSION,
+    name: 'Restricted Device — Comfortable',
+    fontFamily: 'Verdana, Arial, sans-serif',
+    baseFontSize: 16,
+    lineHeight: 1.5,
+    headingScale: 1.3,
+    headingWeight: 700,
+    pageBackground: '#f3f0e8',
+    contentBackground: '#fffdf8',
+    navigationBackground: '#f8f5ed',
+    headerBackground: '#ebe2cf',
+    textColor: '#202020',
+    secondaryTextColor: '#555555',
+    headingColor: '#202020',
+    linkColor: '#163c65',
+    borderColor: '#c6baa0',
+    rulesBackground: '#efe6d4',
+    flavorBackground: '#f5efe6',
+    targetBackground: '#fff2b8',
+    density: 'comfortable',
+    maxPageWidth: 1200,
+    navigationMode: 'responsive',
+    imagePosition: 'responsive',
+    imageWidth: 300,
+    cardColumns: 1,
+    borderRadius: 4,
+    borderWidth: 1,
+    priceLayout: 'compact-row',
+    priceShowBadges: true,
+    priceHighlightLowest: true,
+    priceShowSnapshotDate: true,
+    priceCurrencyStyle: 'symbol',
+    priceUnavailable: 'hide',
+    priceFontSize: 13,
+    priceBackground: '#f2eee5',
+    priceBorderColor: '#b9ad94',
+    priceLowestBackground: '#dff2d8',
+    printPaper: 'letter',
+    printCardsPerSide: 30,
+    printFontSize: 6.2,
+    printFlavorMode: 'auto',
+    printPriceMode: 'lowest',
+    printShowArtist: false,
+    printCutGuides: true,
+    microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50,
+    microImagePosition: 'left', microImageWidth: 24,
+    // Custom canvas art box: percentages are relative to the entire micro-card cell.
+    // Flow mode keeps the simple left/right/top layout; Custom mode gives you an
+    // explicit artwork rectangle that can be positioned and sized independently.
+    microArtBoxMode: 'flow', microArtBoxWidth: 24, microArtBoxHeight: 100, microArtBoxX: 0, microArtBoxY: 0,
+    // Fine print controls are deliberately separate from the general catalog font.
+    microCardPadding: 2, microFlowGap: 3, microFontSize: 6.2, microLineHeight: 1.08, microOracleMaxChars: 92,
+    microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
+    microPriceMode: 'lowest', microShowArtist: false
+  });
+
+  const PRESETS = {
+    'restricted-comfortable': {},
+    'restricted-large': {
+      name: 'Restricted Device — Large Text', baseFontSize: 18, lineHeight: 1.65,
+      headingScale: 1.3, density: 'spacious', maxPageWidth: 1000,
+      navigationMode: 'top', imagePosition: 'top', imageWidth: 320, borderRadius: 2
+    },
+    'compact-library': {
+      name: 'Compact Library', fontFamily: 'Arial, sans-serif', baseFontSize: 14,
+      lineHeight: 1.4, headingScale: 1.15, density: 'compact', maxPageWidth: 1000,
+      navigationMode: 'responsive', imagePosition: 'responsive', imageWidth: 220,
+      borderRadius: 2
+    },
+    'high-contrast': {
+      name: 'High Contrast', fontFamily: 'Verdana, Arial, sans-serif', baseFontSize: 17,
+      lineHeight: 1.5, pageBackground: '#000000', contentBackground: '#ffffff',
+      navigationBackground: '#ffffff', headerBackground: '#ffffff', textColor: '#000000',
+      secondaryTextColor: '#222222', headingColor: '#000000', linkColor: '#003cff',
+      borderColor: '#000000', rulesBackground: '#f2f2f2', flavorBackground: '#e8e8e8',
+      targetBackground: '#fff000', borderWidth: 2, borderRadius: 0
+    },
+    'warm-paper': {
+      name: 'Warm Paper', fontFamily: 'Georgia, Times New Roman, serif', baseFontSize: 16,
+      lineHeight: 1.65, headingScale: 1.3, pageBackground: '#d8c7a7',
+      contentBackground: '#fff8e8', navigationBackground: '#f1e3c8',
+      headerBackground: '#e7d3ad', textColor: '#2f2518', secondaryTextColor: '#66543d',
+      headingColor: '#392813', linkColor: '#704214', borderColor: '#a98b5f',
+      rulesBackground: '#f5e6c8', flavorBackground: '#f8edda', targetBackground: '#ffe48a',
+      borderRadius: 6
+    },
+    'dark-desktop': {
+      name: 'Dark Desktop', fontFamily: 'Verdana, Arial, sans-serif', baseFontSize: 16,
+      lineHeight: 1.5, pageBackground: '#101722', contentBackground: '#1a2432',
+      navigationBackground: '#202c3c', headerBackground: '#26364a', textColor: '#edf3fa',
+      secondaryTextColor: '#b7c4d4', headingColor: '#ffffff', linkColor: '#8fc7ff',
+      borderColor: '#52667f', rulesBackground: '#26374a', flavorBackground: '#2d3540',
+      targetBackground: '#61551a', borderRadius: 8
+    },
+    'print-friendly': {
+      name: 'Print Friendly', fontFamily: 'Georgia, Times New Roman, serif', baseFontSize: 15,
+      lineHeight: 1.5, pageBackground: '#ffffff', contentBackground: '#ffffff',
+      navigationBackground: '#ffffff', headerBackground: '#ffffff', textColor: '#000000',
+      secondaryTextColor: '#333333', headingColor: '#000000', linkColor: '#000000',
+      borderColor: '#777777', rulesBackground: '#f5f5f5', flavorBackground: '#fafafa',
+      targetBackground: '#eeeeee', density: 'comfortable', maxPageWidth: 1000,
+      navigationMode: 'top', imagePosition: 'top', borderRadius: 0
+    },
+    'dense-print': {
+      name: 'Dense Print — 30 per side', fontFamily: 'Arial, sans-serif',
+      pageBackground: '#ffffff', contentBackground: '#ffffff', navigationBackground: '#ffffff',
+      headerBackground: '#ffffff', textColor: '#000000', secondaryTextColor: '#333333',
+      headingColor: '#000000', linkColor: '#000000', borderColor: '#555555',
+      rulesBackground: '#ffffff', flavorBackground: '#ffffff', targetBackground: '#eeeeee',
+      borderRadius: 0, borderWidth: 1, printPaper: 'letter', printCardsPerSide: 30,
+      printFontSize: 6.2, printFlavorMode: 'auto', printPriceMode: 'lowest',
+      printShowArtist: false, printCutGuides: true,
+      microDensity: 'reference', microArtMode: 'crop', microArtZoom: 0, microArtPositionX: 50, microArtPositionY: 50,
+    microImagePosition: 'left', microImageWidth: 24,
+    // Custom canvas art box: percentages are relative to the entire micro-card cell.
+    // Flow mode keeps the simple left/right/top layout; Custom mode gives you an
+    // explicit artwork rectangle that can be positioned and sized independently.
+    microArtBoxMode: 'flow', microArtBoxWidth: 24, microArtBoxHeight: 100, microArtBoxX: 0, microArtBoxY: 0,
+    // Fine print controls are deliberately separate from the general catalog font.
+    microCardPadding: 2, microFlowGap: 3, microFontSize: 6.2, microLineHeight: 1.08, microOracleMaxChars: 92,
+    microOracleMode: 'compact', microShowName: true, microShowMana: true, microShowType: true, microFlavor: false, microShowStats: true, microShowRarity: true, microShowCollector: true, microShowSetCode: true,
+      microPriceMode: 'lowest', microShowArtist: false
+    }
+  };
+
+  const CONTROL_MAP = {
+    name: 'odProfileName', fontFamily: 'odFontFamily', baseFontSize: 'odBaseFontSize',
+    lineHeight: 'odLineHeight', headingScale: 'odHeadingScale', headingWeight: 'odHeadingWeight',
+    pageBackground: 'odPageBackground', contentBackground: 'odContentBackground',
+    navigationBackground: 'odNavigationBackground', headerBackground: 'odHeaderBackground',
+    textColor: 'odTextColor', secondaryTextColor: 'odSecondaryTextColor',
+    headingColor: 'odHeadingColor', linkColor: 'odLinkColor', borderColor: 'odBorderColor',
+    rulesBackground: 'odRulesBackground', flavorBackground: 'odFlavorBackground',
+    targetBackground: 'odTargetBackground', density: 'odDensity', maxPageWidth: 'odMaxPageWidth',
+    navigationMode: 'odNavigationMode', imagePosition: 'odImagePosition', imageWidth: 'odImageWidth',
+    cardColumns: 'odCardColumns', borderRadius: 'odBorderRadius', borderWidth: 'odBorderWidth',
+    priceLayout: 'odPriceLayout', priceShowBadges: 'odPriceShowBadges',
+    priceHighlightLowest: 'odPriceHighlightLowest', priceShowSnapshotDate: 'odPriceShowSnapshotDate',
+    priceCurrencyStyle: 'odPriceCurrencyStyle', priceUnavailable: 'odPriceUnavailable',
+    priceFontSize: 'odPriceFontSize', priceBackground: 'odPriceBackground',
+    priceBorderColor: 'odPriceBorderColor', priceLowestBackground: 'odPriceLowestBackground',
+    printPaper: 'odPrintPaper', printCardsPerSide: 'odPrintCardsPerSide', printFontSize: 'odPrintFontSize',
+    printFlavorMode: 'odPrintFlavorMode', printPriceMode: 'odPrintPriceMode', printShowArtist: 'odPrintShowArtist',
+    printCutGuides: 'odPrintCutGuides',
+    microDensity: 'odMicroDensity', microArtMode: 'odMicroArtMode', microArtZoom: 'odMicroArtZoom', microArtPositionX: 'odMicroArtPositionX', microArtPositionY: 'odMicroArtPositionY',
+    microImagePosition: 'odMicroImagePosition', microImageWidth: 'odMicroImageWidth',
+    microArtBoxMode: 'odMicroArtBoxMode', microArtBoxWidth: 'odMicroArtBoxWidth', microArtBoxHeight: 'odMicroArtBoxHeight', microArtBoxX: 'odMicroArtBoxX', microArtBoxY: 'odMicroArtBoxY',
+    microCardPadding: 'odMicroCardPadding', microFlowGap: 'odMicroFlowGap', microFontSize: 'odMicroFontSize', microLineHeight: 'odMicroLineHeight', microOracleMaxChars: 'odMicroOracleMaxChars',
+    microOracleMode: 'odMicroOracleMode',
+    microShowName: 'odMicroShowName', microShowMana: 'odMicroShowMana', microShowType: 'odMicroShowType', microFlavor: 'odMicroFlavor', microShowStats: 'odMicroShowStats', microShowRarity: 'odMicroShowRarity', microShowCollector: 'odMicroShowCollector', microShowSetCode: 'odMicroShowSetCode',
+    microPriceMode: 'odMicroPriceMode', microShowArtist: 'odMicroShowArtist'
+  };
+
+  let state = {
+    profile: clone(DEFAULT_PROFILE),
+    microPreviewCards: null,
+    microPreviewArt: {},
+    previewMode: 'catalog',
+    viewport: 'desktop',
+    renderTimer: null,
+    microPreviewTimer: null,
+    profileLibrary: null,
+    selectedLibraryProfileId: null
+  };
+
+  function $(id) { return document.getElementById(id); }
+  function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function clamp(value, min, max, fallback) {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+  }
+  function validHex(value, fallback) {
+    return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? String(value).toLowerCase() : fallback;
+  }
+
+  function sanitizeProfile(input) {
+    const source = Object.assign({}, DEFAULT_PROFILE, input || {});
+    const p = clone(DEFAULT_PROFILE);
+    p.version = VERSION;
+    p.name = String(source.name || DEFAULT_PROFILE.name).slice(0, 80);
+    p.fontFamily = String(source.fontFamily || DEFAULT_PROFILE.fontFamily).slice(0, 120);
+    p.baseFontSize = clamp(source.baseFontSize, 12, 24, 16);
+    p.lineHeight = clamp(source.lineHeight, 1.15, 2, 1.5);
+    p.headingScale = clamp(source.headingScale, 1.05, 1.8, 1.3);
+    p.headingWeight = clamp(source.headingWeight, 400, 900, 700);
+    for (const key of ['pageBackground','contentBackground','navigationBackground','headerBackground','textColor','secondaryTextColor','headingColor','linkColor','borderColor','rulesBackground','flavorBackground','targetBackground']) {
+      p[key] = validHex(source[key], DEFAULT_PROFILE[key]);
+    }
+    p.density = ['compact','comfortable','spacious'].includes(source.density) ? source.density : 'comfortable';
+    p.maxPageWidth = clamp(source.maxPageWidth, 0, 2000, 1200);
+    p.navigationMode = ['responsive','top','left'].includes(source.navigationMode) ? source.navigationMode : 'responsive';
+    p.imagePosition = ['responsive','top','left','right'].includes(source.imagePosition) ? source.imagePosition : 'responsive';
+    p.imageWidth = clamp(source.imageWidth, 120, 600, 300);
+    p.cardColumns = clamp(source.cardColumns, 1, 2, 1);
+    p.borderRadius = clamp(source.borderRadius, 0, 20, 4);
+    p.borderWidth = clamp(source.borderWidth, 0, 4, 1);
+    p.priceLayout = ['compact-row','provider-boxes','cheapest','table'].includes(source.priceLayout) ? source.priceLayout : 'compact-row';
+    p.priceShowBadges = !(source.priceShowBadges === false || source.priceShowBadges === 'false');
+    p.priceHighlightLowest = !(source.priceHighlightLowest === false || source.priceHighlightLowest === 'false');
+    p.priceShowSnapshotDate = !(source.priceShowSnapshotDate === false || source.priceShowSnapshotDate === 'false');
+    p.priceCurrencyStyle = ['symbol','code'].includes(source.priceCurrencyStyle) ? source.priceCurrencyStyle : 'symbol';
+    p.priceUnavailable = ['hide','dash'].includes(source.priceUnavailable) ? source.priceUnavailable : 'hide';
+    p.priceFontSize = clamp(source.priceFontSize, 10, 18, 13);
+    p.priceBackground = validHex(source.priceBackground, '#f2eee5');
+    p.priceBorderColor = validHex(source.priceBorderColor, '#b9ad94');
+    p.priceLowestBackground = validHex(source.priceLowestBackground, '#dff2d8');
+    p.printPaper = ['letter','a4','legal'].includes(source.printPaper) ? source.printPaper : 'letter';
+    p.printCardsPerSide = [20,24,30].includes(Number(source.printCardsPerSide)) ? Number(source.printCardsPerSide) : 30;
+    p.printFontSize = clamp(source.printFontSize, 4.8, 9, 6.2);
+    p.printFlavorMode = ['auto','always','hide'].includes(source.printFlavorMode) ? source.printFlavorMode : 'auto';
+    p.printPriceMode = ['lowest','compact','hide'].includes(source.printPriceMode) ? source.printPriceMode : 'lowest';
+    p.printShowArtist = source.printShowArtist === true || source.printShowArtist === 'true';
+    p.printCutGuides = !(source.printCutGuides === false || source.printCutGuides === 'false');
+    p.microDensity = ['collector','reference','rules'].includes(source.microDensity) ? source.microDensity : 'reference';
+    p.microArtMode = ['crop','fit','none'].includes(source.microArtMode) ? source.microArtMode : 'crop';
+    p.microArtZoom = clamp(source.microArtZoom, 0, 100, 0);
+    p.microArtPositionX = clamp(source.microArtPositionX, 0, 100, 50);
+    p.microArtPositionY = clamp(source.microArtPositionY, 0, 100, 50);
+    // Micro layout controls intentionally live in the same normalized profile as
+    // the preview and production builder. This prevents the designer from
+    // developing a 'preview-only' setting that the generated HTML ignores.
+    p.microImagePosition = ['left','right','top'].includes(source.microImagePosition) ? source.microImagePosition : 'left';
+    p.microImageWidth = clamp(source.microImageWidth, 10, 45, 24);
+    // Custom canvas art box controls. These are intentionally normalized here so
+    // imported profiles, local storage, preview, and production builds all use
+    // the same geometry. X/Y are percentages from the card's top-left corner.
+    p.microArtBoxMode = ['flow','custom','wrap'].includes(source.microArtBoxMode) ? source.microArtBoxMode : 'flow';
+    p.microArtBoxWidth = clamp(source.microArtBoxWidth, 10, 80, 24);
+    p.microArtBoxHeight = clamp(source.microArtBoxHeight, 10, 100, 100);
+    p.microArtBoxX = clamp(source.microArtBoxX, 0, 90, 0);
+    p.microArtBoxY = clamp(source.microArtBoxY, 0, 90, 0);
+    p.microCardPadding = clamp(source.microCardPadding, 0, 4, 2);
+    p.microFlowGap = clamp(source.microFlowGap, 0, 6, 3);
+    p.microFontSize = clamp(source.microFontSize, 4.5, 8, 6.2);
+    p.microLineHeight = clamp(source.microLineHeight, 0.9, 1.3, 1.08);
+    p.microOracleMaxChars = clamp(source.microOracleMaxChars, 40, 220, 92);
+    p.microOracleMode = ['full','compact','hide'].includes(source.microOracleMode) ? source.microOracleMode : 'compact';
+    p.microShowName = !(source.microShowName === false || source.microShowName === 'false');
+    p.microShowMana = !(source.microShowMana === false || source.microShowMana === 'false');
+    p.microShowType = !(source.microShowType === false || source.microShowType === 'false');
+    p.microFlavor = source.microFlavor === true || source.microFlavor === 'true';
+    p.microPriceMode = ['lowest','compact','hide'].includes(source.microPriceMode) ? source.microPriceMode : 'lowest';
+    p.microShowArtist = source.microShowArtist === true || source.microShowArtist === 'true';
+    p.microShowStats = !(source.microShowStats === false || source.microShowStats === 'false');
+    p.microShowRarity = !(source.microShowRarity === false || source.microShowRarity === 'false');
+    p.microShowCollector = !(source.microShowCollector === false || source.microShowCollector === 'false');
+    p.microShowSetCode = !(source.microShowSetCode === false || source.microShowSetCode === 'false');
+    return p;
+  }
+
+  function densityValues(profile) {
+    if (profile.density === 'compact') return {page:10, panel:10, gap:10, nav:8, card:10};
+    if (profile.density === 'spacious') return {page:24, panel:22, gap:24, nav:18, card:22};
+    return {page:16, panel:16, gap:16, nav:12, card:14};
+  }
+
+  function getGeneratedCss(context, profileInput) {
+    const p = sanitizeProfile(profileInput || state.profile);
+    const d = densityValues(p);
+    const maxWidth = p.maxPageWidth === 0 ? 'none' : `${p.maxPageWidth}px`;
+    const h1 = Math.round(p.baseFontSize * p.headingScale * 1.45);
+    const h2 = Math.round(p.baseFontSize * p.headingScale);
+    const h3 = Math.round(p.baseFontSize * Math.max(1.05, p.headingScale - .12));
+    const navRules = p.navigationMode === 'top'
+      ? `.layout{display:block!important}.nav{width:auto!important;position:static!important;max-height:42vh!important;margin:0 0 var(--od-gap)!important;flex-basis:auto!important}.nav a{display:inline-block!important;width:auto!important;margin:2px!important}`
+      : p.navigationMode === 'left'
+        ? `@media(min-width:620px){.layout{display:flex!important;gap:var(--od-gap)!important;align-items:flex-start!important}.nav{width:250px!important;flex:0 0 250px!important;position:sticky!important;top:10px!important;margin:0!important}.nav a{display:block!important;width:auto!important;margin:2px 0!important}}`
+        : '';
+    const imageTop = `.card-body{display:block!important}.image-wrap,.missing-image{width:min(100%,var(--od-image-width))!important;max-width:var(--od-image-width)!important;flex:none!important;margin:0 auto var(--od-gap)!important;order:0!important}`;
+    const imageSide = side => `@media(min-width:620px){.card-body{display:flex!important;gap:var(--od-gap)!important;align-items:flex-start!important}.image-wrap,.missing-image{width:var(--od-image-width)!important;max-width:var(--od-image-width)!important;flex:0 0 var(--od-image-width)!important;margin:0!important;order:${side==='right'?2:0}!important}.card-copy{order:1!important;min-width:0!important;flex:1!important}}`;
+    const imageRules = p.imagePosition === 'top' ? imageTop : p.imagePosition === 'left' ? imageSide('left') : p.imagePosition === 'right' ? imageSide('right') : '';
+    return `
+:root{--od-font:${p.fontFamily};--od-base-size:${p.baseFontSize}px;--od-line-height:${p.lineHeight};--od-page-bg:${p.pageBackground};--od-content-bg:${p.contentBackground};--od-nav-bg:${p.navigationBackground};--od-header-bg:${p.headerBackground};--od-text:${p.textColor};--od-secondary:${p.secondaryTextColor};--od-heading:${p.headingColor};--od-link:${p.linkColor};--od-border:${p.borderColor};--od-rules-bg:${p.rulesBackground};--od-flavor-bg:${p.flavorBackground};--od-target-bg:${p.targetBackground};--od-radius:${p.borderRadius}px;--od-border-width:${p.borderWidth}px;--od-gap:${d.gap}px;--od-image-width:${p.imageWidth}px;--price-bg:${p.priceBackground};--price-border:${p.priceBorderColor};--price-low:${p.priceLowestBackground};--price-size:${p.priceFontSize}px}
+html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font-size:var(--od-base-size)!important;line-height:var(--od-line-height)!important;background:var(--od-page-bg)!important;color:var(--od-text)!important}.page{max-width:${maxWidth}!important;padding:${d.page}px!important}h1,h2,h3,.card-header h2,.chapter-heading{color:var(--od-heading)!important;font-weight:${p.headingWeight}!important}h1,.set-header h1,.header h1{font-size:${h1}px!important}.card-header h2,.chapter-heading{font-size:${h2}px!important}h3{font-size:${h3}px!important}a,.nav a,.back-top a{color:var(--od-link)!important}.meta,.set-sub,.card-footer,.layout-line,.muted{color:var(--od-secondary)!important}.header,.set-header{background:var(--od-header-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important;padding:${d.panel}px!important}.nav{background:var(--od-nav-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important;padding:${d.nav}px!important}.content,.card-entry{background:var(--od-content-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important}.content{padding:${d.panel}px!important}.card-entry{padding:${d.card}px!important;margin-bottom:var(--od-gap)!important}.rules-box{background:var(--od-rules-bg)!important;border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important}.flavor-box,.example{background:var(--od-flavor-bg)!important;border-color:var(--od-border)!important;border-radius:var(--od-radius)!important}.image-wrap,.missing-image{border-color:var(--od-border)!important;border-width:var(--od-border-width)!important;border-radius:var(--od-radius)!important}.chapter-heading:target,.rule:target,h3:target,.card-entry:target{background:var(--od-target-bg)!important}.cards{grid-template-columns:repeat(${p.cardColumns},minmax(0,1fr));gap:var(--od-gap)}${p.cardColumns > 1 ? '@media(min-width:1050px){.cards{display:grid!important}.card-entry{margin-bottom:0!important}}@media(max-width:1049px){.cards{display:block!important}}' : ''}${navRules}${imageRules}@media(max-width:480px){.page{padding:${Math.min(d.page,10)}px!important}.content,.card-entry{padding:${Math.min(d.panel,11)}px!important}}
+`;
+  }
+
+  function getFingerprintData() {
+    const profile = sanitizeProfile(state.profile);
+    const out = {version: VERSION};
+    OUTPUT_FIELDS.forEach(key => { out[key] = profile[key]; });
+    return out;
+  }
+
+  // Canonical build configuration: the Catalog Builder and the live preview
+  // must consume the same normalized profile. Keeping this in one place avoids
+  // subtle differences when a preset, slider, or imported profile changes.
+  function getBuildConfig() {
+    const profile = sanitizeProfile(state.profile);
+    return {
+      version: VERSION,
+      profile,
+      micro: {
+        density: profile.microDensity,
+        artMode: profile.microArtMode,
+        artZoom: profile.microArtZoom,
+        artPositionX: profile.microArtPositionX,
+        artPositionY: profile.microArtPositionY,
+        imagePosition: profile.microImagePosition,
+        imageWidth: profile.microImageWidth,
+        artBoxMode: profile.microArtBoxMode,
+        artBoxWidth: profile.microArtBoxWidth,
+        artBoxHeight: profile.microArtBoxHeight,
+        artBoxX: profile.microArtBoxX,
+        artBoxY: profile.microArtBoxY,
+        cardPadding: profile.microCardPadding,
+        flowGap: profile.microFlowGap,
+        fontSize: profile.microFontSize,
+        lineHeight: profile.microLineHeight,
+        oracleMaxChars: profile.microOracleMaxChars,
+        oracleMode: profile.microOracleMode,
+        flavor: profile.microFlavor,
+        priceMode: profile.microPriceMode,
+        showArtist: profile.microShowArtist,
+        showStats: profile.microShowStats
+      },
+      print: {
+        paper: profile.printPaper,
+        cardsPerSide: profile.printCardsPerSide,
+        fontSize: profile.printFontSize,
+        flavorMode: profile.printFlavorMode,
+        priceMode: profile.printPriceMode,
+        showArtist: profile.printShowArtist,
+        cutGuides: profile.printCutGuides
+      }
+    };
+  }
+
+  function getProfileSummary() {
+    const p = sanitizeProfile(state.profile);
+    return {name:p.name, version:VERSION, fontFamily:p.fontFamily, baseFontSize:p.baseFontSize, density:p.density, navigationMode:p.navigationMode, imagePosition:p.imagePosition, imageWidth:p.imageWidth, printPaper:p.printPaper, printCardsPerSide:p.printCardsPerSide};
+  }
+
+  function updateLabelsAndVisibility(p) {
+    const zoomLabel = $('odMicroArtZoomValue'); if (zoomLabel) zoomLabel.textContent = `${Math.round(p.microArtZoom)}%`;
+    const xLabel = $('odMicroArtPositionXValue'); if (xLabel) xLabel.textContent = `${Math.round(p.microArtPositionX)}%`;
+    const yLabel = $('odMicroArtPositionYValue'); if (yLabel) yLabel.textContent = `${Math.round(p.microArtPositionY)}%`;
+    const widthLabel = $('odMicroImageWidthValue'); if (widthLabel) widthLabel.textContent = `${Math.round(p.microImageWidth)}%`;
+    const boxWidthLabel = $('odMicroArtBoxWidthValue'); if (boxWidthLabel) boxWidthLabel.textContent = `${Math.round(p.microArtBoxWidth)}%`;
+    const boxHeightLabel = $('odMicroArtBoxHeightValue'); if (boxHeightLabel) boxHeightLabel.textContent = `${Math.round(p.microArtBoxHeight)}%`;
+    const boxXLabel = $('odMicroArtBoxXValue'); if (boxXLabel) boxXLabel.textContent = `${Math.round(p.microArtBoxX)}%`;
+    const boxYLabel = $('odMicroArtBoxYValue'); if (boxYLabel) boxYLabel.textContent = `${Math.round(p.microArtBoxY)}%`;
+    const padLabel = $('odMicroCardPaddingValue'); if (padLabel) padLabel.textContent = `${Number(p.microCardPadding).toFixed(1)}px`;
+    const gapLabel = $('odMicroFlowGapValue'); if (gapLabel) gapLabel.textContent = `${Number(p.microFlowGap).toFixed(1)}px`;
+    const microFontLabel = $('odMicroFontSizeValue'); if (microFontLabel) microFontLabel.textContent = `${Number(p.microFontSize).toFixed(1)}pt`;
+    const microLineLabel = $('odMicroLineHeightValue'); if (microLineLabel) microLineLabel.textContent = Number(p.microLineHeight).toFixed(2);
+    const oracleCharsLabel = $('odMicroOracleMaxCharsValue'); if (oracleCharsLabel) oracleCharsLabel.textContent = `${Math.round(p.microOracleMaxChars)} chars`;
+
+    const isFlow = p.microArtBoxMode === 'flow';
+    const display = isFlow ? 'none' : 'flex';
+    const widthEl = $('odMicroArtBoxWidth'); if (widthEl && widthEl.parentElement) widthEl.parentElement.style.display = display;
+    const heightEl = $('odMicroArtBoxHeight'); if (heightEl && heightEl.parentElement) heightEl.parentElement.style.display = display;
+    const xEl = $('odMicroArtBoxX'); if (xEl && xEl.parentElement) xEl.parentElement.style.display = display;
+    const yEl = $('odMicroArtBoxY'); if (yEl && yEl.parentElement) yEl.parentElement.style.display = display;
+  }
+
+  function readControls() {
+    const raw = {};
+    for (const [key,id] of Object.entries(CONTROL_MAP)) {
+      const el = $(id);
+      if (el) raw[key] = el.value;
+    }
+    state.profile = sanitizeProfile(raw);
+    updateLabelsAndVisibility(state.profile);
+    return state.profile;
+  }
+
+  function writeControls(profileInput) {
+    const p = sanitizeProfile(profileInput);
+    state.profile = p;
+    for (const [key,id] of Object.entries(CONTROL_MAP)) {
+      const el = $(id);
+      if (el) el.value = p[key];
+    }
+    updateLabelsAndVisibility(p);
+  }
+
+  function persist() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeProfile(state.profile))); } catch (err) {}
+  }
+
+  function loadLocal() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? sanitizeProfile(JSON.parse(saved)) : clone(DEFAULT_PROFILE);
+    } catch (err) { return clone(DEFAULT_PROFILE); }
+  }
+
+  function previewBaseCss() {
+    return `*{box-sizing:border-box}html{scroll-behavior:auto}body{margin:0;background:#f3f0e8;color:#202020}.page{max-width:1200px;margin:auto;padding:16px}.header,.set-header{text-align:center;background:#ebe2cf;border:1px solid #b9ac8e;padding:16px;margin-bottom:14px}.layout{display:block}.nav{background:#f8f5ed;border:1px solid #c6baa0;padding:12px;margin-bottom:14px;max-height:36vh;overflow:auto}.nav-title,.nav h2{display:block;font-size:1.05em;margin:0 0 8px;font-weight:bold}.nav-list{list-style:none;margin:0;padding:0}.nav-list li{border-top:1px solid #ddd}.nav a{display:block;padding:7px;text-decoration:none}.content,.card-entry{background:#fffdf8;border:1px solid #c8bea8;padding:16px}.chapter-section{margin:0 0 2em}.chapter-heading{border-bottom:1px solid #cbb999;padding-bottom:5px}.rule{padding-left:1.2em;text-indent:-1.2em}.example{background:#f4ecdd;border-left:4px solid #b99a68;padding:9px}.cards{min-width:0}.card-entry{margin-bottom:16px}.card-header{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #ccbfa2;padding-bottom:8px;margin-bottom:10px}.card-header h2{margin:0}.card-body{display:block}.image-wrap{width:100%;max-width:300px;margin:0 auto 12px;border:1px solid #c2b7a1;padding:8px;background:#ebe8df}.image-placeholder{aspect-ratio:5/7;display:grid;place-items:center;background:linear-gradient(145deg,#173d64,#6f92b4);color:white;text-align:center;padding:12px;font-weight:bold}.type-line{font-weight:bold;margin-bottom:5px}.rules-box{background:#efe6d4;border:1px solid #cbb999;padding:10px}.flavor-box{background:#f5efe6;border:1px solid #d0c3b1;padding:10px;margin-top:8px;font-style:italic}.stats-box{margin-top:8px}.stats-badge{display:inline-block;border:1px solid #777;padding:4px 10px;font-weight:bold}.portable-set{margin:0 0 22px}.back-top{font-size:.85em}@media(min-width:901px) and (orientation:landscape){.layout{display:flex;gap:16px;align-items:flex-start}.nav{width:240px;flex:0 0 240px;position:sticky;top:10px;margin:0}.content,.cards{flex:1;min-width:0}.card-body{display:flex;gap:14px}.image-wrap{width:220px;flex:0 0 220px;margin:0}}`;
+  }
+
+  function navHtml(items) {
+    return `<nav class="nav"><div class="nav-title">Contents</div><ol class="nav-list">${items.map(x=>`<li><a href="#${x.id}">${esc(x.label)}</a></li>`).join('')}</ol></nav>`;
+  }
+
+  function previewMana(text) {
+    const renderer = window.MTGSymbolRenderer;
+    return renderer ? renderer.manaToHtml(text || '', true) : esc(text || '');
+  }
+
+  function previewRarity(rarity) {
+    const renderer = window.MTGSymbolRenderer;
+    return renderer ? renderer.renderRarityIcon(rarity) : '';
+  }
+
+  function catalogPreview() {
+    const nav = navHtml([{id:'card-1',label:'Aether Channeler'},{id:'card-2',label:'Sample Dragon'},{id:'card-3',label:'Sample Land'}]);
+    return `<div id="top"></div><div class="page"><header class="set-header"><h1>Sample Set</h1><div class="set-sub">Set Code: SMP · Live design preview</div></header><div class="layout">${nav}<main class="cards"><article id="card-1" class="card-entry"><div class="card-header"><h2>Aether Channeler</h2><div class="mana-cost">${previewMana('{2}{U}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded card image preview</div></div><div class="card-copy"><div class="type-line">Creature — Human Wizard</div><div class="rarity-line">${previewRarity('uncommon')}<span class="rarity-label">uncommon</span></div><div class="rules-box"><strong>Oracle Text</strong><p>${previewMana('When this creature enters, choose one — create a 1/1 token; return another nonland permanent with mana value {2} or less; or draw a card.')}</p></div><div class="flavor-box">“Every current has a story.”</div><div class="stats-box"><span class="stats-badge">2/1</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}<p class="back-top"><a href="#top">Back to top</a></p></div></div></article><article id="card-2" class="card-entry"><div class="card-header"><h2>Sample Dragon</h2><div class="mana-cost">${previewMana('{4}{R}{R}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Second image</div></div><div class="card-copy"><div class="type-line">Creature — Dragon</div><div class="rarity-line">${previewRarity('mythic')}<span class="rarity-label">mythic</span></div><div class="rules-box">Flying<br>Whenever this attacks, it deals 2 damage to any target. Activate only by paying ${previewMana('{W/U}{2/B}{G/P}{T}')}.</div><div class="stats-box"><span class="stats-badge">5/5</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}</div></div></article></main></div></div>`;
+  }
+
+  function rulesPreview() {
+    const nav = navHtml([{id:'chapter-100',label:'1. Game Concepts'},{id:'chapter-200',label:'2. Parts of a Card'},{id:'chapter-300',label:'3. Card Types'}]);
+    return `<div id="top"></div><div class="page"><header class="header"><h1>Magic Comprehensive Rules</h1><div class="meta">Live rules-library preview</div></header><div class="layout">${nav}<main class="content"><section class="chapter-section"><h2 id="chapter-100" class="chapter-heading">1. Game Concepts</h2><h3 id="rule-100">100. General</h3><p id="rule-100-1" class="rule"><strong>100.1.</strong> These rules apply to a game with two or more players.</p><div class="example">Example: Internal links can highlight a specific rule or chapter.</div><p class="back-top"><a href="#top">Back to chapter list</a></p></section><section class="chapter-section"><h2 id="chapter-200" class="chapter-heading">2. Parts of a Card</h2><p class="rule"><strong>200.1.</strong> The parts of a card include its name, mana cost, illustration, and text box. Mana symbols such as ${previewMana('{W/U}{2/R}{G/P}')} are rendered in the output.</p></section></main></div></div>`;
+  }
+
+  function portablePreview() {
+    const nav = navHtml([{id:'library-rules',label:'Rules Reference'},{id:'library-set-one',label:'Sample Set One'},{id:'library-set-two',label:'Sample Set Two'}]);
+    return `<div id="top"></div><div class="page"><header class="header"><h1>Portable MTG Library</h1><div class="meta">Single self-contained HTML file · internal links only</div></header><div class="layout">${nav}<main class="content"><section id="library-rules" class="chapter-section"><h2 class="chapter-heading">Rules Reference</h2><p>Selected rules chapters would appear directly inside this file.</p><div class="rules-box"><strong>100.1.</strong> These rules apply to a game with two or more players.</div></section><section id="library-set-one" class="portable-set"><h2 class="chapter-heading">Sample Set One</h2><article class="card-entry"><div class="card-header"><h2>Library Card</h2><div class="mana-cost">${previewMana('{1}{G}')}</div></div><div class="card-body"><div class="image-wrap"><div class="image-placeholder">Embedded image</div></div><div class="card-copy"><div class="type-line">Creature — Elf</div><div class="rules-box">When this enters, add one mana of any color.</div><div class="stats-box"><span class="stats-badge">2/2</span></div>${window.PriceSnapshotManager ? PriceSnapshotManager.renderSampleBox() : ''}</div></div></article></section><section id="library-set-two" class="portable-set"><h2 class="chapter-heading">Sample Set Two</h2><p>Additional selected sets would continue below using only internal anchors.</p></section></main></div></div>`;
+  }
+
+  function printPreviewCss() {
+    const p = sanitizeProfile(state.profile);
+    const count = Number(p.printCardsPerSide || 30);
+    const cols = count === 30 ? 5 : 4;
+    const rows = count === 20 ? 5 : 6;
+    return `.print-preview-shell{padding:10px;background:#444}.print-preview-sheet{background:#fff;color:#000;aspect-ratio:11/8.5;padding:1.5%;display:flex;flex-direction:column;box-shadow:0 2px 12px rgba(0,0,0,.45);font-family:Arial,sans-serif}.print-preview-caption{height:4%;font-size:7px;display:flex;justify-content:space-between}.print-preview-grid{height:96%;display:grid;grid-template-columns:repeat(${cols},1fr);grid-template-rows:repeat(${rows},1fr);gap:1px}.print-preview-card{border:${p.printCutGuides?'1px solid #555':'1px solid #ddd'};padding:2px;overflow:hidden;font-size:5px;line-height:1.08}.print-preview-card header{display:flex;justify-content:space-between;gap:2px;border-bottom:1px solid #aaa}.print-preview-card h3{font-size:5.8px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-preview-card .mana{width:7px;height:7px}.print-preview-type{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.print-preview-rules{margin-top:1px}.print-preview-footer{display:flex;justify-content:space-between;font-size:4.5px;margin-top:1px}.print-preview-price{font-weight:700;font-size:4.5px}`;
+  }
+
+  function printPreview() {
+    const p = sanitizeProfile(state.profile);
+    const count = Number(p.printCardsPerSide || 30);
+    const names = ['Aether Channeler','Sample Dragon','Forest Guardian','Arcane Lesson','Silent Departure','Copper Automaton','Sunlit Healer','Night Market','Rising Current','Ancient Map'];
+    const cards = Array.from({length:count},(_,i)=>`<article class="print-preview-card"><header><h3>${esc(names[i%names.length])}</h3><span>${previewMana(i%5===0?'{2}{U}':i%5===1?'{1}{R}':i%5===2?'{G}':'{2}')}</span></header><div class="print-preview-type">${i%3===0?'Creature — Wizard':i%3===1?'Instant':'Enchantment'}</div><div class="print-preview-rules">${i%4===0?'When this enters, draw a card.':i%4===1?'Flying. Whenever this attacks, it deals 2 damage.':i%4===2?'Add one mana of any color.':'Exile target nonland permanent until this leaves.'}</div>${p.printFlavorMode==='always'?'<em>Short flavor line.</em>':''}<div class="print-preview-footer"><span>U #${i+1}</span><span>${i%3===0?'2/2':''}</span></div>${p.printPriceMode!=='hide'?'<div class="print-preview-price">TCG $0.24</div>':''}</article>`).join('');
+    return `<div class="print-preview-shell"><section class="print-preview-sheet"><div class="print-preview-caption"><strong>Sample Set — Print Sheet</strong><span>${count} cards/side · up to ${count*2}/duplex sheet</span></div><div class="print-preview-grid">${cards}</div></section></div>`;
+  }
+
+  function buildPreviewDocument() {
+    const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : state.previewMode === 'micro' ? (window.MicroCatalogPreview ? MicroCatalogPreview.render(state.profile, state.microPreviewCards, state.microPreviewArt) : printPreview()) : catalogPreview();
+    const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : state.previewMode === 'print' ? 'Printable Sheet Preview' : state.previewMode === 'micro' ? 'Micro Catalog Preview' : 'Catalog Preview';
+    const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${state.previewMode==='print'?printPreviewCss():''}${state.previewMode==='micro' && window.MicroCatalogPreview ? MicroCatalogPreview.css(state.profile) : ''}${priceCss}</style></head><body>${body}</body></html>`;
+  }
+
+  async function hydrateMicroPreview() {
+    if (state.previewMode !== 'micro' || !window.MicroCatalogPreview) return;
+    const setCode = (($('catalogSetSelect') || {}).value) || '';
+    if (!setCode) return;
+    try {
+      const source = await CatalogProfileCore.fetchSetSource(setCode);
+      const rawCards = CatalogProfileCore.sortCards(CatalogProfileCore.extractCards(source.json), 'alpha').slice(0, 30);
+      const cards = rawCards.map(card => Object.assign({}, card, {
+        mana: card.manaCost || '',
+        oracle: card.text || card.oracleText || '',
+        stats: card.power != null && card.toughness != null ? `${card.power}/${card.toughness}` : (card.loyalty != null ? String(card.loyalty) : (card.defense != null ? String(card.defense) : '')),
+        flavor: card.flavorText || ''
+      }));
+      state.microPreviewCards = cards;
+      state.microPreviewArt = await MicroCatalogPreview.hydrate(cards);
+      const frame = $('odPreviewFrame');
+      if (frame) frame.srcdoc = buildPreviewDocument();
+      const status = $('odDesignerStatus');
+      if (status) status.innerHTML += `<br><span class="od-profile-chip">${Object.keys(state.microPreviewArt).length}/${cards.length} art crops loaded</span>`;
+    } catch (error) {
+      const status = $('odDesignerStatus');
+      if (status) status.innerHTML += `<br><span class="od-profile-chip">Micro preview using sample cards</span>`;
+    }
+  }
+
+  function renderPreview() {
+    const frame = $('odPreviewFrame');
+    const shell = $('odPreviewFrameShell');
+    if (!frame || !shell) return;
+    shell.dataset.viewport = state.viewport;
+    frame.srcdoc = buildPreviewDocument();
+    const status = $('odDesignerStatus');
+    if (status) {
+      const microInfo = state.previewMode === 'micro'
+        ? `<br><span class="od-profile-chip">Art ${esc(state.profile.microArtMode)} · Zoom ${Math.round(state.profile.microArtZoom)}% · X ${Math.round(state.profile.microArtPositionX)}% · Y ${Math.round(state.profile.microArtPositionY)}%</span>`
+        : '';
+      status.innerHTML = `<strong>${esc(state.profile.name)}</strong><br><span class="od-profile-chip">${esc(state.previewMode)}</span> · ${esc(state.viewport)} · ${state.profile.baseFontSize}px ${esc(state.profile.fontFamily.split(',')[0])}${microInfo}`;
+    }
+    if (state.previewMode === 'micro') {
+      clearTimeout(state.microPreviewTimer);
+      state.microPreviewTimer = setTimeout(() => hydrateMicroPreview(), 180);
+    }
+  }
+
+  function scheduleUpdate() {
+    readControls();
+    persist();
+    clearTimeout(state.renderTimer);
+    state.renderTimer = setTimeout(() => {
+      renderPreview();
+      document.dispatchEvent(new CustomEvent('output-design-change', {detail:getFingerprintData()}));
+    }, 120);
+  }
+
+  function applyProfile(profile, message) {
+    writeControls(profile);
+    persist();
+    renderPreview();
+    const status = $('odDesignerStatus');
+    if (status && message) status.innerHTML = `<strong>${esc(message)}</strong><br>${esc(state.profile.name)}`;
+  }
+
+  function applyPreset() {
+    const id = (($('odPresetSelect') || {}).value) || 'restricted-comfortable';
+    applyProfile(Object.assign({}, DEFAULT_PROFILE, PRESETS[id] || {}), 'Preset applied.');
+  }
+
+  function downloadText(name, text, type) {
+    const blob = new Blob([text], {type:type || 'text/plain;charset=utf-8'});
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function exportProfile() {
+    const p = sanitizeProfile(state.profile);
+    const slug = p.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'design-profile';
+    downloadText(`${slug}.json`, JSON.stringify(p, null, 2), 'application/json;charset=utf-8');
+    const status = $('odDesignerStatus');
+    if (status) status.innerHTML = `<strong>Design profile exported.</strong><br>Upload the JSON to <code>data/design-profiles</code> to use it on other computers.`;
+  }
+
+  async function importFile(file) {
+    if (!file) return;
+    try {
+      const p = sanitizeProfile(JSON.parse(await file.text()));
+      applyProfile(p, 'Design profile imported.');
+    } catch (err) {
+      const status = $('odDesignerStatus');
+      if (status) status.innerHTML = `<strong>Import failed:</strong> ${esc(err.message || String(err))}`;
+    }
+  }
+
+  function profileIdFromName(name, fallback) {
+    const slug = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    return slug || fallback || 'profile';
+  }
+
+  function normalizeProfileLibrary(payload) {
+    const library = {version: VERSION, defaultProfile: null, profiles: {}};
+    if (!payload || typeof payload !== 'object') throw new Error('Profile library is not valid JSON.');
+
+    if (payload.profiles && !Array.isArray(payload.profiles) && typeof payload.profiles === 'object') {
+      Object.entries(payload.profiles).forEach(([id, value], index) => {
+        const raw = value && value.profile ? Object.assign({}, value.profile, {name: value.name || value.profile.name}) : value;
+        if (!raw || typeof raw !== 'object') return;
+        library.profiles[String(id)] = sanitizeProfile(raw);
+      });
+      library.defaultProfile = payload.defaultProfile && library.profiles[payload.defaultProfile]
+        ? payload.defaultProfile
+        : Object.keys(library.profiles)[0] || null;
+      return library;
+    }
+
+    if (Array.isArray(payload.profiles)) {
+      payload.profiles.forEach((value, index) => {
+        const raw = value && value.profile ? Object.assign({}, value.profile, {name: value.name || value.profile.name}) : value;
+        if (!raw || typeof raw !== 'object') return;
+        const id = String(value.id || profileIdFromName(raw.name, `profile-${index + 1}`));
+        library.profiles[id] = sanitizeProfile(raw);
+      });
+      library.defaultProfile = payload.defaultProfile && library.profiles[payload.defaultProfile]
+        ? payload.defaultProfile
+        : Object.keys(library.profiles)[0] || null;
+      return library;
+    }
+
+    // Backward compatibility: a single old-style profile JSON is treated as a one-entry library.
+    const single = sanitizeProfile(payload);
+    const id = profileIdFromName(single.name, 'default');
+    library.profiles[id] = single;
+    library.defaultProfile = id;
+    return library;
+  }
+
+  function populateGithubProfileSelect(library) {
+    const select = $('odGithubProfileSelect');
+    const applyBtn = $('odApplyGithubProfileBtn');
+    if (!select) return;
+    select.innerHTML = '';
+    const entries = Object.entries(library.profiles || {});
+    entries.forEach(([id, profile]) => {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = profile.name || id;
+      select.appendChild(option);
+    });
+    select.disabled = entries.length === 0;
+    if (applyBtn) applyBtn.disabled = entries.length === 0;
+    if (entries.length) {
+      const selected = library.defaultProfile && library.profiles[library.defaultProfile]
+        ? library.defaultProfile
+        : entries[0][0];
+      select.value = selected;
+      state.selectedLibraryProfileId = selected;
+    }
+  }
+
+  function applySelectedLibraryProfile(message) {
+    const select = $('odGithubProfileSelect');
+    const id = select ? select.value : state.selectedLibraryProfileId;
+    if (!state.profileLibrary || !id || !state.profileLibrary.profiles[id]) return;
+    state.selectedLibraryProfileId = id;
+    applyProfile(state.profileLibrary.profiles[id], message || 'Profile selected from GitHub library.');
+  }
+
+  async function loadFromGithub() {
+    const path = (($('odGithubPath') || {}).value || '').trim();
+    const status = $('odDesignerStatus');
+    if (!path) return;
+    try {
+      if (status) status.innerHTML = `Loading profile library <code>${esc(path)}</code>...`;
+      const response = await fetch(path, {cache:'no-store'});
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const library = normalizeProfileLibrary(await response.json());
+      const count = Object.keys(library.profiles).length;
+      if (!count) throw new Error('The profile library contains no usable profiles.');
+      state.profileLibrary = library;
+      populateGithubProfileSelect(library);
+      applySelectedLibraryProfile(`Profile library loaded: ${count} profile${count === 1 ? '' : 's'}.`);
+    } catch (err) {
+      state.profileLibrary = null;
+      const select = $('odGithubProfileSelect');
+      const applyBtn = $('odApplyGithubProfileBtn');
+      if (select) {
+        select.innerHTML = '<option value="">Profile library unavailable</option>';
+        select.disabled = true;
+      }
+      if (applyBtn) applyBtn.disabled = true;
+      if (status) status.innerHTML = `<strong>Profile library load failed:</strong> ${esc(err.message || String(err))}`;
+    }
+  }
+
+  function registerModule() {
+    if (typeof BuilderModules !== 'undefined') BuilderModules.register('Output Designer', '8.7.1.6');
+  }
+
+  function init() {
+    registerModule();
+    writeControls(loadLocal());
+    // Every designer control, including the micro-art sliders, flows through
+    // the same state -> persist -> preview pipeline.  The v8.7.1.3 sliders
+    // were rendered and labeled correctly, but were accidentally omitted from
+    // CONTROL_MAP, so readControls() never copied their values into state.profile.
+    // Keeping them in CONTROL_MAP makes the live preview and production build
+    // consume the exact same normalized profile.
+    Object.values(CONTROL_MAP).forEach(id => {
+      const el = $(id);
+      if (el) {
+        el.addEventListener('input', scheduleUpdate);
+        el.addEventListener('change', scheduleUpdate);
+      }
+    });
+    const previewMode = $('odPreviewMode');
+    if (previewMode) previewMode.addEventListener('change', () => {state.previewMode = previewMode.value; renderPreview();});
+    document.querySelectorAll('[data-od-viewport]').forEach(btn => btn.addEventListener('click', () => {
+      state.viewport = btn.dataset.odViewport;
+      document.querySelectorAll('[data-od-viewport]').forEach(x => x.classList.toggle('active', x === btn));
+      renderPreview();
+    }));
+    const applyBtn = $('odApplyPresetBtn'); if (applyBtn) applyBtn.addEventListener('click', applyPreset);
+    const resetBtn = $('odResetBtn'); if (resetBtn) resetBtn.addEventListener('click', () => applyProfile(DEFAULT_PROFILE, 'Designer reset to default.'));
+    const exportBtn = $('odExportBtn'); if (exportBtn) exportBtn.addEventListener('click', exportProfile);
+    const importBtn = $('odImportBtn'); const importFileInput = $('odImportFile');
+    if (importBtn && importFileInput) importBtn.addEventListener('click', () => importFileInput.click());
+    if (importFileInput) importFileInput.addEventListener('change', () => {importFile(importFileInput.files && importFileInput.files[0]); importFileInput.value='';});
+    const githubBtn = $('odLoadGithubBtn'); if (githubBtn) githubBtn.addEventListener('click', loadFromGithub);
+    const githubProfileSelect = $('odGithubProfileSelect');
+    if (githubProfileSelect) githubProfileSelect.addEventListener('change', () => applySelectedLibraryProfile('GitHub library profile selected.'));
+    const applyGithubProfileBtn = $('odApplyGithubProfileBtn');
+    if (applyGithubProfileBtn) applyGithubProfileBtn.addEventListener('click', () => applySelectedLibraryProfile('GitHub library profile applied.'));
+    document.addEventListener('price-settings-change', renderPreview);
+    document.addEventListener('price-data-loaded', renderPreview);
+    renderPreview();
+  }
+
+export const OutputDesigner = {
+    version: VERSION,
+    defaults: clone(DEFAULT_PROFILE),
+    presets: clone(PRESETS),
+    getProfile: () => sanitizeProfile(state.profile),
+    getFingerprintData,
+    getProfileSummary,
+    getBuildConfig,
+    getGeneratedCss,
+    applyProfile: p => applyProfile(p, 'Design profile applied.'),
+    buildPreviewDocument,
+    sanitizeProfile,
+    normalizeProfileLibrary
+  };
+  window.OutputDesigner = OutputDesigner;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
