@@ -714,6 +714,7 @@ export const OutputDesigner = {
     sanitizeProfile,
     normalizeProfileLibrary
   };
+  window.OutputDesigner = OutputDesigner;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
