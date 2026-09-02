@@ -221,6 +221,11 @@ import { RulesLibraryInternals } from './rules-library.js';
       manifest.builderVersion=VERSION;manifest.workspace={workspaceName:w.workspaceName,workspaceVersion:w.version||VERSION,selectedSets:w.selectedSets,updatedAt:new Date().toISOString()};
       files.push({name:'data/output/build-manifest.json',content:JSON.stringify(manifest,null,2)});
       if(w.policy.includeWorkspace)files.push({name:'data/workspace.json',content:JSON.stringify(w,null,2)});
+      if(window.OutputDesigner) {
+        const p = window.OutputDesigner.getProfile();
+        const slug = p.name ? p.name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') : 'design-profile';
+        files.push({name:`data/design-profiles/${slug}.json`,content:JSON.stringify(p,null,2)});
+      }
       if(w.policy.includeSetIndex&&check.registryDirty&&window.MTGSetRegistry)files.push({name:'data/set-index.json',content:JSON.stringify(MTGSetRegistry.getIndex(),null,2)});
       await optionalSource(files,w.sources.profileLibraryPath,w.policy.includeProfiles,'profile-library');
       await optionalSource(files,w.sources.priceSnapshotPath,w.policy.includePrices,'price-snapshot');

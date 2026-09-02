@@ -671,6 +671,42 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     log('catalogSummary', `Built library-index files for ${sets.length} discovered sets.`);
   }
 
+  async function discoverNewLegalSets() {
+    log('catalogSummary', 'Fetching MTGJSON SetList...');
+    try {
+      const resp = await fetch('https://mtgjson.com/api/v5/SetList.json');
+      if (!resp.ok) throw new Error('Network response was not ok');
+      const data = await resp.json();
+      const sets = data.data;
+
+      const legalTypes = ['expansion', 'core'];
+      const currentCodes = new Set(discoveredSets.map(s => s.code.toUpperCase()));
+
+      const missingSets = sets.filter(s => {
+        if (!s.setCode) return false;
+        if (currentCodes.has(s.setCode.toUpperCase())) return false;
+        if (!s.type || !legalTypes.includes(s.type)) return false;
+        return true;
+      });
+
+      if (!missingSets.length) {
+        log('catalogSummary', 'No new standard/modern legal sets found on MTGJSON.');
+        return;
+      }
+
+      log('catalogSummary', `Found ${missingSets.length} missing legal sets. Adding to registry...`);
+      for (const s of missingSets) {
+        discoveredSets.push({ code: s.setCode.toUpperCase(), name: s.name, releaseDate: s.releaseDate || '', cardCount: s.totalSetSize || 0, sourceSha: '', sourceBytes: 0, path: `./data/json/${s.setCode.toUpperCase()}.json` });
+      }
+
+      const index = buildRegistry();
+      applyRegistry(index, {path: setRegistryState.path||SET_INDEX_DEFAULT, source: 'mtgjson discovery', dirty: true, selectedCodes: currentBatchSelection()});
+      log('catalogSummary', `Added ${missingSets.length} sets. You can now build these changed/new sets and download them via 'Build Changes'.`);
+    } catch (error) {
+      log('catalogSummary', `Error discovering new sets: ${error.message}`);
+    }
+  }
+
   function bind(){
     initTabs();
     $('checkSetsBtn')?.addEventListener('click', checkInstalledSets);
@@ -686,6 +722,7 @@ body{font-family:Arial,Helvetica,sans-serif;margin:0;background:#ececec;color:#1
     $('analyzeCheckedSetsBtn')?.addEventListener('click', async()=>{ await ensureDiscovered(); await analyzeSets(getCheckedSets()); });
     $('buildAllCatalogsBtn')?.addEventListener('click', buildAll);
     $('buildLibraryIndexBtn')?.addEventListener('click', buildLibraryIndexOnly);
+    $('discoverNewSetsBtn')?.addEventListener('click', discoverNewLegalSets);
     setRegistryState.pending = loadSetRegistry(SET_INDEX_DEFAULT,{fallbackScan:true}).finally(()=>{setRegistryState.pending=null;});
     console.log('MTG Builder v8.7.1 persistent registry loaded');
   }
@@ -705,4 +742,5 @@ export const MTGSetRegistry = {
     selectCodes:(codes)=>{const wanted=new Set((codes||[]).map(x=>String(x).toUpperCase()));document.querySelectorAll('.batch-set-checkbox').forEach(cb=>{cb.checked=wanted.has(String(cb.value||'').toUpperCase());});},
     buildIndex:buildRegistry
   };
+  window.MTGSetRegistry = MTGSetRegistry;
   document.addEventListener('DOMContentLoaded', bind);
