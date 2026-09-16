@@ -1,4 +1,5 @@
 import { SimpleZip } from './simple-zip.js';
+import { ImageManager } from './image-manager.js';
 
   function $(id) { return document.getElementById(id); }
 
@@ -292,15 +293,19 @@ import { SimpleZip } from './simple-zip.js';
 
     async resolveProcessedImage(scryfallId, width, quality) {
       const key = this.key(scryfallId, width, quality);
+      const backKey = this.key(`${scryfallId}-back`, width, quality);
       const config = this.getConfig();
+
+      let localFront = null, localBack = null;
 
       if (config.useLocal) {
         try {
-          const local = await this.getLocal(key);
-          if (local) {
+          localFront = await this.getLocal(key);
+          localBack = await this.getLocal(backKey);
+          if (localFront) {
             this.stats.localHits += 1;
             this.refreshStatusSoon();
-            return {dataUrl: local, source: 'local'};
+            return {dataUrl: localFront, dataUrlBack: localBack, source: 'local'};
           }
         } catch (error) {
           console.warn('Local cache read failed', error);
@@ -311,21 +316,31 @@ import { SimpleZip } from './simple-zip.js';
         try {
           const folder = this.folder(width, quality);
           const reference = await this.resolveRemoteReference(folder, scryfallId);
+          const backReference = await this.resolveRemoteReference(folder, `${scryfallId}-back`);
           if (reference) {
-            let githubData = null;
+            let githubData = null, githubBackData = null;
             if (String(reference).includes('.zip#')) {
               githubData = await this.fetchFromPackedCache(reference);
               if (githubData) this.stats.githubPackHits += 1;
+              if (backReference) {
+                githubBackData = await this.fetchFromPackedCache(backReference);
+              }
             } else {
               githubData = await this.fetchGithubImage(reference);
               if (githubData) this.stats.githubLooseHits += 1;
+              if (backReference) {
+                githubBackData = await this.fetchGithubImage(backReference);
+              }
             }
             if (githubData) {
               if (config.useLocal) {
-                try { await this.putLocal(key, githubData); } catch (error) {}
+                try {
+                  await this.putLocal(key, githubData);
+                  if (githubBackData) await this.putLocal(backKey, githubBackData);
+                } catch (error) {}
               }
               this.refreshStatusSoon();
-              return {dataUrl: githubData, source: 'github'};
+              return {dataUrl: githubData, dataUrlBack: githubBackData, source: 'github'};
             }
           }
         } catch (error) {
@@ -333,27 +348,50 @@ import { SimpleZip } from './simple-zip.js';
         }
       }
 
-      if (typeof ImageLab === 'undefined') return {dataUrl: null, source: 'missing'};
-      const imageUrl = await ImageLab.getScryfallImage(scryfallId);
-      if (!imageUrl) return {dataUrl: null, source: 'missing'};
-      const processed = await ImageLab.processImage(imageUrl);
-      if (config.useLocal) {
-        try { await this.putLocal(key, processed); } catch (error) {}
+      const imageUrls = await ImageManager.getScryfallImage(scryfallId);
+      if (!imageUrls || imageUrls.length === 0) return {dataUrl: null, dataUrlBack: null, source: 'missing'};
+      const processed = await ImageManager.processImage(imageUrls, width, quality);
+
+      const frontDataUrl = processed[0];
+      const backDataUrl = processed.length > 1 ? processed[1] : null;
+
+      if (frontDataUrl) {
+        if (config.useLocal) {
+          try { await this.putLocal(key, frontDataUrl); } catch (error) {}
+        }
+        this.pendingUpdates.set(key, {
+          key,
+          scryfallId,
+          width,
+          quality,
+          folder: this.folder(width, quality),
+          fileName: `${scryfallId}.jpg`,
+          dataUrl: frontDataUrl,
+          byteLength: dataUrlToBytes(frontDataUrl).length,
+          updatedAt: new Date().toISOString()
+        });
       }
-      this.pendingUpdates.set(key, {
-        key,
-        scryfallId,
-        width,
-        quality,
-        folder: this.folder(width, quality),
-        fileName: `${scryfallId}.jpg`,
-        dataUrl: processed,
-        byteLength: dataUrlToBytes(processed).length,
-        updatedAt: new Date().toISOString()
-      });
+
+      if (backDataUrl) {
+        if (config.useLocal) {
+          try { await this.putLocal(backKey, backDataUrl); } catch (error) {}
+        }
+        this.pendingUpdates.set(backKey, {
+          key: backKey,
+          scryfallId: `${scryfallId}-back`,
+          width,
+          quality,
+          folder: this.folder(width, quality),
+          fileName: `${scryfallId}-back.jpg`,
+          dataUrl: backDataUrl,
+          byteLength: dataUrlToBytes(backDataUrl).length,
+          updatedAt: new Date().toISOString()
+        });
+      }
+
       this.stats.processedFresh += 1;
       this.refreshStatusSoon();
-      return {dataUrl: processed, source: 'scryfall'};
+      return {dataUrl: frontDataUrl, dataUrlBack: backDataUrl, source: 'scryfall'};
     },
 
     /*
