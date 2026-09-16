@@ -25,5 +25,41 @@ const ImageManager = {
       };
       img.src = URL.createObjectURL(blob);
     });
+  },
+
+  async getScryfallImage(scryfallId) {
+    const response = await fetch(`https://api.scryfall.com/cards/${encodeURIComponent(scryfallId)}`, {
+      cache: 'no-store',
+      headers: {'Accept': 'application/json'}
+    });
+    if (!response.ok) throw new Error(`Scryfall card lookup failed (${response.status}).`);
+    const card = await response.json();
+    const urls = [];
+    if (card && card.image_uris && card.image_uris.normal) {
+      urls.push(card.image_uris.normal);
+    } else if (Array.isArray(card && card.card_faces)) {
+      card.card_faces.forEach(face => {
+        if (face && face.image_uris && face.image_uris.normal) urls.push(face.image_uris.normal);
+      });
+    }
+    return urls;
+  },
+
+  async processImage(urls, width = 300, quality = 0.65) {
+    if (!Array.isArray(urls)) urls = [urls];
+    const processed = [];
+    for (const url of urls) {
+      try {
+        const blob = await this.fetchImage(url);
+        const dataUrl = await this.resizeImage(blob, width, quality);
+        processed.push(dataUrl);
+      } catch (err) {
+        console.warn('Failed to process image', url, err);
+      }
+    }
+    return processed;
   }
 };
+
+window.ImageManager = ImageManager;
+export { ImageManager };
