@@ -249,6 +249,7 @@
       </section>
 
       <p class="hint">Generated files download to your computer. Upload HTML/index files and <code>build-manifest.json</code> to <code>data/output</code>.</p>
+      <div id="catalogActiveProfile" class="summary-box" style="margin-bottom: 1rem; background: #eef; color: #000; border: 1px solid #ccd;">Active Output Designer Profile: <strong>None</strong></div>
       <div id="catalogSummary" class="summary-box">Ready.</div>
     </section>
 
@@ -658,7 +659,9 @@
       </div>
 
       <div id="odDesignerStatus" class="summary-box" style="margin-top: 1rem;">Designer ready.</div>
+      <div id="odActiveProfileStatus" class="summary-box" style="margin-top: 1rem; background: #eef; color: #000; border: 1px solid #ccd;">Active Profile Applied to Catalog Builder: <strong>None</strong></div>
       <div class="actions" style="margin-top: 1rem;">
+        <button id="odApplyToCatalogBtn" type="button" style="background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; font-weight: bold;">Apply to Catalog Builder</button>
         <button id="odExportBtn" type="button">Export Profile</button>
         <button id="odImportBtn" type="button">Import Profile</button>
         <input type="file" id="odImportFile" accept=".json,application/json" hidden>

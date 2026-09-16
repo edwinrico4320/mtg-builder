@@ -172,6 +172,7 @@
 
   let state = {
     profile: clone(DEFAULT_PROFILE),
+    committedProfile: clone(DEFAULT_PROFILE),
     microPreviewCards: null,
     microPreviewArt: {},
     previewMode: 'catalog',
@@ -277,7 +278,7 @@
   }
 
   function getGeneratedCss(context, profileInput) {
-    const p = sanitizeProfile(profileInput || state.profile);
+    const p = sanitizeProfile(profileInput || state.committedProfile);
     const d = densityValues(p);
     const maxWidth = p.maxPageWidth === 0 ? 'none' : `${p.maxPageWidth}px`;
     const h1 = Math.round(p.baseFontSize * p.headingScale * 1.45);
@@ -298,7 +299,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function getFingerprintData() {
-    const profile = sanitizeProfile(state.profile);
+    const profile = sanitizeProfile(state.committedProfile);
     const out = {version: VERSION};
     OUTPUT_FIELDS.forEach(key => { out[key] = profile[key]; });
     return out;
@@ -349,7 +350,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
   }
 
   function getProfileSummary() {
-    const p = sanitizeProfile(state.profile);
+    const p = sanitizeProfile(state.committedProfile);
     return {name:p.name, version:VERSION, fontFamily:p.fontFamily, baseFontSize:p.baseFontSize, density:p.density, navigationMode:p.navigationMode, imagePosition:p.imagePosition, imageWidth:p.imageWidth, printPaper:p.printPaper, printCardsPerSide:p.printCardsPerSide};
   }
 
@@ -399,6 +400,23 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
 
   function persist() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitizeProfile(state.profile))); } catch (err) {}
+  }
+
+  function commitProfileToCatalog() {
+    state.committedProfile = sanitizeProfile(state.profile);
+    const activeName = state.committedProfile.name || 'Default';
+    const msg = `Active Profile Applied to Catalog Builder: <strong>${esc(activeName)}</strong>`;
+
+    const odStatus = $('odActiveProfileStatus');
+    if (odStatus) odStatus.innerHTML = msg;
+
+    const catalogStatus = $('catalogActiveProfile');
+    if (catalogStatus) catalogStatus.innerHTML = `Active Output Designer Profile: <strong>${esc(activeName)}</strong>`;
+
+    document.dispatchEvent(new CustomEvent('output-design-committed', {detail:getFingerprintData()}));
+
+    const status = $('odDesignerStatus');
+    if (status) status.innerHTML = `<strong>Profile Applied to Catalog Builder.</strong><br>${esc(state.profile.name)}`;
   }
 
   function loadLocal() {
@@ -461,7 +479,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     const body = state.previewMode === 'rules' ? rulesPreview() : state.previewMode === 'portable' ? portablePreview() : state.previewMode === 'print' ? printPreview() : state.previewMode === 'micro' ? (window.MicroCatalogPreview ? MicroCatalogPreview.render(state.profile, state.microPreviewCards, state.microPreviewArt) : printPreview()) : catalogPreview();
     const title = state.previewMode === 'rules' ? 'Rules Preview' : state.previewMode === 'portable' ? 'Portable Library Preview' : state.previewMode === 'print' ? 'Printable Sheet Preview' : state.previewMode === 'micro' ? 'Micro Catalog Preview' : 'Catalog Preview';
     const priceCss = window.PriceSnapshotManager ? PriceSnapshotManager.getOutputCss() : '';
-    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode)}${state.previewMode==='print'?printPreviewCss():''}${state.previewMode==='micro' && window.MicroCatalogPreview ? MicroCatalogPreview.css(state.profile) : ''}${priceCss}</style></head><body>${body}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>${previewBaseCss()}${getGeneratedCss(state.previewMode, state.profile)}${state.previewMode==='print'?printPreviewCss():''}${state.previewMode==='micro' && window.MicroCatalogPreview ? MicroCatalogPreview.css(state.profile) : ''}${priceCss}</style></head><body>${body}</body></html>`;
   }
 
   async function hydrateMicroPreview() {
@@ -686,6 +704,7 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     }));
     const applyBtn = $('odApplyPresetBtn'); if (applyBtn) applyBtn.addEventListener('click', applyPreset);
     const resetBtn = $('odResetBtn'); if (resetBtn) resetBtn.addEventListener('click', () => applyProfile(DEFAULT_PROFILE, 'Designer reset to default.'));
+    const applyToCatalogBtn = $('odApplyToCatalogBtn'); if (applyToCatalogBtn) applyToCatalogBtn.addEventListener('click', commitProfileToCatalog);
     const exportBtn = $('odExportBtn'); if (exportBtn) exportBtn.addEventListener('click', exportProfile);
     const importBtn = $('odImportBtn'); const importFileInput = $('odImportFile');
     if (importBtn && importFileInput) importBtn.addEventListener('click', () => importFileInput.click());
@@ -698,13 +717,16 @@ html{background:var(--od-page-bg)}body{font-family:var(--od-font)!important;font
     document.addEventListener('price-settings-change', renderPreview);
     document.addEventListener('price-data-loaded', renderPreview);
     renderPreview();
+
+    // Auto-commit on load to ensure catalog builder has the initial profile
+    commitProfileToCatalog();
   }
 
 export const OutputDesigner = {
     version: VERSION,
     defaults: clone(DEFAULT_PROFILE),
     presets: clone(PRESETS),
-    getProfile: () => sanitizeProfile(state.profile),
+    getProfile: () => sanitizeProfile(state.committedProfile),
     getFingerprintData,
     getProfileSummary,
     getBuildConfig,
