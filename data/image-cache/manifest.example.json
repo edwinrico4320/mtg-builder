@@ -1,0 +1,11 @@
+{
+  "version": "8.3.1",
+  "generatedAt": null,
+  "profiles": {
+    "300-65": {
+      "files": {
+        "example-scryfall-id": "packs/300-65-pack-20260727153000-001.zip#example-scryfall-id.jpg"
+      }
+    }
+  }
+}

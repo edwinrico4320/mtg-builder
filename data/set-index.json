@@ -1,0 +1,993 @@
+{
+  "version": "8.6.1",
+  "updatedAt": "2026-08-05T21:40:24.030Z",
+  "source": {
+    "owner": "edwinrico4320",
+    "repo": "mtg-builder",
+    "branch": "main",
+    "folder": "data/json"
+  },
+  "sets": [
+    {
+      "code": "AFR",
+      "name": "Adventures in the Forgotten Realms",
+      "releaseDate": "2021-07-23",
+      "cardCount": 424,
+      "sourceSha": "79baef8d81ca0f14da14341357f4d765efe13a4a",
+      "sourceBytes": 4604770,
+      "path": "./data/json/AFR.json"
+    },
+    {
+      "code": "AER",
+      "name": "Aether Revolt",
+      "releaseDate": "2017-01-20",
+      "cardCount": 197,
+      "sourceSha": "64ea85cc0e83e4322a9191f0483f967723e719e2",
+      "sourceBytes": 2179277,
+      "path": "./data/json/AER.json"
+    },
+    {
+      "code": "DFT",
+      "name": "Aetherdrift",
+      "releaseDate": "2025-02-14",
+      "cardCount": 553,
+      "sourceSha": "61a2a08316429013c75f9ed8397962c0eb0b7a17",
+      "sourceBytes": 3828850,
+      "path": "./data/json/DFT.json"
+    },
+    {
+      "code": "DRC",
+      "name": "Aetherdrift Commander",
+      "releaseDate": "2025-02-14",
+      "cardCount": 187,
+      "sourceSha": "dc42214db063a2b28e2f57c0d3898f11a87d1564",
+      "sourceBytes": 1175818,
+      "path": "./data/json/DRC.json"
+    },
+    {
+      "code": "ARB",
+      "name": "Alara Reborn",
+      "releaseDate": "2009-04-30",
+      "cardCount": 145,
+      "sourceSha": "3519224c7731f9d10fab160fbc7d3aa0b990f86a",
+      "sourceBytes": 1384743,
+      "path": "./data/json/ARB.json"
+    },
+    {
+      "code": "AKH",
+      "name": "Amonkhet",
+      "releaseDate": "2017-04-28",
+      "cardCount": 302,
+      "sourceSha": "4c1e27451491b0c19e5948e56329634ad4d63e96",
+      "sourceBytes": 3330816,
+      "path": "./data/json/AKH.json"
+    },
+    {
+      "code": "AVR",
+      "name": "Avacyn Restored",
+      "releaseDate": "2012-05-04",
+      "cardCount": 244,
+      "sourceSha": "e227f13fe1096f2e1a175b7058c400306beed72c",
+      "sourceBytes": 2486662,
+      "path": "./data/json/AVR.json"
+    },
+    {
+      "code": "TLA",
+      "name": "Avatar: The Last Airbender",
+      "releaseDate": "2025-11-21",
+      "cardCount": 414,
+      "sourceSha": "954cbfa9b4500d7ad5f21ebeff6cffdc69b6ad25",
+      "sourceBytes": 2406415,
+      "path": "./data/json/TLA.json"
+    },
+    {
+      "code": "BFZ",
+      "name": "Battle for Zendikar",
+      "releaseDate": "2015-10-02",
+      "cardCount": 299,
+      "sourceSha": "5aa4e4b36d5a7d6bdfb7737a1984f6ee59ffc709",
+      "sourceBytes": 3071877,
+      "path": "./data/json/BFZ.json"
+    },
+    {
+      "code": "BLB",
+      "name": "Bloomburrow",
+      "releaseDate": "2024-08-02",
+      "cardCount": 398,
+      "sourceSha": "b296783667b1c773f0f69d78797fc796952ca929",
+      "sourceBytes": 3230550,
+      "path": "./data/json/BLB.json"
+    },
+    {
+      "code": "BLC",
+      "name": "Bloomburrow Commander",
+      "releaseDate": "2024-08-02",
+      "cardCount": 360,
+      "sourceSha": "b290affce7a948176d330ba9a4ca44f48e3a2e37",
+      "sourceBytes": 2048800,
+      "path": "./data/json/BLC.json"
+    },
+    {
+      "code": "BNG",
+      "name": "Born of the Gods",
+      "releaseDate": "2014-02-07",
+      "cardCount": 165,
+      "sourceSha": "0ca4eba58c75388cbe854666cfe3115344375c74",
+      "sourceBytes": 1943834,
+      "path": "./data/json/BNG.json"
+    },
+    {
+      "code": "C21",
+      "name": "Commander 2021",
+      "releaseDate": "2021-04-23",
+      "cardCount": 410,
+      "sourceSha": "e894b548e6d1301640dd82d9991525fd6c212376",
+      "sourceBytes": 3256088,
+      "path": "./data/json/C21.json"
+    },
+    {
+      "code": "CMR",
+      "name": "Commander Legends",
+      "releaseDate": "2020-11-20",
+      "cardCount": 720,
+      "sourceSha": "7dd232195b8b3405f40cf758d80f7e2fc9289623",
+      "sourceBytes": 6094254,
+      "path": "./data/json/CMR.json"
+    },
+    {
+      "code": "CLB",
+      "name": "Commander Legends: Battle for Baldur's Gate",
+      "releaseDate": "2022-06-10",
+      "cardCount": 972,
+      "sourceSha": "02f3cdeb0c98a760c5e800e49edea59ef30f2811",
+      "sourceBytes": 9418098,
+      "path": "./data/json/CLB.json"
+    },
+    {
+      "code": "CMM",
+      "name": "Commander Masters",
+      "releaseDate": "2023-08-04",
+      "cardCount": 1068,
+      "sourceSha": "9c101ff0c32df16010ae275f5bf172e33aab928a",
+      "sourceBytes": 7491567,
+      "path": "./data/json/CMM.json"
+    },
+    {
+      "code": "CON",
+      "name": "Conflux",
+      "releaseDate": "2009-02-06",
+      "cardCount": 145,
+      "sourceSha": "7402680e9a797ecb70892ab0e0b861b57ebafb47",
+      "sourceBytes": 1341805,
+      "path": "./data/json/CON.json"
+    },
+    {
+      "code": "M19",
+      "name": "Core Set 2019",
+      "releaseDate": "2018-07-13",
+      "cardCount": 315,
+      "sourceSha": "cf4bbe1408ad77e4d3b39bbc0fbdbe00c22acee5",
+      "sourceBytes": 3222950,
+      "path": "./data/json/M19.json"
+    },
+    {
+      "code": "M20",
+      "name": "Core Set 2020",
+      "releaseDate": "2019-07-12",
+      "cardCount": 346,
+      "sourceSha": "ac7bba1e424ae49cf3216549917f33375bdb84ec",
+      "sourceBytes": 3563507,
+      "path": "./data/json/M20.json"
+    },
+    {
+      "code": "DKA",
+      "name": "Dark Ascension",
+      "releaseDate": "2012-02-03",
+      "cardCount": 171,
+      "sourceSha": "67bf3a26a98df2c2480633f158436db2f6036e86",
+      "sourceBytes": 1809879,
+      "path": "./data/json/DKA.json"
+    },
+    {
+      "code": "WHO",
+      "name": "Doctor Who",
+      "releaseDate": "2023-10-13",
+      "cardCount": 1186,
+      "sourceSha": "802945f11d3cff42d95d3d80e12eb55a644ba419",
+      "sourceBytes": 5774347,
+      "path": "./data/json/WHO.json"
+    },
+    {
+      "code": "DOM",
+      "name": "Dominaria",
+      "releaseDate": "2018-04-27",
+      "cardCount": 280,
+      "sourceSha": "7ae5f770d6229a9b9a172f42a9f4faf74e6527fb",
+      "sourceBytes": 3058452,
+      "path": "./data/json/DOM.json"
+    },
+    {
+      "code": "DMR",
+      "name": "Dominaria Remastered",
+      "releaseDate": "2023-01-13",
+      "cardCount": 467,
+      "sourceSha": "ff4b7cce9e76194576a9c31f2dad52ef273d09d7",
+      "sourceBytes": 3530663,
+      "path": "./data/json/DMR.json"
+    },
+    {
+      "code": "DMU",
+      "name": "Dominaria United",
+      "releaseDate": "2022-09-09",
+      "cardCount": 453,
+      "sourceSha": "5f8999e27ffd267b9668f2a62500e8e2f86347e6",
+      "sourceBytes": 3972391,
+      "path": "./data/json/DMU.json"
+    },
+    {
+      "code": "2XM",
+      "name": "Double Masters",
+      "releaseDate": "2020-08-07",
+      "cardCount": 384,
+      "sourceSha": "ed1c1ea47bcf19536329a7b6d1be7dce618c4761",
+      "sourceBytes": 2305280,
+      "path": "./data/json/2XM.json"
+    },
+    {
+      "code": "2X2",
+      "name": "Double Masters 2022",
+      "releaseDate": "2022-07-08",
+      "cardCount": 579,
+      "sourceSha": "0d897d6cc5a79094a7dbc7415868c29ea60a1d52",
+      "sourceBytes": 3654574,
+      "path": "./data/json/2X2.json"
+    },
+    {
+      "code": "DGM",
+      "name": "Dragon's Maze",
+      "releaseDate": "2013-05-03",
+      "cardCount": 171,
+      "sourceSha": "3690f533830f92a948313aa56e02e86b11cf1e54",
+      "sourceBytes": 1746437,
+      "path": "./data/json/DGM.json"
+    },
+    {
+      "code": "DTK",
+      "name": "Dragons of Tarkir",
+      "releaseDate": "2015-03-27",
+      "cardCount": 264,
+      "sourceSha": "2a2fc1674d9ac858c2c0901cf20325952d993291",
+      "sourceBytes": 2986240,
+      "path": "./data/json/DTK.json"
+    },
+    {
+      "code": "DSK",
+      "name": "Duskmourn: House of Horror",
+      "releaseDate": "2024-09-27",
+      "cardCount": 453,
+      "sourceSha": "82669cdb99749c54df74d1a866247c102b3bebec",
+      "sourceBytes": 3905971,
+      "path": "./data/json/DSK.json"
+    },
+    {
+      "code": "DSC",
+      "name": "Duskmourn: House of Horror Commander",
+      "releaseDate": "2024-09-27",
+      "cardCount": 379,
+      "sourceSha": "d6f1351c411d36d3225f2e5df6c295d6b015693a",
+      "sourceBytes": 2333361,
+      "path": "./data/json/DSC.json"
+    },
+    {
+      "code": "EOE",
+      "name": "Edge of Eternities",
+      "releaseDate": "2025-08-01",
+      "cardCount": 400,
+      "sourceSha": "4717360d44f373b3d7076decae1232e0adacf1c7",
+      "sourceBytes": 2372029,
+      "path": "./data/json/EOE.json"
+    },
+    {
+      "code": "EMN",
+      "name": "Eldritch Moon",
+      "releaseDate": "2016-07-22",
+      "cardCount": 223,
+      "sourceSha": "9bc1a36cf22f60b94c618609d5c69a5ef78ed70d",
+      "sourceBytes": 2429305,
+      "path": "./data/json/EMN.json"
+    },
+    {
+      "code": "PIP",
+      "name": "Fallout",
+      "releaseDate": "2024-03-08",
+      "cardCount": 1076,
+      "sourceSha": "5d81c68dbbda22ba8c0c7191a872cd1764a3c6a2",
+      "sourceBytes": 5557854,
+      "path": "./data/json/PIP.json"
+    },
+    {
+      "code": "FRF",
+      "name": "Fate Reforged",
+      "releaseDate": "2015-01-23",
+      "cardCount": 191,
+      "sourceSha": "3a525022a328812167f9478eb240b2e9021d584a",
+      "sourceBytes": 2134185,
+      "path": "./data/json/FRF.json"
+    },
+    {
+      "code": "FIN",
+      "name": "Final Fantasy",
+      "releaseDate": "2025-06-13",
+      "cardCount": 691,
+      "sourceSha": "4cfebdc5e5e2b90a48f0884b51e98b0e2c457b0d",
+      "sourceBytes": 5326215,
+      "path": "./data/json/FIN.json"
+    },
+    {
+      "code": "FDN",
+      "name": "Foundations",
+      "releaseDate": "2024-11-15",
+      "cardCount": 771,
+      "sourceSha": "5b2d61cfbe976fa1f85b807bfdc1af8223cc02ba",
+      "sourceBytes": 4361930,
+      "path": "./data/json/FDN.json"
+    },
+    {
+      "code": "GTC",
+      "name": "Gatecrash",
+      "releaseDate": "2013-02-01",
+      "cardCount": 249,
+      "sourceSha": "6573df6989ad33b00d03ee58314cf1c48c323d89",
+      "sourceBytes": 2926487,
+      "path": "./data/json/GTC.json"
+    },
+    {
+      "code": "GRN",
+      "name": "Guilds of Ravnica",
+      "releaseDate": "2018-10-05",
+      "cardCount": 283,
+      "sourceSha": "0ee5b6259ca6fe054d1079c7b5cf89531b011e24",
+      "sourceBytes": 3001809,
+      "path": "./data/json/GRN.json"
+    },
+    {
+      "code": "HOU",
+      "name": "Hour of Devastation",
+      "releaseDate": "2017-07-14",
+      "cardCount": 219,
+      "sourceSha": "f48566b78c0c7890fc935d9f9da4e2191f537a15",
+      "sourceBytes": 2266555,
+      "path": "./data/json/HOU.json"
+    },
+    {
+      "code": "IMA",
+      "name": "Iconic Masters",
+      "releaseDate": "2017-11-17",
+      "cardCount": 249,
+      "sourceSha": "eec446385cd05952e764ad9cbe3885116e63dad6",
+      "sourceBytes": 1134224,
+      "path": "./data/json/IMA.json"
+    },
+    {
+      "code": "IKO",
+      "name": "Ikoria: Lair of Behemoths",
+      "releaseDate": "2020-04-24",
+      "cardCount": 390,
+      "sourceSha": "e27afdd250299f754671c216e26b882ef7ca1b08",
+      "sourceBytes": 3660561,
+      "path": "./data/json/IKO.json"
+    },
+    {
+      "code": "ISD",
+      "name": "Innistrad",
+      "releaseDate": "2011-09-30",
+      "cardCount": 284,
+      "sourceSha": "d72e5e6f44b73dec86b681deed20df7c62e6a995",
+      "sourceBytes": 2976050,
+      "path": "./data/json/ISD.json"
+    },
+    {
+      "code": "VOW",
+      "name": "Innistrad: Crimson Vow",
+      "releaseDate": "2021-11-19",
+      "cardCount": 504,
+      "sourceSha": "0b1762a94c833e3505afd6ac0fed02df29f16554",
+      "sourceBytes": 4794203,
+      "path": "./data/json/VOW.json"
+    },
+    {
+      "code": "MID",
+      "name": "Innistrad: Midnight Hunt",
+      "releaseDate": "2021-09-24",
+      "cardCount": 479,
+      "sourceSha": "3b26fa8fccb30c35d03baf5edb8a0ba576a4c5cb",
+      "sourceBytes": 4921921,
+      "path": "./data/json/MID.json"
+    },
+    {
+      "code": "XLN",
+      "name": "Ixalan",
+      "releaseDate": "2017-09-29",
+      "cardCount": 299,
+      "sourceSha": "c37a72914f8c6bb27a521894de304fad594b1489",
+      "sourceBytes": 3285089,
+      "path": "./data/json/XLN.json"
+    },
+    {
+      "code": "JOU",
+      "name": "Journey into Nyx",
+      "releaseDate": "2014-05-02",
+      "cardCount": 165,
+      "sourceSha": "6e476a9206049adc8831310a6b8f6975d6b893d2",
+      "sourceBytes": 1775751,
+      "path": "./data/json/JOU.json"
+    },
+    {
+      "code": "KLD",
+      "name": "Kaladesh",
+      "releaseDate": "2016-09-30",
+      "cardCount": 278,
+      "sourceSha": "493928c8335bc08008a86e6e83062bb0a80bb156",
+      "sourceBytes": 3170800,
+      "path": "./data/json/KLD.json"
+    },
+    {
+      "code": "KHM",
+      "name": "Kaldheim",
+      "releaseDate": "2021-02-05",
+      "cardCount": 459,
+      "sourceSha": "3949d3295d1bc0d172aa96d5db95bdbc708544a4",
+      "sourceBytes": 4947884,
+      "path": "./data/json/KHM.json"
+    },
+    {
+      "code": "NEO",
+      "name": "Kamigawa: Neon Dynasty",
+      "releaseDate": "2022-02-18",
+      "cardCount": 572,
+      "sourceSha": "c4f66670ee013ac739c356aba267c49c6386dba4",
+      "sourceBytes": 5799357,
+      "path": "./data/json/NEO.json"
+    },
+    {
+      "code": "KTK",
+      "name": "Khans of Tarkir",
+      "releaseDate": "2014-09-26",
+      "cardCount": 293,
+      "sourceSha": "01620c1ede0eaedea7ee1de88a8b5b579743b2aa",
+      "sourceBytes": 2948232,
+      "path": "./data/json/KTK.json"
+    },
+    {
+      "code": "ECL",
+      "name": "Lorwyn Eclipsed",
+      "releaseDate": "2026-01-23",
+      "cardCount": 427,
+      "sourceSha": "83802a6462bdc65d8ea48224a33dfa6c9b5b4187",
+      "sourceBytes": 2347871,
+      "path": "./data/json/ECL.json"
+    },
+    {
+      "code": "M10",
+      "name": "Magic 2010",
+      "releaseDate": "2009-07-17",
+      "cardCount": 249,
+      "sourceSha": "4fb9997a8ff685c15d42cf6b6b7f1f79672c27b0",
+      "sourceBytes": 2372724,
+      "path": "./data/json/M10.json"
+    },
+    {
+      "code": "M11",
+      "name": "Magic 2011",
+      "releaseDate": "2010-07-16",
+      "cardCount": 249,
+      "sourceSha": "6f3d8ed41aa262cea8cd22fdb399d5c4b06d44b7",
+      "sourceBytes": 2467788,
+      "path": "./data/json/M11.json"
+    },
+    {
+      "code": "M12",
+      "name": "Magic 2012",
+      "releaseDate": "2011-07-15",
+      "cardCount": 249,
+      "sourceSha": "883d9e789df932d68be86e4153b3194be8a20013",
+      "sourceBytes": 2514708,
+      "path": "./data/json/M12.json"
+    },
+    {
+      "code": "M13",
+      "name": "Magic 2013",
+      "releaseDate": "2012-07-13",
+      "cardCount": 249,
+      "sourceSha": "5bc53a57b3ed4cafcad71051990c122cafc2e468",
+      "sourceBytes": 2524810,
+      "path": "./data/json/M13.json"
+    },
+    {
+      "code": "M14",
+      "name": "Magic 2014",
+      "releaseDate": "2013-07-19",
+      "cardCount": 249,
+      "sourceSha": "25a3947baa606241633f00c8eac68315411d50e2",
+      "sourceBytes": 2547642,
+      "path": "./data/json/M14.json"
+    },
+    {
+      "code": "M15",
+      "name": "Magic 2015",
+      "releaseDate": "2014-07-18",
+      "cardCount": 284,
+      "sourceSha": "e25d95957a8d7905289824ba66814f3a2c62e8b7",
+      "sourceBytes": 3086757,
+      "path": "./data/json/M15.json"
+    },
+    {
+      "code": "ORI",
+      "name": "Magic Origins",
+      "releaseDate": "2015-07-17",
+      "cardCount": 293,
+      "sourceSha": "c1fad0780a3e2ea3f9eabdcce45872e9e2df8919",
+      "sourceBytes": 3059380,
+      "path": "./data/json/ORI.json"
+    },
+    {
+      "code": "MOM",
+      "name": "March of the Machine",
+      "releaseDate": "2023-04-21",
+      "cardCount": 463,
+      "sourceSha": "3cdae33d52a73cf9e537805a96bc4d689b42d1f2",
+      "sourceBytes": 4652592,
+      "path": "./data/json/MOM.json"
+    },
+    {
+      "code": "MAT",
+      "name": "March of the Machine: The Aftermath",
+      "releaseDate": "2023-05-12",
+      "cardCount": 230,
+      "sourceSha": "36edd906feb9f80d4eeac9005a49f7dd20177982",
+      "sourceBytes": 1699825,
+      "path": "./data/json/MAT.json"
+    },
+    {
+      "code": "MSH",
+      "name": "Marvel Super Heroes",
+      "releaseDate": "2026-06-26",
+      "cardCount": 472,
+      "sourceSha": "bfe240bb539f66d26c9cf13a61c71fe4e34c3eb3",
+      "sourceBytes": 1406206,
+      "path": "./data/json/MSH.json"
+    },
+    {
+      "code": "MAR",
+      "name": "Marvel Universe",
+      "releaseDate": "2025-09-26",
+      "cardCount": 100,
+      "sourceSha": "be8d3a567751f5cd5bf9fe921abbda36b1f2a4c7",
+      "sourceBytes": 400100,
+      "path": "./data/json/MAR.json"
+    },
+    {
+      "code": "SPM",
+      "name": "Marvel's Spider-Man",
+      "releaseDate": "2025-09-26",
+      "cardCount": 301,
+      "sourceSha": "02445c8cb498ed755958d893c1b281be831cd132",
+      "sourceBytes": 1847509,
+      "path": "./data/json/SPM.json"
+    },
+    {
+      "code": "A25",
+      "name": "Masters 25",
+      "releaseDate": "2018-03-16",
+      "cardCount": 249,
+      "sourceSha": "42392835393a9d2c1d365f64545454fa3478b2fc",
+      "sourceBytes": 1135584,
+      "path": "./data/json/A25.json"
+    },
+    {
+      "code": "MBS",
+      "name": "Mirrodin Besieged",
+      "releaseDate": "2011-02-04",
+      "cardCount": 155,
+      "sourceSha": "7696da162f3fc72da97c794497b26f19250778f7",
+      "sourceBytes": 1512240,
+      "path": "./data/json/MBS.json"
+    },
+    {
+      "code": "MH1",
+      "name": "Modern Horizons",
+      "releaseDate": "2019-06-14",
+      "cardCount": 255,
+      "sourceSha": "eecdb2efba0073111b88c88b9608f7203386414a",
+      "sourceBytes": 2589702,
+      "path": "./data/json/MH1.json"
+    },
+    {
+      "code": "MH2",
+      "name": "Modern Horizons 2",
+      "releaseDate": "2021-06-18",
+      "cardCount": 498,
+      "sourceSha": "5cd93c4534a02bebf9b8d92df65fc671be6abc4a",
+      "sourceBytes": 5466245,
+      "path": "./data/json/MH2.json"
+    },
+    {
+      "code": "MH3",
+      "name": "Modern Horizons 3",
+      "releaseDate": "2024-06-14",
+      "cardCount": 564,
+      "sourceSha": "2e8984dd64ce751bf5e1ef4526cf5908bafe42ec",
+      "sourceBytes": 5315277,
+      "path": "./data/json/MH3.json"
+    },
+    {
+      "code": "M3C",
+      "name": "Modern Horizons 3 Commander",
+      "releaseDate": "2024-06-14",
+      "cardCount": 399,
+      "sourceSha": "057f3d94b159122a05f7cf63f1ee33df846460c2",
+      "sourceBytes": 2498765,
+      "path": "./data/json/M3C.json"
+    },
+    {
+      "code": "MMA",
+      "name": "Modern Masters",
+      "releaseDate": "2013-06-07",
+      "cardCount": 229,
+      "sourceSha": "c6bb5e945802e72d77083aa9c13c5888ca8d7ce8",
+      "sourceBytes": 811842,
+      "path": "./data/json/MMA.json"
+    },
+    {
+      "code": "MM2",
+      "name": "Modern Masters 2015",
+      "releaseDate": "2015-05-22",
+      "cardCount": 249,
+      "sourceSha": "dde927a38ba7bec55c7ea23660cee418623ea417",
+      "sourceBytes": 1152619,
+      "path": "./data/json/MM2.json"
+    },
+    {
+      "code": "MM3",
+      "name": "Modern Masters 2017",
+      "releaseDate": "2017-03-17",
+      "cardCount": 249,
+      "sourceSha": "27aea788664283d3eb42c4052608691925179c7e",
+      "sourceBytes": 1144482,
+      "path": "./data/json/MM3.json"
+    },
+    {
+      "code": "MKM",
+      "name": "Murders at Karlov Manor",
+      "releaseDate": "2024-02-09",
+      "cardCount": 458,
+      "sourceSha": "9711c2996a602cfa4e7a8a28649c30b9a1bc3908",
+      "sourceBytes": 4351938,
+      "path": "./data/json/MKM.json"
+    },
+    {
+      "code": "MKC",
+      "name": "Murders at Karlov Manor Commander",
+      "releaseDate": "2024-02-09",
+      "cardCount": 361,
+      "sourceSha": "d80a0c52d8b1fac01a28bb640b740a04f82985f3",
+      "sourceBytes": 2183674,
+      "path": "./data/json/MKC.json"
+    },
+    {
+      "code": "NPH",
+      "name": "New Phyrexia",
+      "releaseDate": "2011-05-13",
+      "cardCount": 175,
+      "sourceSha": "8b741aa848de06bb5f8f89f20337736b741c0b1d",
+      "sourceBytes": 1721013,
+      "path": "./data/json/NPH.json"
+    },
+    {
+      "code": "OGW",
+      "name": "Oath of the Gatewatch",
+      "releaseDate": "2016-01-22",
+      "cardCount": 187,
+      "sourceSha": "4d378e08c42df7486723a3d3a864013d7207f4bb",
+      "sourceBytes": 1939367,
+      "path": "./data/json/OGW.json"
+    },
+    {
+      "code": "OTJ",
+      "name": "Outlaws of Thunder Junction",
+      "releaseDate": "2024-04-19",
+      "cardCount": 374,
+      "sourceSha": "7065d02ad8c58140014395f1136a2f7f8aa4cb7d",
+      "sourceBytes": 3664809,
+      "path": "./data/json/OTJ.json"
+    },
+    {
+      "code": "OTC",
+      "name": "Outlaws of Thunder Junction Commander",
+      "releaseDate": "2024-04-19",
+      "cardCount": 343,
+      "sourceSha": "70c954812ac926e6fa095cf19c813e2082039a9b",
+      "sourceBytes": 2178006,
+      "path": "./data/json/OTC.json"
+    },
+    {
+      "code": "ONE",
+      "name": "Phyrexia: All Will Be One",
+      "releaseDate": "2023-02-10",
+      "cardCount": 479,
+      "sourceSha": "85e956c83d78ef1b2d2c3c30a384007f85b68a41",
+      "sourceBytes": 4128535,
+      "path": "./data/json/ONE.json"
+    },
+    {
+      "code": "ONC",
+      "name": "Phyrexia: All Will Be One Commander",
+      "releaseDate": "2023-02-10",
+      "cardCount": 174,
+      "sourceSha": "90dd842b5af4a16b223f66f13a98b3c6fada8464",
+      "sourceBytes": 1180354,
+      "path": "./data/json/ONC.json"
+    },
+    {
+      "code": "RNA",
+      "name": "Ravnica Allegiance",
+      "releaseDate": "2019-01-25",
+      "cardCount": 283,
+      "sourceSha": "95cf144a6d1ccafbb551618835f027141cce0f7d",
+      "sourceBytes": 3082310,
+      "path": "./data/json/RNA.json"
+    },
+    {
+      "code": "RVR",
+      "name": "Ravnica Remastered",
+      "releaseDate": "2024-01-12",
+      "cardCount": 541,
+      "sourceSha": "2f00dbd563910406a4374589eb3264da2a3577e3",
+      "sourceBytes": 3894648,
+      "path": "./data/json/RVR.json"
+    },
+    {
+      "code": "RTR",
+      "name": "Return to Ravnica",
+      "releaseDate": "2012-10-05",
+      "cardCount": 274,
+      "sourceSha": "fa806e8ca78274c1214c948142b3a810e8c67894",
+      "sourceBytes": 3112644,
+      "path": "./data/json/RTR.json"
+    },
+    {
+      "code": "ROE",
+      "name": "Rise of the Eldrazi",
+      "releaseDate": "2010-04-23",
+      "cardCount": 248,
+      "sourceSha": "62fb18eb062f844dbdfe3d79a2dff3d2696e5560",
+      "sourceBytes": 2441581,
+      "path": "./data/json/ROE.json"
+    },
+    {
+      "code": "RIX",
+      "name": "Rivals of Ixalan",
+      "releaseDate": "2018-01-19",
+      "cardCount": 212,
+      "sourceSha": "0454b14e7982025101d63ab530cd4167cb0534e1",
+      "sourceBytes": 2199661,
+      "path": "./data/json/RIX.json"
+    },
+    {
+      "code": "SOM",
+      "name": "Scars of Mirrodin",
+      "releaseDate": "2010-10-01",
+      "cardCount": 249,
+      "sourceSha": "0babefaf1da7e31c336b5b9dc0e0184e46115b61",
+      "sourceBytes": 2468320,
+      "path": "./data/json/SOM.json"
+    },
+    {
+      "code": "SOS",
+      "name": "Secrets of Strixhaven",
+      "releaseDate": "2026-04-24",
+      "cardCount": 418,
+      "sourceSha": "0da2b82b3e440681e2bfff797d732f094bb6eee7",
+      "sourceBytes": 2912203,
+      "path": "./data/json/SOS.json"
+    },
+    {
+      "code": "SOI",
+      "name": "Shadows over Innistrad",
+      "releaseDate": "2016-04-08",
+      "cardCount": 335,
+      "sourceSha": "ae0fd24d6b32da7aae6c1bded59a49b0486985e6",
+      "sourceBytes": 3576795,
+      "path": "./data/json/SOI.json"
+    },
+    {
+      "code": "ALA",
+      "name": "Shards of Alara",
+      "releaseDate": "2008-10-03",
+      "cardCount": 250,
+      "sourceSha": "b2d15e762ab6b4d0e4ae57b947edd8ac9dad38bf",
+      "sourceBytes": 2406031,
+      "path": "./data/json/ALA.json"
+    },
+    {
+      "code": "SNC",
+      "name": "Streets of New Capenna",
+      "releaseDate": "2022-04-29",
+      "cardCount": 513,
+      "sourceSha": "9da66fb28118b4b2c4c666d43b4ed7cbd08b01d4",
+      "sourceBytes": 5109474,
+      "path": "./data/json/SNC.json"
+    },
+    {
+      "code": "STX",
+      "name": "Strixhaven: School of Mages",
+      "releaseDate": "2021-04-23",
+      "cardCount": 426,
+      "sourceSha": "36c96ab47fdbfb2fd909461a9bafccbeec5fbe2d",
+      "sourceBytes": 4317208,
+      "path": "./data/json/STX.json"
+    },
+    {
+      "code": "LTC",
+      "name": "Tales of Middle-earth Commander",
+      "releaseDate": "2023-06-23",
+      "cardCount": 592,
+      "sourceSha": "bf116883573adaa4e5930add08d2036094b11245",
+      "sourceBytes": 3435970,
+      "path": "./data/json/LTC.json"
+    },
+    {
+      "code": "TDM",
+      "name": "Tarkir: Dragonstorm",
+      "releaseDate": "2025-04-11",
+      "cardCount": 456,
+      "sourceSha": "0d1fe0d4f340ea56abb504d332ac6a73f4e9a682",
+      "sourceBytes": 3296675,
+      "path": "./data/json/TDM.json"
+    },
+    {
+      "code": "TDC",
+      "name": "Tarkir: Dragonstorm Commander",
+      "releaseDate": "2025-04-11",
+      "cardCount": 414,
+      "sourceSha": "6b0efe254b8f13aeded462bc36de5ecb37b1f748",
+      "sourceBytes": 2432130,
+      "path": "./data/json/TDC.json"
+    },
+    {
+      "code": "TMT",
+      "name": "Teenage Mutant Ninja Turtles",
+      "releaseDate": "2026-03-06",
+      "cardCount": 320,
+      "sourceSha": "eca7a9e2a8deee8efadc0ad905eb33570f29cbc9",
+      "sourceBytes": 2228441,
+      "path": "./data/json/TMT.json"
+    },
+    {
+      "code": "BIG",
+      "name": "The Big Score",
+      "releaseDate": "2024-04-19",
+      "cardCount": 95,
+      "sourceSha": "6b060d2910808a6b1917dffade0e407aac50a476",
+      "sourceBytes": 668711,
+      "path": "./data/json/BIG.json"
+    },
+    {
+      "code": "BRO",
+      "name": "The Brothers' War",
+      "releaseDate": "2022-11-18",
+      "cardCount": 399,
+      "sourceSha": "59e1f72ff855f6fa80ebc7f1643a7ea2afefaf0b",
+      "sourceBytes": 3640352,
+      "path": "./data/json/BRO.json"
+    },
+    {
+      "code": "LCI",
+      "name": "The Lost Caverns of Ixalan",
+      "releaseDate": "2023-11-17",
+      "cardCount": 472,
+      "sourceSha": "dd89d7997fb5a8295329e953c9d678d6d70279c3",
+      "sourceBytes": 4409113,
+      "path": "./data/json/LCI.json"
+    },
+    {
+      "code": "THS",
+      "name": "Theros",
+      "releaseDate": "2013-09-27",
+      "cardCount": 249,
+      "sourceSha": "2369bff08af3a2395b306c614a357a4e8bbd5803",
+      "sourceBytes": 2809729,
+      "path": "./data/json/THS.json"
+    },
+    {
+      "code": "THB",
+      "name": "Theros Beyond Death",
+      "releaseDate": "2020-01-24",
+      "cardCount": 358,
+      "sourceSha": "7c485af1949fd0a20941713df9f2e2882222a7c1",
+      "sourceBytes": 3464399,
+      "path": "./data/json/THB.json"
+    },
+    {
+      "code": "ELD",
+      "name": "Throne of Eldraine",
+      "releaseDate": "2019-10-04",
+      "cardCount": 458,
+      "sourceSha": "8070205d330522340be64839e46276a997e4c352",
+      "sourceBytes": 4302859,
+      "path": "./data/json/ELD.json"
+    },
+    {
+      "code": "OM1",
+      "name": "Through the Omenpaths",
+      "releaseDate": "2025-09-23",
+      "cardCount": 194,
+      "sourceSha": "254a17d906e31b78255f70c1952ea1dec4361d13",
+      "sourceBytes": 380557,
+      "path": "./data/json/OM1.json"
+    },
+    {
+      "code": "TSR",
+      "name": "Time Spiral Remastered",
+      "releaseDate": "2021-03-19",
+      "cardCount": 414,
+      "sourceSha": "2a9590d6cf27590182c12fa389100c66c9f1d9d0",
+      "sourceBytes": 3982756,
+      "path": "./data/json/TSR.json"
+    },
+    {
+      "code": "UMA",
+      "name": "Ultimate Masters",
+      "releaseDate": "2018-12-07",
+      "cardCount": 255,
+      "sourceSha": "1882a301e7b7891e5c22dfed72ab856a4badd115",
+      "sourceBytes": 1104386,
+      "path": "./data/json/UMA.json"
+    },
+    {
+      "code": "WAR",
+      "name": "War of the Spark",
+      "releaseDate": "2019-05-03",
+      "cardCount": 312,
+      "sourceSha": "7c3e612a7c69d23c235fa49abebc999774bc1571",
+      "sourceBytes": 3363572,
+      "path": "./data/json/WAR.json"
+    },
+    {
+      "code": "WOE",
+      "name": "Wilds of Eldraine",
+      "releaseDate": "2023-09-08",
+      "cardCount": 453,
+      "sourceSha": "ceb7bfddcfc721fed67c908c5c699041ab3f98fd",
+      "sourceBytes": 4409390,
+      "path": "./data/json/WOE.json"
+    },
+    {
+      "code": "WWK",
+      "name": "Worldwake",
+      "releaseDate": "2010-02-05",
+      "cardCount": 145,
+      "sourceSha": "6959e09a93201ffe65032a91c9a03e2cdd7b5301",
+      "sourceBytes": 1395437,
+      "path": "./data/json/WWK.json"
+    },
+    {
+      "code": "ZEN",
+      "name": "Zendikar",
+      "releaseDate": "2009-10-02",
+      "cardCount": 269,
+      "sourceSha": "512424240cf5ee1c40b956ad07d8661de42860bd",
+      "sourceBytes": 2405993,
+      "path": "./data/json/ZEN.json"
+    },
+    {
+      "code": "ZNR",
+      "name": "Zendikar Rising",
+      "releaseDate": "2020-09-25",
+      "cardCount": 460,
+      "sourceSha": "202f68f5f15281c4d7ad1efa940f30b83964239b",
+      "sourceBytes": 4788914,
+      "path": "./data/json/ZNR.json"
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "date": "2026-08-04",
+    "source": "Example only",
+    "uuidCount": 1
+  },
+  "data": {
+    "example-card-uuid": {
+      "paper": {
+        "tcgplayer": {
+          "currency": "USD",
+          "retail": {
+            "normal": {
+              "2026-08-04": 0.24
+            },
+            "foil": {
+              "2026-08-04": 0.82
+            }
+          }
+        },
+        "cardkingdom": {
+          "currency": "USD",
+          "retail": {
+            "normal": {
+              "2026-08-04": 0.35
+            }
+          },
+          "buylist": {
+            "normal": {
+              "2026-08-04": 0.08
+            }
+          }
+        },
+        "cardmarket": {
+          "currency": "EUR",
+          "retail": {
+            "normal": {
+              "2026-08-04": 0.18
+            }
+          }
+        },
+        "cardsphere": {
+          "currency": "USD",
+          "retail": {
+            "normal": {
+              "2026-08-04": 0.21
+            }
+          }
+        }
+      }
+    }
+  }
+}
